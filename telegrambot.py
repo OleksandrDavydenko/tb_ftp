@@ -50,13 +50,13 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     if update.message.text == "Дебіторка":
         await show_debt_options(update, context)
 
-    elif update.message.text == "Показати таблицю":
+    elif update.message.text == "Таблиця":
         await show_debt_details(update, context)
 
-    elif update.message.text == "Показати Гістограму":
+    elif update.message.text == "Гістограма":
         await show_debt_histogram(update, context)
 
-    elif update.message.text == "Показати Діаграму":
+    elif update.message.text == "Діаграма":
         await show_debt_pie_chart(update, context)
 
     elif update.message.text == "Назад":
@@ -74,7 +74,7 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-    app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Показати таблицю|Показати Гістограму|Показати Діаграму)$"), handle_main_menu))
+    app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма)$"), handle_main_menu))
 
     app.run_polling()
 
