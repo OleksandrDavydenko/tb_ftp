@@ -23,9 +23,9 @@ async def show_debt_options(update: Update, context: CallbackContext) -> None:
         else:
             await update.message.reply_text(f"Немає даних для {employee_name}.")
     
-    table_button = KeyboardButton(text="Показати таблицю")
-    histogram_button = KeyboardButton(text="Показати Гістограму")
-    pie_chart_button = KeyboardButton(text="Показати Діаграму")
+    table_button = KeyboardButton(text="Таблиця")
+    histogram_button = KeyboardButton(text="Гістограма")
+    pie_chart_button = KeyboardButton(text="Діаграма")
     back_button = KeyboardButton(text="Назад")
     custom_keyboard = [[table_button, histogram_button, pie_chart_button], [back_button]]
     reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
