@@ -53,12 +53,13 @@ async def show_debt_details(update: Update, context: CallbackContext) -> None:
         response += f"{'Загальна сума':<30}{total_debt:<12}\n"
 
         await update.message.reply_text(f"```\n{response}```", parse_mode="Markdown")
-
-        back_button = KeyboardButton(text="Назад")
-        reply_markup = ReplyKeyboardMarkup([[back_button]], one_time_keyboard=True)
-        await update.message.reply_text("Натисніть 'Назад', щоб повернутися.", reply_markup=reply_markup)
     else:
         await update.message.reply_text(f"Немає даних для {employee_name}.")
+
+    # Додаємо кнопку "Назад"
+    back_button = KeyboardButton(text="Назад")
+    reply_markup = ReplyKeyboardMarkup([[back_button]], one_time_keyboard=True)
+    await update.message.reply_text("Натисніть 'Назад', щоб повернутися.", reply_markup=reply_markup)
 
 # Функція для показу гістограми
 async def show_debt_histogram(update: Update, context: CallbackContext):
@@ -75,10 +76,13 @@ async def show_debt_histogram(update: Update, context: CallbackContext):
             os.remove(file_path)
         except FileNotFoundError:
             await update.message.reply_text("Графік не був створений через відсутність даних.")
+    else:
+        await update.message.reply_text(f"Немає даних для {employee_name}.")
 
-        back_button = KeyboardButton(text="Назад")
-        reply_markup = ReplyKeyboardMarkup([[back_button]], one_time_keyboard=True)
-        await update.message.reply_text("Натисніть 'Назад', щоб повернутися.", reply_markup=reply_markup)
+    # Додаємо кнопку "Назад"
+    back_button = KeyboardButton(text="Назад")
+    reply_markup = ReplyKeyboardMarkup([[back_button]], one_time_keyboard=True)
+    await update.message.reply_text("Натисніть 'Назад', щоб повернутися.", reply_markup=reply_markup)
 
 # Функція для показу секторної діаграми
 async def show_debt_pie_chart(update: Update, context: CallbackContext):
@@ -95,7 +99,10 @@ async def show_debt_pie_chart(update: Update, context: CallbackContext):
             os.remove(file_path)
         except FileNotFoundError:
             await update.message.reply_text("Діаграма не була створена через відсутність даних.")
+    else:
+        await update.message.reply_text(f"Немає даних для {employee_name}.")
 
-        back_button = KeyboardButton(text="Назад")
-        reply_markup = ReplyKeyboardMarkup([[back_button]], one_time_keyboard=True)
-        await update.message.reply_text("Натисніть 'Назад', щоб повернутися.", reply_markup=reply_markup)
+    # Додаємо кнопку "Назад"
+    back_button = KeyboardButton(text="Назад")
+    reply_markup = ReplyKeyboardMarkup([[back_button]], one_time_keyboard=True)
+    await update.message.reply_text("Натисніть 'Назад', щоб повернутися.", reply_markup=reply_markup)
