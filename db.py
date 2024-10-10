@@ -19,8 +19,7 @@ def create_users_table():
         phone_number VARCHAR(20) UNIQUE NOT NULL,
         telegram_id BIGINT NOT NULL,
         first_name VARCHAR(50),
-        last_name VARCHAR(50),
-        employee_name VARCHAR(70)
+        last_name VARCHAR(50)
     )
     """)
     conn.commit()
@@ -34,9 +33,9 @@ def add_telegram_user(phone_number, telegram_id, first_name, last_name, employee
     # Додаємо користувача в таблицю
     cursor.execute("""
     INSERT INTO users (phone_number, telegram_id, first_name, last_name, employee_name)
-    VALUES (%s, %s, %s, %s, %s)
+    VALUES (%s, %s, %s, %s)
     ON CONFLICT (phone_number) DO NOTHING
-    """, (phone_number, telegram_id, first_name, last_name, employee_name))
+    """, (phone_number, telegram_id, first_name, last_name))
 
     conn.commit()
     cursor.close()
