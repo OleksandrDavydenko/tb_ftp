@@ -2,6 +2,7 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 from key import KEY
 from auth import is_phone_number_in_power_bi
+from db import add_telegram_user  # Імпортуємо функцію для збереження користувача в БД
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -25,6 +26,16 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
         found, employee_name = is_phone_number_in_power_bi(phone_number)
         
         if found:
+
+            """ Додавання користувача в бд """
+
+            add_telegram_user(
+                phone_number=phone_number,
+                telegram_id=update.message.from_user.id,
+                first_name=employee_name,
+                last_name=update.message.from_user.last_name
+            )
+
             context.user_data['registered'] = True
             context.user_data['phone_number'] = phone_number
             context.user_data['first_name'] = employee_name
