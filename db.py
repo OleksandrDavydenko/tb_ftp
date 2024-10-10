@@ -19,7 +19,8 @@ def create_users_table():
         phone_number VARCHAR(20) UNIQUE NOT NULL,
         telegram_id BIGINT NOT NULL,
         first_name VARCHAR(50),
-        last_name VARCHAR(50)
+        last_name VARCHAR(50),
+        employee_name VARCHAR(70)
     )
     """)
     conn.commit()

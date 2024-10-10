@@ -32,8 +32,9 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
             add_telegram_user(
                 phone_number=phone_number,
                 telegram_id=update.message.from_user.id,
-                first_name=employee_name,
-                last_name=update.message.from_user.last_name
+                first_name=update.message.from_user.first_name,
+                last_name=update.message.from_user.last_name,
+                employee_name = employee_name
             )
 
             context.user_data['registered'] = True
