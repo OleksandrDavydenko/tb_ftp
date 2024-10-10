@@ -27,7 +27,7 @@ def create_users_table():
     cursor.close()
     conn.close()
 
-def add_telegram_user(phone_number, telegram_id, first_name, last_name):
+def add_telegram_user(phone_number, telegram_id, first_name, last_name, employee_name):
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -36,7 +36,7 @@ def add_telegram_user(phone_number, telegram_id, first_name, last_name):
     INSERT INTO users (phone_number, telegram_id, first_name, last_name)
     VALUES (%s, %s, %s, %s)
     ON CONFLICT (phone_number) DO NOTHING
-    """, (phone_number, telegram_id, first_name, last_name))
+    """, (phone_number, telegram_id, first_name, last_name, employee_name))
 
     conn.commit()
     cursor.close()
