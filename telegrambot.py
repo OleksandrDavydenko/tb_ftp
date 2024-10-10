@@ -6,8 +6,7 @@ from db import add_telegram_user  # Імпортуємо функцію для �
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart
-
+from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart, show_main_menu  # Додано show_main_menu
 
 async def start(update: Update, context: CallbackContext) -> None:
     context.user_data['registered'] = False
@@ -31,8 +30,8 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
 
             add_telegram_user(
                 phone_number=phone_number,
-                telegram_id=update.message.from_user.id,
-                first_name=update.message.from_user.first_name,
+               telegram_id=update.message.from_user.id,
+               first_name=update.message.from_user.first_name,
                 last_name=employee_name
             )
 
@@ -79,13 +78,16 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         else:
             await show_main_menu(update, context)
 
+    elif update.message.text == "Головне меню":  # Додано обробку для кнопки "Головне меню"
+        await show_main_menu(update, context)  # Повернення до головного меню
+
 def main():
     token = KEY
     app = ApplicationBuilder().token(token).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-    app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма)$"), handle_main_menu))
+    app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Головне меню)$"), handle_main_menu))
 
     app.run_polling()
 
