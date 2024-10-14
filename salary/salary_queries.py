@@ -52,6 +52,7 @@ def get_salary_data(employee_name, year, month):
                         "Додаткові нарахування UAH", EmployeeSalary[ДодатковіНарахуванняUAH],
                         "Додаткові нарахування USD", EmployeeSalary[ДодатковіНарахуванняUSD],
                         "Нараховано Премії USD", EmployeeSalary[НарахованоПреміїUSD],
+                        "Нараховано Премії UAH", EmployeeSalary[НарахованоПреміїUAH],
                         "Нараховано Оклад USD", EmployeeSalary[НарахованоОкладUSD]
                     )
                 """
@@ -61,6 +62,7 @@ def get_salary_data(employee_name, year, month):
             "includeNulls": True
         }
     }
+
     
     logging.info(f"Виконуємо запит до Power BI для користувача {employee_name}.")
     response = requests.post(power_bi_url, headers=headers, json=query_data)
@@ -146,40 +148,42 @@ def get_salary_payments(employee_name, year, month):
         return None
 
 def format_salary_table(rows, employee_name, year, month, payments):
-    if not rows:
-        logging.warning("Немає даних для цього періоду.")
-        return "Немає даних для цього періоду."
-
     # Заголовок таблиці з іменем користувача, місяцем і роком
     table = f"Розрахунковий лист: \n{employee_name} за {month} {year}:\n"
     table += "-" * 45 + "\n"
-    table += f"{'Нарахування':<30}{'UAH':<10}{'USD':<10}\n"
-    table += "-" * 45 + "\n"
 
-    total_uah = 0
-    total_usd = 0
+    # Перевірка наявності нарахувань
+    if rows:
+        table += f"{'Нарахування':<30}{'UAH':<10}{'USD':<10}\n"
+        table += "-" * 45 + "\n"
 
-    # Обробка кожного рядка і додавання даних у таблицю
-    for row in rows:
-        оклад_uah = float(row.get("[Нараховано Оклад UAH]", 0))
-        оклад_usd = 0.0  # Оклад в доларах завжди 0
-        премії_usd = float(row.get("[Нараховано Премії USD]", 0))
-        додат_uah = float(row.get("[Додаткові нарахування UAH]", 0))
-        додат_usd = float(row.get("[Додаткові нарахування USD]", 0))
+        total_uah = 0
+        total_usd = 0
 
-        total_uah += оклад_uah + додат_uah
-        total_usd += додат_usd + премії_usd
+        # Обробка кожного рядка і додавання даних у таблицю
+        for row in rows:
+            оклад_uah = float(row.get("[Нараховано Оклад UAH]", 0))
+            оклад_usd = 0.0  # Оклад в доларах завжди 0
+            премії_uah = float(row.get("[Нараховано Премії UAH]", 0))  # Премії в UAH
+            премії_usd = float(row.get("[Нараховано Премії USD]", 0))
+            додат_uah = float(row.get("[Додаткові нарахування UAH]", 0))
+            додат_usd = float(row.get("[Додаткові нарахування USD]", 0))
 
-        # Додаємо рядки до таблиці
-        table += f"{'Нараховано Оклад':<30}{оклад_uah:<10}{оклад_usd:<10}\n"
-        table += f"{'Нараховано Премії':<30}{'':<10}{премії_usd:<10}\n"
-        table += f"{'Додаткові нарахування':<30}{додат_uah:<10}{додат_usd:<10}\n"
+            total_uah += оклад_uah + премії_uah + додат_uah
+            total_usd += додат_usd + премії_usd
 
-    # Підсумки таблиці
-    table += "-" * 45 + "\n"
-    table += f"{'Всього нараховано:':<30}{total_uah:<10}{total_usd:<10}\n"
+            # Додаємо рядки до таблиці
+            table += f"{'Нараховано Оклад':<30}{оклад_uah:<10}{оклад_usd:<10}\n"
+            table += f"{'Нараховано Премії':<30}{премії_uah:<10}{премії_usd:<10}\n"
+            table += f"{'Додаткові нарахування':<30}{додат_uah:<10}{додат_usd:<10}\n"
 
-    # Додаємо секцію виплат
+        # Підсумки таблиці
+        table += "-" * 45 + "\n"
+        table += f"{'Всього нараховано:':<30}{total_uah:<10}{total_usd:<10}\n"
+    else:
+        table += "Немає даних про нарахування для цього періоду.\n"
+
+    # Додаємо секцію виплат, якщо є дані про виплати
     if payments:
         table += "\nВиплата ЗП:\n"
         table += f"{'Дата':<15}{'Документ':<15}{'UAH':<10}{'USD':<10}\n"
@@ -201,13 +205,8 @@ def format_salary_table(rows, employee_name, year, month, payments):
 
         table += "-" * 45 + "\n"
         table += f"{'Всього виплачено ЗП:':<30}{total_payment_uah:<10}{total_payment_usd:<10}\n"
+    else:
+        table += "Немає даних про виплати для цього періоду.\n"
 
     logging.info("Формування таблиці завершено.")
     return table
-
-
-
-
-
-
-
