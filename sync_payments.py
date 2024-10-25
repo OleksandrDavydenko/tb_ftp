@@ -57,14 +57,14 @@ async def sync_payments():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Отримуємо список усіх користувачів
+    # Отримуємо список усіх користувачів із бази даних
     cursor.execute("SELECT phone_number, first_name, joined_at FROM users")
     users = cursor.fetchall()
 
     for user in users:
         phone_number, employee_name, joined_at = user
 
-        # Оновлений DAX-запит
+        # Формуємо DAX-запит для конкретного користувача
         query_data = {
             "queries": [
                 {
@@ -94,6 +94,7 @@ async def sync_payments():
             if response.status_code == 200:
                 data = response.json()
                 rows = data['results'][0]['tables'][0].get('rows', [])
+                logging.info(f"Отримано {len(rows)} платежів з Power BI для користувача {employee_name}.")
 
                 # Асинхронно додаємо кожен платіж до бази даних
                 for payment in rows:
@@ -110,6 +111,7 @@ async def sync_payments():
                         сума = сума_uah
                         currency = "UAH"
 
+                    logging.info(f"Додавання платежу: {сума} {currency} на {дата_платежу} (№ {номер_платежу}).")
                     await async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу)
 
                 logging.info(f"Успішно синхронізовано {len(rows)} платежів для користувача {employee_name}.")
