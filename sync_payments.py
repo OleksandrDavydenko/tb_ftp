@@ -1,18 +1,46 @@
 import requests
 import psycopg2
 import os
+import logging
 from datetime import datetime
 from auth import get_power_bi_token
 from db import add_payment  # Імпортуємо функцію додавання платежу в БД
-import logging
 
-# Отримуємо URL бази даних з змінної середовища Heroku
+# Налаштування логування
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 DATABASE_URL = os.getenv('DATABASE_URL')
 
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
-def sync_payments(employee_name, phone_number, joined_at):
+async def async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу):
+    """Асинхронне додавання платежу до БД."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Перевірка на дублікати перед додаванням
+        cursor.execute("""
+            SELECT 1 FROM payments
+            WHERE phone_number = %s AND amount = %s AND currency = %s AND payment_date = %s AND payment_number = %s
+        """, (phone_number, сума, currency, дата_платежу, номер_платежу))
+
+        if not cursor.fetchone():
+            add_payment(phone_number, сума, currency, дата_платежу, номер_платежу)
+            logging.info(f"Додано новий платіж для користувача: {phone_number} на суму {сума} {currency} (№ {номер_платежу}).")
+        
+        conn.commit()
+
+    except Exception as e:
+        logging.error(f"Помилка при додаванні платежу: {e}")
+
+    finally:
+        cursor.close()
+        conn.close()
+
+async def async_sync_payments(employee_name, phone_number, joined_at):
+    """Асинхронна версія функції синхронізації."""
     token = get_power_bi_token()
     if not token:
         logging.error("Не вдалося отримати токен Power BI.")
@@ -50,42 +78,32 @@ def sync_payments(employee_name, phone_number, joined_at):
         }
     }
 
-    response = requests.post(power_bi_url, headers=headers, json=query_data)
+    try:
+        response = requests.post(power_bi_url, headers=headers, json=query_data)
+        if response.status_code == 200:
+            data = response.json()
+            rows = data['results'][0]['tables'][0].get('rows', [])
 
-    if response.status_code == 200:
-        data = response.json()
-        rows = data['results'][0]['tables'][0].get('rows', [])
+            # Асинхронно додаємо кожен платіж до бази даних
+            for payment in rows:
+                сума_uah = float(payment.get("[Сума UAH]", 0))
+                сума_usd = float(payment.get("[Сума USD]", 0))
+                дата_платежу = payment.get("[Дата платежу]", "")
+                номер_платежу = payment.get("[Документ]", "")
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
+                # Визначаємо валюту та суму
+                if сума_usd > 0:
+                    сума = сума_usd
+                    currency = "USD"
+                else:
+                    сума = сума_uah
+                    currency = "UAH"
 
-        for payment in rows:
-            сума_uah = float(payment.get("[Сума UAH]", 0))
-            сума_usd = float(payment.get("[Сума USD]", 0))
-            дата_платежу = payment.get("[Дата платежу]", "")
-            номер_платежу = payment.get("[Документ]", "")
+                await async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу)
 
-            # Визначаємо валюту та суму
-            if сума_usd > 0:
-                сума = сума_usd
-                currency = "USD"
-            else:
-                сума = сума_uah
-                currency = "UAH"
+            logging.info(f"Успішно синхронізовано {len(rows)} платежів для користувача {employee_name}.")
+        else:
+            logging.error(f"Помилка при виконанні запиту: {response.status_code}, {response.text}")
 
-            # Перевірка на дублікати перед додаванням
-            cursor.execute("""
-                SELECT 1 FROM payments
-                WHERE phone_number = %s AND amount = %s AND currency = %s AND payment_date = %s AND payment_number = %s
-            """, (phone_number, сума, currency, дата_платежу, номер_платежу))
-
-            if not cursor.fetchone():
-                add_payment(phone_number, сума, currency, дата_платежу, номер_платежу)
-
-        conn.commit()
-        cursor.close()
-        conn.close()
-        logging.info(f"Успішно синхронізовано {len(rows)} платежів для користувача {employee_name}.")
-    else:
-        logging.error(f"Помилка при виконанні запиту: {response.status_code}, {response.text}")
-
+    except Exception as e:
+        logging.error(f"Помилка при синхронізації для {employee_name}: {e}")

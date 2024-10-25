@@ -7,7 +7,7 @@ from datetime import datetime
 from telegram import Bot
 from telegram.error import NetworkError, TelegramError
 from key import KEY
-from sync_payments import sync_payments
+from sync_payments import async_sync_payments  # Використовуємо асинхронну версію sync_payments
 from auth import get_power_bi_token
 
 # Налаштування логування
@@ -19,6 +19,7 @@ def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
 async def check_new_payments():
+    """Перевірка нових платежів та надсилання сповіщень користувачам."""
     logging.info("Перевірка нових платежів розпочата.")
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -65,28 +66,23 @@ async def check_new_payments():
         cursor.close()
         conn.close()
 
-async def async_sync_payments(employee_name, phone_number, joined_at):
-    logging.info(f"Початок синхронізації для користувача: {employee_name} ({phone_number})")
-
-    try:
-        # Виклик функції sync_payments в асинхронному режимі
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, sync_payments, employee_name, phone_number, joined_at)
-        logging.info(f"Успішно синхронізовано для користувача: {employee_name}")
-    except Exception as e:
-        logging.error(f"Помилка при синхронізації для {employee_name}: {e}")
-
-async def sync_all_users():
+async def async_sync_all_users():
+    """Асинхронна синхронізація платежів для всіх користувачів."""
     logging.info("Початок періодичної синхронізації платежів.")
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
+        # Отримуємо всіх користувачів із таблиці users
         cursor.execute("SELECT phone_number, first_name, joined_at FROM users")
         users = cursor.fetchall()
 
-        # Виконуємо асинхронну синхронізацію для кожного користувача
-        tasks = [async_sync_payments(employee_name, phone_number, joined_at) for phone_number, employee_name, joined_at in users]
+        tasks = [
+            async_sync_payments(employee_name, phone_number, joined_at) 
+            for phone_number, employee_name, joined_at in users
+        ]
+
+        # Виконуємо асинхронну синхронізацію для всіх користувачів одночасно
         await asyncio.gather(*tasks)
 
     except Exception as e:
@@ -97,9 +93,10 @@ async def sync_all_users():
         conn.close()
 
 async def send_notification(telegram_id, amount, currency, payment_number):
+    """Асинхронне надсилання сповіщення користувачу."""
     bot = Bot(token=KEY)
     message = f"Доброго дня! Відбулась виплата на суму {amount} {currency} (№ {payment_number})."
-    
+
     try:
         await bot.send_message(chat_id=telegram_id, text=message)
         logging.info(f"Сповіщення відправлено: {message}")
@@ -111,9 +108,10 @@ async def send_notification(telegram_id, amount, currency, payment_number):
         logging.error(f"Інша помилка при відправці сповіщення: {e}")
 
 async def run_periodic_check():
+    """Основний цикл перевірки нових платежів та синхронізації."""
     while True:
         await check_new_payments()
-        await sync_all_users()  # Асинхронний виклик синхронізації для всіх користувачів
+        await async_sync_all_users()  # Асинхронний виклик синхронізації для всіх користувачів
         await asyncio.sleep(30)
 
 if __name__ == '__main__':
