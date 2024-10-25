@@ -9,26 +9,6 @@ def get_db_connection():
     # Підключаємось до бази даних PostgreSQL через URL з Heroku
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
-def alter_users_table():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    try:
-        # Додаємо стовпець joined_at, якщо його ще не існує
-        cursor.execute("""
-        ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS joined_at TIMESTAMP;
-        """)
-        
-        conn.commit()
-        print("Стовпець 'joined_at' додано успішно.")
-    except Exception as e:
-        conn.rollback()
-        print(f"Помилка при додаванні стовпця: {e}")
-    finally:
-        cursor.close()
-        conn.close()
-
 def create_tables():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -41,7 +21,7 @@ def create_tables():
         telegram_id BIGINT NOT NULL,
         first_name VARCHAR(50),
         last_name VARCHAR(50),
-        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- Додаємо поле для збереження дати приєднання
+        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
 
@@ -53,7 +33,7 @@ def create_tables():
         amount NUMERIC(10, 2),
         currency VARCHAR(10),
         payment_date TIMESTAMP,
-        payment_number VARCHAR(50),  -- Номер виплати
+        payment_number VARCHAR(50),
         is_notified BOOLEAN DEFAULT FALSE
     )
     """)
@@ -66,11 +46,15 @@ def add_telegram_user(phone_number, telegram_id, first_name, last_name):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Додаємо користувача в таблицю з встановленням дати приєднання
+    # Оновлюємо дату приєднання для нових користувачів
     cursor.execute("""
     INSERT INTO users (phone_number, telegram_id, first_name, last_name, joined_at)
     VALUES (%s, %s, %s, %s, %s)
-    ON CONFLICT (phone_number) DO NOTHING
+    ON CONFLICT (phone_number) DO UPDATE SET
+        telegram_id = EXCLUDED.telegram_id,
+        first_name = EXCLUDED.first_name,
+        last_name = EXCLUDED.last_name,
+        joined_at = COALESCE(users.joined_at, EXCLUDED.joined_at)
     """, (phone_number, telegram_id, first_name, last_name, datetime.now()))
 
     conn.commit()
@@ -91,8 +75,23 @@ def add_payment(phone_number, amount, currency, payment_date, payment_number):
     cursor.close()
     conn.close()
 
-# Викликаємо функцію для оновлення таблиці користувачів
-alter_users_table()
+def update_existing_users_joined_at():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Оновлюємо поле joined_at для всіх записів, де воно є NULL
+    cursor.execute("""
+    UPDATE users
+    SET joined_at = %s
+    WHERE joined_at IS NULL
+    """, (datetime.now(),))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 # Викликаємо функцію для створення таблиць при запуску
 create_tables()
+
+# Оновлюємо поле joined_at для існуючих користувачів
+update_existing_users_joined_at()
