@@ -6,9 +6,6 @@ from auth import get_power_bi_token
 from db import add_payment  # Імпортуємо функцію додавання платежу в БД
 import logging
 
-# Налаштовуємо logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 # Отримуємо URL бази даних з змінної середовища Heroku
 DATABASE_URL = os.getenv('DATABASE_URL')
 
@@ -28,8 +25,7 @@ def sync_payments(employee_name, phone_number, joined_at):
         'Content-Type': 'application/json'
     }
 
-    # Форматування дати приєднання
-    logging.info(f"Дата приєднання користувача: {joined_at}")
+    # Оновлений DAX-запит
     query_data = {
         "queries": [
             {
@@ -39,7 +35,7 @@ def sync_payments(employee_name, phone_number, joined_at):
                         FILTER(
                             SalaryPayment,
                             SalaryPayment[Employee] = "{employee_name}" &&
-                            SalaryPayment[DocDate] >= DATE({joined_at.year}, {joined_at.month}, {joined_at.day})
+                            VALUE(SalaryPayment[DocDate]) >= DATE({joined_at.year}, {joined_at.month}, {joined_at.day})
                         ),
                         "Дата платежу", SalaryPayment[DocDate],
                         "Документ", SalaryPayment[DocNumber],
@@ -54,13 +50,11 @@ def sync_payments(employee_name, phone_number, joined_at):
         }
     }
 
-    logging.info(f"Виконуємо запит до Power BI для користувача: {employee_name} з умовою дати приєднання.")
     response = requests.post(power_bi_url, headers=headers, json=query_data)
 
     if response.status_code == 200:
         data = response.json()
         rows = data['results'][0]['tables'][0].get('rows', [])
-        logging.info(f"Отримано {len(rows)} нових платежів.")
 
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -87,10 +81,10 @@ def sync_payments(employee_name, phone_number, joined_at):
 
             if not cursor.fetchone():
                 add_payment(phone_number, сума, currency, дата_платежу, номер_платежу)
-                logging.info(f"Додано новий платіж: {сума} {currency} ({номер_платежу})")
 
         conn.commit()
         cursor.close()
         conn.close()
+        logging.info(f"Успішно синхронізовано {len(rows)} платежів для користувача {employee_name}.")
     else:
         logging.error(f"Помилка при виконанні запиту: {response.status_code}, {response.text}")
