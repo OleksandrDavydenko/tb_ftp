@@ -3,6 +3,7 @@ import os
 import time
 from telegram import Bot
 import logging
+import asyncio
 from key import KEY  # Імпортуємо токен з key.py
 
 # Отримуємо URL бази даних з змінної середовища Heroku
@@ -12,7 +13,7 @@ def get_db_connection():
     # Підключаємось до бази даних PostgreSQL через URL з Heroku
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
-def check_new_payments():
+async def check_new_payments():
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -34,7 +35,7 @@ def check_new_payments():
         if user_data:
             telegram_id = user_data[0]
             # Відправляємо сповіщення
-            send_notification(telegram_id, amount, currency, payment_number)
+            await send_notification(telegram_id, amount, currency, payment_number)
 
             # Оновлюємо статус сповіщення
             cursor.execute("""
@@ -47,21 +48,21 @@ def check_new_payments():
     cursor.close()
     conn.close()
 
-def send_notification(telegram_id, amount, currency, payment_number):
+async def send_notification(telegram_id, amount, currency, payment_number):
     try:
-        bot = Bot(token=KEY)  # Використовуємо токен з key.py
+        bot = Bot(token=KEY)
         message = f"Доброго дня! Відбулась виплата на суму {amount} {currency} (№ {payment_number})."
-        bot.send_message(chat_id=telegram_id, text=message)
+        await bot.send_message(chat_id=telegram_id, text=message)
     except Exception as e:
         logging.error(f"Помилка при відправці сповіщення: {e}")
 
-def run_periodic_check():
+async def run_periodic_check():
     while True:
         try:
-            check_new_payments()
+            await check_new_payments()
         except Exception as e:
             logging.error(f"Помилка при перевірці нових платежів: {e}")
-        time.sleep(30)  # Перевірка кожні 30 секунд
+        await asyncio.sleep(30)  # Перевірка кожні 30 секунд
 
 if __name__ == '__main__':
-    run_periodic_check()
+    asyncio.run(run_periodic_check())
