@@ -33,7 +33,7 @@ async def show_salary_months(update: Update, context: CallbackContext) -> None:
 
 # Функція для показу розрахункової таблиці за вибраний період
 async def show_salary_details(update: Update, context: CallbackContext) -> None:
-    employee_name = context.user_data.get('first_name')  # Отримуємо ім'я користувача
+    employee_name = context.user_data.get('employee_name')  # Отримуємо ім'я користувача
     year = context.user_data.get('selected_year')        # Отримуємо вибраний рік
     month = context.user_data.get('selected_month')      # Отримуємо вибраний місяць
 
