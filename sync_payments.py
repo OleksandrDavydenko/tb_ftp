@@ -64,6 +64,8 @@ async def sync_payments():
     for user in users:
         phone_number, employee_name, joined_at = user
 
+        logging.info(f"Телефон {phone_number} платежів для користувача {employee_name} Приєднано {joined_at.strftime('%Y-%m-%d')}.")
+
         # Формуємо DAX-запит для конкретного користувача
         query_data = {
             "queries": [
