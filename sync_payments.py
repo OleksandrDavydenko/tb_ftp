@@ -6,7 +6,7 @@ from db import add_payment  # Імпортуємо функцію додаван
 # Налаштовуємо logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def sync_payments(phone_number):
+def sync_payments(employee_name, phone_number):
     token = get_power_bi_token()
     if not token:
         logging.error("Не вдалося отримати токен Power BI.")
@@ -19,19 +19,21 @@ def sync_payments(phone_number):
         'Content-Type': 'application/json'
     }
 
-    # Запит для отримання всіх доступних виплат
+    # Запит для отримання всіх доступних виплат по employee_name
     query_data = {
         "queries": [
             {
                 "query": f"""
                     EVALUATE 
                     SELECTCOLUMNS(
-                        SalaryPayment,
+                        FILTER(
+                            SalaryPayment,
+                            SalaryPayment[Employee] = "{employee_name}"
+                        ),
                         "Дата платежу", SalaryPayment[DocDate],
                         "Документ", SalaryPayment[DocNumber],
                         "Сума UAH", SalaryPayment[SUM_UAH],
-                        "Сума USD", SalaryPayment[SUM_USD],
-                        "Телефон", SalaryPayment[PhoneNumber]
+                        "Сума USD", SalaryPayment[SUM_USD]
                     )
                 """
             }
@@ -55,11 +57,9 @@ def sync_payments(phone_number):
             сума = float(payment.get("[Сума UAH]", 0))
             дата_платежу = payment.get("[Дата платежу]", "")
             номер_платежу = payment.get("[Документ]", "")
-            номер_телефону = payment.get("[Телефон]", "")
             currency = "UAH" if сума > 0 else "USD"
 
-            if номер_телефону == phone_number:
-                add_payment(phone_number, сума, currency, дата_платежу, номер_платежу)
+            add_payment(phone_number, сума, currency, дата_платежу, номер_платежу)
 
         logging.info(f"Додано {len(rows)} платежів у базу даних.")
     else:
