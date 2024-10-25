@@ -76,10 +76,8 @@ async def run_periodic_check():
             logging.error(f"Помилка при перевірці нових платежів: {e}")
         await asyncio.sleep(30)  # Перевірка кожні 30 секунд
 
-def start_bot():
-    loop = asyncio.get_event_loop()
-    loop.create_task(run_periodic_check())  # Запускаємо асинхронну перевірку в окремій задачі
-    loop.run_forever()  # Запускаємо асинхронний цикл
-
 if __name__ == '__main__':
-    start_bot()
+    try:
+        asyncio.run(run_periodic_check())
+    except Exception as e:
+        logging.error(f"Головна помилка: {e}")
