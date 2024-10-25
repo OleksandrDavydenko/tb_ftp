@@ -11,6 +11,7 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart, show_main_menu
 from salary.salary_handlers import show_salary_years, show_salary_months, show_salary_details  # Додано show_salary_details
+import logging
 
 async def start(update: Update, context: CallbackContext) -> None:
     context.user_data['registered'] = False
@@ -26,9 +27,11 @@ async def prompt_for_phone_number(update: Update, context: CallbackContext) -> N
 async def handle_contact(update: Update, context: CallbackContext) -> None:
     if update.message.contact:
         phone_number = update.message.contact.phone_number
+        logging.info(f"Отримано номер телефону: {phone_number}")
         found, employee_name = is_phone_number_in_power_bi(phone_number)
         
         if found:
+            logging.info(f"Користувач знайдений: {employee_name}")
             # Додавання користувача в бд
             add_telegram_user(
                 phone_number=phone_number,
