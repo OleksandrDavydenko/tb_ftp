@@ -4,14 +4,18 @@ import threading
 from messages.check_payments import run_periodic_check
 from key import KEY
 from auth import is_phone_number_in_power_bi
-from db import add_telegram_user  # Імпортуємо функцію для збереження користувача в БД
+from db import add_telegram_user, get_user_joined_at  # Додаємо імпорт для отримання дати приєднання користувача
 from sync_payments import sync_payments
 import sys
 import os
+import logging
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart, show_main_menu
 from salary.salary_handlers import show_salary_years, show_salary_months, show_salary_details  # Додано show_salary_details
-import logging
+
+# Налаштування логування
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 async def start(update: Update, context: CallbackContext) -> None:
     context.user_data['registered'] = False
@@ -29,9 +33,10 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
         phone_number = update.message.contact.phone_number
         logging.info(f"Отримано номер телефону: {phone_number}")
         found, employee_name = is_phone_number_in_power_bi(phone_number)
-        
+
         if found:
             logging.info(f"Користувач знайдений: {employee_name}")
+
             # Додавання користувача в бд
             add_telegram_user(
                 phone_number=phone_number,
@@ -40,14 +45,19 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
                 last_name=update.message.from_user.last_name
             )
 
+            # Отримуємо дату приєднання користувача
+            joined_at = get_user_joined_at(phone_number)
+            logging.info(f"Дата приєднання користувача: {joined_at}")
+
+            if joined_at:
+                # Синхронізація платежів з урахуванням дати приєднання
+                sync_payments(employee_name, phone_number, joined_at)
+
             # Оновлюємо дані користувача в контексті
             context.user_data['registered'] = True
             context.user_data['phone_number'] = phone_number
             context.user_data['first_name'] = employee_name
             context.user_data['last_name'] = update.message.from_user.last_name
-
-            # Синхронізація всіх доступних виплат по employee_name
-            sync_payments(employee_name, phone_number)
 
             # Вітання та відображення головного меню
             await update.message.reply_text(f"Вітаємо, {context.user_data['first_name']}! Доступ надано.")
@@ -84,9 +94,9 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
 
     elif update.message.text == "Назад":
         current_menu = context.user_data.get('menu')
-        if current_menu == 'salary_months':  # Повернення з вибору місяців до вибору років
+        if current_menu == 'salary_months':
             await show_salary_years(update, context)
-        elif current_menu == 'salary_years':  # Повернення з вибору років до головного меню
+        elif current_menu == 'salary_years':
             await show_main_menu(update, context)
         elif current_menu == 'debt_options':
             await show_main_menu(update, context)
@@ -96,20 +106,18 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
             await show_main_menu(update, context)
 
     elif update.message.text == "Розрахунковий лист":
-        await show_salary_years(update, context)  # Показуємо меню вибору року
+        await show_salary_years(update, context)
 
     elif update.message.text == "Головне меню":
-        await show_main_menu(update, context)  # Повернення до головного меню
+        await show_main_menu(update, context)
 
-    # Після вибору року користувачеві пропонуються місяці
-    elif update.message.text in ["2024", "2025"]:  # Додати логіку для обробки років
-        context.user_data['selected_year'] = update.message.text  # Зберігаємо вибраний рік
-        await show_salary_months(update, context)  # Показуємо меню вибору місяця
+    elif update.message.text in ["2024", "2025"]:
+        context.user_data['selected_year'] = update.message.text
+        await show_salary_months(update, context)
 
-    # Після вибору місяця показуємо розрахункову таблицю
     elif update.message.text in ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"]:
-        context.user_data['selected_month'] = update.message.text  # Зберігаємо вибраний місяць
-        await show_salary_details(update, context)  # Показуємо розрахункову таблицю
+        context.user_data['selected_month'] = update.message.text
+        await show_salary_details(update, context)
 
 def main():
     token = KEY
