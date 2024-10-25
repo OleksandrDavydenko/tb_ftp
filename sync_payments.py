@@ -18,15 +18,16 @@ def sync_payments(employee_name, phone_number):
         logging.error("Не вдалося отримати дату приєднання користувача.")
         return None
 
+    # Форматуємо дату приєднання для DAX
+    year, month, day = joined_at.strftime("%Y-%m-%d").split('-')
+    logging.info(f"Дата приєднання користувача: {joined_at}, Рік: {year}, Місяць: {month}, День: {day}")
+
     dataset_id = '8b80be15-7b31-49e4-bc85-8b37a0d98f1c'
     power_bi_url = f'https://api.powerbi.com/v1.0/myorg/datasets/{dataset_id}/executeQueries'
     headers = {
         'Authorization': f'Bearer {token}',
         'Content-Type': 'application/json'
     }
-
-    # Форматуємо дату приєднання для DAX
-    year, month, day = joined_at.strftime("%Y-%m-%d").split('-')
 
     # Запит для отримання виплат, починаючи з дати приєднання користувача
     query_data = {
@@ -53,7 +54,8 @@ def sync_payments(employee_name, phone_number):
         }
     }
 
-    logging.info("Виконуємо запит до Power BI для синхронізації платежів.")
+    logging.info(f"Виконуємо запит до Power BI з умовою дати приєднання: DATE({year}, {month}, {day})")
+
     response = requests.post(power_bi_url, headers=headers, json=query_data)
 
     if response.status_code == 200:
