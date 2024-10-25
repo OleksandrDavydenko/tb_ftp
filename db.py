@@ -1,5 +1,6 @@
 import psycopg2
 import os
+from datetime import datetime
 
 # Отримуємо URL бази даних з змінної середовища Heroku
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -12,14 +13,15 @@ def create_tables():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Створюємо таблицю користувачів, якщо її ще не існує
+    # Оновлюємо структуру таблиці користувачів
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         phone_number VARCHAR(20) UNIQUE NOT NULL,
         telegram_id BIGINT NOT NULL,
         first_name VARCHAR(50),
-        last_name VARCHAR(50)
+        last_name VARCHAR(50),
+        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP  -- Додаємо поле для збереження дати приєднання
     )
     """)
 
@@ -44,12 +46,12 @@ def add_telegram_user(phone_number, telegram_id, first_name, last_name):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Додаємо користувача в таблицю
+    # Додаємо користувача в таблицю з встановленням дати приєднання
     cursor.execute("""
-    INSERT INTO users (phone_number, telegram_id, first_name, last_name)
-    VALUES (%s, %s, %s, %s)
+    INSERT INTO users (phone_number, telegram_id, first_name, last_name, joined_at)
+    VALUES (%s, %s, %s, %s, %s)
     ON CONFLICT (phone_number) DO NOTHING
-    """, (phone_number, telegram_id, first_name, last_name))
+    """, (phone_number, telegram_id, first_name, last_name, datetime.now()))
 
     conn.commit()
     cursor.close()
