@@ -3,10 +3,10 @@ import os
 import time
 from telegram import Bot
 import logging
+from key import KEY  # Імпортуємо токен з key.py
 
 # Отримуємо URL бази даних з змінної середовища Heroku
 DATABASE_URL = os.getenv('DATABASE_URL')
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 
 def get_db_connection():
     # Підключаємось до бази даних PostgreSQL через URL з Heroku
@@ -48,9 +48,12 @@ def check_new_payments():
     conn.close()
 
 def send_notification(telegram_id, amount, currency, payment_number):
-    bot = Bot(token=TELEGRAM_TOKEN)
-    message = f"Доброго дня! Відбулась виплата на суму {amount} {currency} (№ {payment_number})."
-    bot.send_message(chat_id=telegram_id, text=message)
+    try:
+        bot = Bot(token=KEY)  # Використовуємо токен з key.py
+        message = f"Доброго дня! Відбулась виплата на суму {amount} {currency} (№ {payment_number})."
+        bot.send_message(chat_id=telegram_id, text=message)
+    except Exception as e:
+        logging.error(f"Помилка при відправці сповіщення: {e}")
 
 def run_periodic_check():
     while True:
@@ -58,7 +61,7 @@ def run_periodic_check():
             check_new_payments()
         except Exception as e:
             logging.error(f"Помилка при перевірці нових платежів: {e}")
-        time.sleep(30)  # Перевірка кожні 10 хвилин (600 секунд)
+        time.sleep(30)  # Перевірка кожні 30 секунд
 
 if __name__ == '__main__':
     run_periodic_check()
