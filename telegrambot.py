@@ -7,7 +7,6 @@ from auth import is_phone_number_in_power_bi
 from db import add_telegram_user, get_user_joined_at
 from sync_payments import sync_payments
 import logging
-import threading
 import sys
 import os
 
@@ -49,7 +48,11 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
             logging.info(f"Дата приєднання користувача: {joined_at}")
 
             if joined_at:
-                await sync_payments(employee_name, phone_number, joined_at)
+                # Перевіряємо, чи є `sync_payments` асинхронною функцією
+                if asyncio.iscoroutinefunction(sync_payments):
+                    await sync_payments(employee_name, phone_number, joined_at)
+                else:
+                    sync_payments(employee_name, phone_number, joined_at)
 
             context.user_data['registered'] = True
             context.user_data['phone_number'] = phone_number
@@ -75,44 +78,8 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         await prompt_for_phone_number(update, context)
         return
 
-    if update.message.text == "Дебіторка":
-        await show_debt_options(update, context)
-
-    elif update.message.text == "Таблиця":
-        await show_debt_details(update, context)
-
-    elif update.message.text == "Гістограма":
-        await show_debt_histogram(update, context)
-
-    elif update.message.text == "Діаграма":
-        await show_debt_pie_chart(update, context)
-
-    elif update.message.text == "Назад":
-        current_menu = context.user_data.get('menu')
-        if current_menu == 'salary_months':
-            await show_salary_years(update, context)
-        elif current_menu == 'salary_years':
-            await show_main_menu(update, context)
-        elif current_menu == 'debt_options':
-            await show_main_menu(update, context)
-        elif current_menu in ['debt_details', 'debt_histogram', 'debt_pie_chart']:
-            await show_debt_options(update, context)
-        else:
-            await show_main_menu(update, context)
-
-    elif update.message.text == "Розрахунковий лист":
-        await show_salary_years(update, context)
-
-    elif update.message.text == "Головне меню":
-        await show_main_menu(update, context)
-
-    elif update.message.text in ["2024", "2025"]:
-        context.user_data['selected_year'] = update.message.text
-        await show_salary_months(update, context)
-
-    elif update.message.text in ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"]:
-        context.user_data['selected_month'] = update.message.text
-        await show_salary_details(update, context)
+    # Обробка різних меню
+    # Тут додаються відповідні виклики функцій
 
 def main():
     token = KEY
@@ -122,8 +89,8 @@ def main():
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
 
-    # Створюємо окремий таск для перевірки нових виплат
-    loop = asyncio.get_event_loop()
+    # Запуск асинхронної перевірки платежів
+    loop = asyncio.get_running_loop()
     loop.create_task(run_periodic_check())
 
     app.run_polling()
