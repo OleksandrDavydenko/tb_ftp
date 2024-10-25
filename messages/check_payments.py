@@ -61,7 +61,7 @@ async def check_new_payments():
         cursor.close()
         conn.close()
 
-async def sync_all_users():
+def sync_all_users():
     logging.info("Початок періодичної синхронізації платежів.")
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -75,7 +75,7 @@ async def sync_all_users():
             phone_number, employee_name, joined_at = user
             logging.info(f"Синхронізація платежів для користувача: {employee_name} ({phone_number})")
             try:
-                await sync_payments(employee_name, phone_number, joined_at)
+                sync_payments(employee_name, phone_number, joined_at)  # Виклик без 'await'
                 logging.info(f"Успішно синхронізовано для користувача: {employee_name}")
             except Exception as e:
                 logging.error(f"Помилка при синхронізації для {employee_name}: {e}")
@@ -104,8 +104,8 @@ async def send_notification(telegram_id, amount, currency, payment_number):
 async def run_periodic_check():
     while True:
         await check_new_payments()
-        await sync_all_users()  # Додаємо періодичну синхронізацію платежів
-        await asyncio.sleep(30)  # Інтервал між перевірками
+        sync_all_users()  # Виклик без 'await' для синхронізації
+        await asyncio.sleep(30)
 
 if __name__ == '__main__':
     try:
