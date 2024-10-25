@@ -90,6 +90,22 @@ def update_existing_users_joined_at():
     cursor.close()
     conn.close()
 
+def get_user_joined_at(phone_number):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Отримуємо дату приєднання користувача за номером телефону
+    cursor.execute("""
+    SELECT joined_at FROM users WHERE phone_number = %s
+    """, (phone_number,))
+    result = cursor.fetchone()
+
+    conn.close()
+
+    if result:
+        return result[0]  # Повертаємо дату приєднання
+    return None
+
 def clear_payments_table():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -107,6 +123,3 @@ create_tables()
 
 # Оновлюємо поле joined_at для існуючих користувачів
 update_existing_users_joined_at()
-
-# Очищення таблиці payments
-clear_payments_table()
