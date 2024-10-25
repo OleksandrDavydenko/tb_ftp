@@ -93,11 +93,13 @@ def run_bot():
 
     return app
 
+async def run_async_tasks():
+    asyncio.create_task(run_periodic_check())
+
 async def main():
     app = run_bot()
 
-    # Запускаємо асинхронний цикл у фоновому режимі
-    asyncio.create_task(run_periodic_check())
+    await run_async_tasks()
 
     # Запускаємо бота в режимі polling
     await app.run_polling()
