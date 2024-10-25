@@ -1,5 +1,7 @@
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
+import threading
+from messages.check_payments import run_periodic_check
 from key import KEY
 from auth import is_phone_number_in_power_bi
 from db import add_telegram_user  # Імпортуємо функцію для збереження користувача в БД
@@ -107,6 +109,11 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
+
+    # Створюємо окремий потік для перевірки нових виплат
+    check_thread = threading.Thread(target=run_periodic_check)
+    check_thread.daemon = True
+    check_thread.start()
 
     app.run_polling()
 
