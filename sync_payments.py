@@ -35,7 +35,7 @@ def sync_payments(employee_name, phone_number, joined_at):
                         FILTER(
                             SalaryPayment,
                             SalaryPayment[Employee] = "{employee_name}" &&
-                            VALUE(SalaryPayment[DocDate]) >= DATE({joined_at.year}, {joined_at.month}, {joined_at.day})
+                            SalaryPayment[DocDate] >= "{joined_at.strftime('%Y-%m-%d')}"
                         ),
                         "Дата платежу", SalaryPayment[DocDate],
                         "Документ", SalaryPayment[DocNumber],
