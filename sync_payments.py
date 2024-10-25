@@ -39,7 +39,7 @@ async def async_add_payment(phone_number, сума, currency, дата_плат�
         cursor.close()
         conn.close()
 
-async def async_sync_payments(employee_name, phone_number, joined_at):
+async def sync_payments(employee_name, phone_number, joined_at):
     """Асинхронна версія функції синхронізації."""
     token = get_power_bi_token()
     if not token:

@@ -3,7 +3,7 @@ import logging
 import asyncio
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, Bot
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
-from sync_payments import async_sync_payments
+from sync_payments import sync_payments
 from auth import is_phone_number_in_power_bi
 from db import add_telegram_user, get_user_joined_at
 import psycopg2
@@ -47,7 +47,7 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
             logging.info(f"Дата приєднання користувача: {joined_at}")
 
             if joined_at:
-                await async_sync_payments(employee_name, phone_number, joined_at)
+                await sync_payments(employee_name, phone_number, joined_at)
 
             context.user_data['registered'] = True
             context.user_data['phone_number'] = phone_number
