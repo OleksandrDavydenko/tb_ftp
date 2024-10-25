@@ -1,7 +1,7 @@
 import requests
 import logging
 from auth import get_power_bi_token
-from db import add_payment  # Імпортуємо функцію додавання платежу в БД
+from db import add_payment, get_user_joined_at  # Додаємо функцію для отримання дати приєднання користувача
 
 # Налаштовуємо logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -12,6 +12,12 @@ def sync_payments(employee_name, phone_number):
         logging.error("Не вдалося отримати токен Power BI.")
         return None
 
+    # Отримуємо дату приєднання користувача
+    joined_at = get_user_joined_at(phone_number)
+    if not joined_at:
+        logging.error(f"Не вдалося отримати дату приєднання для {phone_number}.")
+        return None
+
     dataset_id = '8b80be15-7b31-49e4-bc85-8b37a0d98f1c'
     power_bi_url = f'https://api.powerbi.com/v1.0/myorg/datasets/{dataset_id}/executeQueries'
     headers = {
@@ -19,7 +25,7 @@ def sync_payments(employee_name, phone_number):
         'Content-Type': 'application/json'
     }
 
-    # Запит для отримання всіх доступних виплат по employee_name
+    # Запит для отримання виплат з дати приєднання
     query_data = {
         "queries": [
             {
@@ -28,7 +34,8 @@ def sync_payments(employee_name, phone_number):
                     SELECTCOLUMNS(
                         FILTER(
                             SalaryPayment,
-                            SalaryPayment[Employee] = "{employee_name}"
+                            SalaryPayment[Employee] = "{employee_name}" &&
+                            SalaryPayment[DocDate] >= DATE({joined_at.year}, {joined_at.month}, {joined_at.day})
                         ),
                         "Дата платежу", SalaryPayment[DocDate],
                         "Документ", SalaryPayment[DocNumber],
@@ -52,7 +59,7 @@ def sync_payments(employee_name, phone_number):
         logging.info(f"Відповідь на запит: {data}")
         rows = data['results'][0]['tables'][0].get('rows', [])
 
-        # Додаємо всі виплати в БД
+        # Додаємо виплати, які відповідають умовам
         for payment in rows:
             сума_uah = float(payment.get("[Сума UAH]", 0))
             сума_usd = float(payment.get("[Сума USD]", 0))
@@ -68,6 +75,6 @@ def sync_payments(employee_name, phone_number):
 
             add_payment(phone_number, сума, currency, дата_платежу, номер_платежу)
 
-        logging.info(f"Додано {len(rows)} платежів у базу даних.")
+        logging.info(f"Додано {len(rows)} нових платежів у базу даних.")
     else:
         logging.error(f"Помилка при виконанні запиту: {response.status_code}, {response.text}")

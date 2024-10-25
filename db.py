@@ -90,8 +90,23 @@ def update_existing_users_joined_at():
     cursor.close()
     conn.close()
 
+def clear_payments_table():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Очищаємо таблицю payments
+    cursor.execute("TRUNCATE TABLE payments;")
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+    print("Таблиця payments успішно очищена.")
+
 # Викликаємо функцію для створення таблиць при запуску
 create_tables()
 
 # Оновлюємо поле joined_at для існуючих користувачів
 update_existing_users_joined_at()
+
+# Очищення таблиці payments
+clear_payments_table()
