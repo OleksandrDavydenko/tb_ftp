@@ -65,24 +65,29 @@ async def check_new_payments():
         cursor.close()
         conn.close()
 
-def sync_all_users():
+async def async_sync_payments(employee_name, phone_number, joined_at):
+    logging.info(f"Початок синхронізації для користувача: {employee_name} ({phone_number})")
+
+    try:
+        # Виклик функції sync_payments в асинхронному режимі
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, sync_payments, employee_name, phone_number, joined_at)
+        logging.info(f"Успішно синхронізовано для користувача: {employee_name}")
+    except Exception as e:
+        logging.error(f"Помилка при синхронізації для {employee_name}: {e}")
+
+async def sync_all_users():
     logging.info("Початок періодичної синхронізації платежів.")
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
-        # Отримуємо всіх користувачів із таблиці users
         cursor.execute("SELECT phone_number, first_name, joined_at FROM users")
         users = cursor.fetchall()
 
-        for user in users:
-            phone_number, employee_name, joined_at = user
-            logging.info(f"Синхронізація платежів для користувача: {employee_name} ({phone_number})")
-            try:
-                sync_payments(employee_name, phone_number, joined_at)  # Виклик функції синхронізації
-                logging.info(f"Успішно синхронізовано для користувача: {employee_name}")
-            except Exception as e:
-                logging.error(f"Помилка при синхронізації для {employee_name}: {e}")
+        # Виконуємо асинхронну синхронізацію для кожного користувача
+        tasks = [async_sync_payments(employee_name, phone_number, joined_at) for phone_number, employee_name, joined_at in users]
+        await asyncio.gather(*tasks)
 
     except Exception as e:
         logging.error(f"Помилка під час періодичної синхронізації: {e}")
@@ -108,7 +113,7 @@ async def send_notification(telegram_id, amount, currency, payment_number):
 async def run_periodic_check():
     while True:
         await check_new_payments()
-        sync_all_users()  # Додаємо синхронізацію для всіх користувачів
+        await sync_all_users()  # Асинхронний виклик синхронізації для всіх користувачів
         await asyncio.sleep(30)
 
 if __name__ == '__main__':
