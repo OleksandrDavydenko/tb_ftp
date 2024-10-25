@@ -84,22 +84,19 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         context.user_data['selected_month'] = menu_option
         await show_salary_details(update, context)
 
-def run_bot():
+async def run_async_tasks():
+    await run_periodic_check()
+
+async def main():
     app = ApplicationBuilder().token(KEY).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
 
-    return app
-
-async def run_async_tasks():
-    asyncio.create_task(run_periodic_check())
-
-async def main():
-    app = run_bot()
-
-    await run_async_tasks()
+    # Паралельно запускаємо перевірку нових платежів
+    loop = asyncio.get_event_loop()
+    loop.create_task(run_async_tasks())
 
     # Запускаємо бота в режимі polling
     await app.run_polling()
