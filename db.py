@@ -93,3 +93,47 @@ def get_user_joined_at(phone_number):
 
 # Викликаємо функцію для створення таблиць при запуску
 create_tables()
+
+
+
+
+
+
+
+
+# Отримуємо URL бази даних з змінної середовища Heroku
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+def get_db_connection():
+    # Підключаємось до бази даних PostgreSQL через URL з Heroku
+    return psycopg2.connect(DATABASE_URL, sslmode='require')
+
+def rename_columns_in_users_table():
+    """
+    Змінює назви стовпців у таблиці users:
+    first_name -> telegram_name
+    last_name -> employee_name
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Перейменування стовпців
+    try:
+        cursor.execute("""
+        ALTER TABLE users
+        RENAME COLUMN first_name TO telegram_name;
+        """)
+        cursor.execute("""
+        ALTER TABLE users
+        RENAME COLUMN last_name TO employee_name;
+        """)
+        conn.commit()
+        print("Назви стовпців успішно змінені.")
+    except Exception as e:
+        print(f"Помилка при зміні назв стовпців: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+# Виклик функції для зміни назв стовпців
+rename_columns_in_users_table()
