@@ -26,7 +26,7 @@ def sync_payments(employee_name, phone_number):
     }
 
     # Форматуємо дату приєднання для DAX
-    formatted_joined_at = joined_at.strftime("%Y-%m-%d")
+    year, month, day = joined_at.strftime("%Y-%m-%d").split('-')
 
     # Запит для отримання виплат, починаючи з дати приєднання користувача
     query_data = {
@@ -38,7 +38,7 @@ def sync_payments(employee_name, phone_number):
                         FILTER(
                             SalaryPayment,
                             SalaryPayment[Employee] = "{employee_name}" &&
-                            SalaryPayment[DocDate] >= DATEVALUE("{formatted_joined_at}")
+                            SalaryPayment[DocDate] >= DATE({year}, {month}, {day})
                         ),
                         "Дата платежу", SalaryPayment[DocDate],
                         "Документ", SalaryPayment[DocNumber],
