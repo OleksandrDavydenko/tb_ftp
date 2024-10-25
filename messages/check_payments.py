@@ -1,11 +1,14 @@
+import requests
 import psycopg2
 import os
 import logging
 import asyncio
+from datetime import datetime
 from telegram import Bot
 from telegram.error import NetworkError, TelegramError
 from key import KEY
-from sync_payments import sync_payments  # Імпортуємо функцію синхронізації
+from sync_payments import sync_payments
+from auth import get_power_bi_token
 
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -47,8 +50,9 @@ async def check_new_payments():
                 cursor.execute("""
                 UPDATE payments
                 SET is_notified = TRUE
-                WHERE phone_number = %s AND amount = %s AND payment_date = %s AND payment_number = %s
-                """, (phone_number, amount, payment_date, payment_number))
+                WHERE phone_number = %s AND amount = %s AND currency = %s 
+                AND payment_date = %s AND payment_number = %s
+                """, (phone_number, amount, currency, payment_date, payment_number))
             else:
                 logging.warning(f"Не знайдено Telegram ID для номера: {phone_number}")
 
@@ -75,7 +79,7 @@ def sync_all_users():
             phone_number, employee_name, joined_at = user
             logging.info(f"Синхронізація платежів для користувача: {employee_name} ({phone_number})")
             try:
-                sync_payments(employee_name, phone_number, joined_at)  # Виклик без 'await'
+                sync_payments(employee_name, phone_number, joined_at)  # Виклик функції синхронізації
                 logging.info(f"Успішно синхронізовано для користувача: {employee_name}")
             except Exception as e:
                 logging.error(f"Помилка при синхронізації для {employee_name}: {e}")
@@ -104,7 +108,7 @@ async def send_notification(telegram_id, amount, currency, payment_number):
 async def run_periodic_check():
     while True:
         await check_new_payments()
-        sync_all_users()  # Виклик без 'await' для синхронізації
+        sync_all_users()  # Додаємо синхронізацію для всіх користувачів
         await asyncio.sleep(30)
 
 if __name__ == '__main__':
