@@ -38,7 +38,7 @@ async def check_new_payments():
         """)
         new_payments = cursor.fetchall()
 
-        logging.info(f"Знайдено {len(new_payments)} нових платежів.")
+        logging.info(f"Знайдено {len(new_payments)} нових платежів для обробки.")
 
         for payment in new_payments:
             phone_number, amount, currency, payment_date, payment_number = payment
@@ -50,17 +50,18 @@ async def check_new_payments():
 
             if user_data:
                 telegram_id = user_data[0]
-                logging.info(f"Відправка сповіщення для Telegram ID {telegram_id}")
+                logging.info(f"Знайдено Telegram ID: {telegram_id} для користувача з номером: {phone_number}")
                 
-                # Відправляємо сповіщення
+                # Відправка сповіщення
                 await send_notification(telegram_id, amount, currency, payment_number)
 
-                # Оновлюємо статус сповіщення
+                # Оновлення статусу сповіщення
                 cursor.execute("""
                 UPDATE payments
                 SET is_notified = TRUE
                 WHERE phone_number = %s AND amount = %s AND payment_date = %s AND payment_number = %s
                 """, (phone_number, amount, payment_date, payment_number))
+                logging.info(f"Статус сповіщення оновлено для платежу: {payment_number}")
             else:
                 logging.warning(f"Telegram ID для номера {phone_number} не знайдено.")
 
@@ -75,9 +76,9 @@ async def send_notification(telegram_id, amount, currency, payment_number):
     try:
         bot = Bot(token=KEY)
         message = f"Доброго дня! Відбулась виплата на суму {amount} {currency} (№ {payment_number})."
-        logging.info(f"Відправка повідомлення: {message} до Telegram ID {telegram_id}")
+        logging.info(f"Спроба відправити повідомлення: '{message}' до Telegram ID: {telegram_id}")
         await bot.send_message(chat_id=telegram_id, text=message)
-        logging.info(f"Повідомлення успішно відправлено Telegram ID {telegram_id}.")
+        logging.info(f"Повідомлення успішно відправлено до Telegram ID: {telegram_id}")
     except Exception as e:
         logging.error(f"Помилка при відправці сповіщення: {e}")
 
@@ -92,4 +93,5 @@ async def run_periodic_check():
         await asyncio.sleep(30)  # Перевірка кожні 30 секунд
 
 if __name__ == '__main__':
+    logging.info("Запуск асинхронного циклу для періодичної перевірки платежів.")
     asyncio.run(run_periodic_check())
