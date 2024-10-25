@@ -36,23 +36,16 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
     employee_name = context.user_data.get('first_name')  # Отримуємо ім'я користувача
     year = context.user_data.get('selected_year')        # Отримуємо вибраний рік
     month = context.user_data.get('selected_month')      # Отримуємо вибраний місяць
-    phone_number = context.user_data.get('phone_number') # Отримуємо номер телефону
 
-    # Перевірка, чи всі необхідні дані отримані
-    if not employee_name or not year or not month or not phone_number:
-        await update.message.reply_text("Помилка: необхідно вибрати рік, місяць та вказати номер телефону.")
+    if not employee_name or not year or not month:
+        await update.message.reply_text("Помилка: необхідно вибрати рік і місяць.")
         return
 
-    # Отримання даних про нарахування
     salary_data = get_salary_data(employee_name, year, month)
+    payments_data = get_salary_payments(employee_name, year, month)
 
-    # Отримання даних про виплати, з додаванням phone_number
-    payments_data = get_salary_payments(employee_name, year, month, phone_number)
-
-    # Форматування та відображення результатів, якщо є дані
     if salary_data or payments_data:
-        formatted_table = format_salary_table(salary_data, employee_name, year, month, payments_data)
+        formatted_table = format_salary_table(salary_data, employee_name, year, month, payments_data)  # Передаємо аргументи
         await update.message.reply_text(f"```\n{formatted_table}\n```", parse_mode="Markdown")
     else:
         await update.message.reply_text("Немає даних для вибраного періоду.")
-

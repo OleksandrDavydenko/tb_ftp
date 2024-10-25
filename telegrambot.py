@@ -5,6 +5,7 @@ from messages.check_payments import run_periodic_check
 from key import KEY
 from auth import is_phone_number_in_power_bi
 from db import add_telegram_user  # Імпортуємо функцію для збереження користувача в БД
+from sync_payments import sync_payments
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -37,6 +38,9 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
                 first_name=update.message.from_user.first_name,
                 last_name=update.message.from_user.last_name
             )
+
+            # Синхронізуємо всі доступні виплати
+            sync_payments(phone_number)
 
             context.user_data['registered'] = True
             context.user_data['phone_number'] = phone_number
