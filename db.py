@@ -13,14 +13,14 @@ def create_tables():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Створюємо таблицю користувачів, якщо її ще не існує
+    # Створюємо таблицю користувачів з новими назвами стовпців
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         phone_number VARCHAR(20) UNIQUE NOT NULL,
         telegram_id BIGINT NOT NULL,
-        first_name VARCHAR(50),
-        last_name VARCHAR(50),
+        telegram_name VARCHAR(50),  -- Заміна first_name на telegram_name
+        employee_name VARCHAR(50),  -- Заміна last_name на employee_name
         joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
@@ -42,20 +42,20 @@ def create_tables():
     cursor.close()
     conn.close()
 
-def add_telegram_user(phone_number, telegram_id, first_name, last_name):
+def add_telegram_user(phone_number, telegram_id, telegram_name, employee_name):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Оновлюємо дату приєднання для нових користувачів
+    # Оновлюємо дату приєднання для нових користувачів з новими назвами стовпців
     cursor.execute("""
-    INSERT INTO users (phone_number, telegram_id, first_name, last_name, joined_at)
+    INSERT INTO users (phone_number, telegram_id, telegram_name, employee_name, joined_at)
     VALUES (%s, %s, %s, %s, %s)
     ON CONFLICT (phone_number) DO UPDATE SET
         telegram_id = EXCLUDED.telegram_id,
-        first_name = EXCLUDED.first_name,
-        last_name = EXCLUDED.last_name,
+        telegram_name = EXCLUDED.telegram_name,
+        employee_name = EXCLUDED.employee_name,
         joined_at = COALESCE(users.joined_at, EXCLUDED.joined_at)
-    """, (phone_number, telegram_id, first_name, last_name, datetime.now()))
+    """, (phone_number, telegram_id, telegram_name, employee_name, datetime.now()))
 
     conn.commit()
     cursor.close()
@@ -70,21 +70,6 @@ def add_payment(phone_number, amount, currency, payment_date, payment_number):
     INSERT INTO payments (phone_number, amount, currency, payment_date, payment_number)
     VALUES (%s, %s, %s, %s, %s)
     """, (phone_number, amount, currency, payment_date, payment_number))
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-def update_existing_users_joined_at():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Оновлюємо поле joined_at для всіх записів, де воно є NULL
-    cursor.execute("""
-    UPDATE users
-    SET joined_at = %s
-    WHERE joined_at IS NULL
-    """, (datetime.now(),))
 
     conn.commit()
     cursor.close()
@@ -106,20 +91,5 @@ def get_user_joined_at(phone_number):
         return result[0]  # Повертаємо дату приєднання
     return None
 
-def clear_payments_table():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Очищаємо таблицю payments
-    cursor.execute("TRUNCATE TABLE payments;")
-    conn.commit()
-
-    cursor.close()
-    conn.close()
-    print("Таблиця payments успішно очищена.")
-
 # Викликаємо функцію для створення таблиць при запуску
 create_tables()
-
-# Оновлюємо поле joined_at для існуючих користувачів
-update_existing_users_joined_at()

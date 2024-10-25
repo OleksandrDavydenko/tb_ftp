@@ -39,13 +39,15 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
         if found:
             logging.info(f"Користувач знайдений: {employee_name}")
 
+            # Додаємо користувача в базу даних з новими назвами стовпців
             add_telegram_user(
                 phone_number=phone_number,
                 telegram_id=update.message.from_user.id,
-                first_name=update.message.from_user.first_name,
-                last_name=update.message.from_user.last_name
+                telegram_name=update.message.from_user.first_name,
+                employee_name=update.message.from_user.last_name
             )
 
+            # Отримуємо дату приєднання користувача
             joined_at = get_user_joined_at(phone_number)
             logging.info(f"Дата приєднання користувача: {joined_at}")
 
@@ -55,17 +57,18 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
                 except Exception as e:
                     logging.error(f"Помилка при синхронізації платежів: {e}")
 
+            # Оновлюємо дані користувача в контексті
             context.user_data['registered'] = True
             context.user_data['phone_number'] = phone_number
-            context.user_data['first_name'] = employee_name
-            context.user_data['last_name'] = update.message.from_user.last_name
+            context.user_data['telegram_name'] = update.message.from_user.first_name
+            context.user_data['employee_name'] = employee_name
 
-            await update.message.reply_text(f"Вітаємо, {context.user_data['first_name']}! Доступ надано.")
+            # Вітання та відображення головного меню
+            await update.message.reply_text(f"Вітаємо, {context.user_data['employee_name']}! Доступ надано.")
             await show_main_menu(update, context)
         else:
             await update.message.reply_text("Ваш номер не знайдено. Доступ заборонено.")
             await prompt_for_phone_number(update, context)
-
 async def show_main_menu(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'main_menu'
     debt_button = KeyboardButton(text="Дебіторка")
