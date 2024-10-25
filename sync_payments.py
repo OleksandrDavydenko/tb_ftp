@@ -58,7 +58,7 @@ async def sync_payments():
     cursor = conn.cursor()
 
     # Отримуємо список усіх користувачів із бази даних
-    cursor.execute("SELECT phone_number, first_name, joined_at FROM users")
+    cursor.execute("SELECT phone_number, employee_name, joined_at FROM users")
     users = cursor.fetchall()
 
     for user in users:
