@@ -1,9 +1,8 @@
 import psycopg2
 import os
-import time
-from telegram import Bot
 import logging
 import asyncio
+from telegram import Bot
 from key import KEY  # Імпортуємо токен з key.py
 
 # Налаштовуємо логування
