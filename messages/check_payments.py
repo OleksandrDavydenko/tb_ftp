@@ -55,7 +55,7 @@ async def check_new_payments():
 async def send_notification(telegram_id, amount, currency, payment_number):
     try:
         bot = Bot(token=KEY)
-        message = f"Доброго дня! Відбулась виплата на суму {amount} {currency} (№ {payment_number})."
+        message = f"`Доброго дня! Відбулась виплата на суму {amount} {currency} (Документ № {payment_number}).`"
         await bot.send_message(chat_id=telegram_id, text=message)
         logging.info(f"Сповіщення відправлено: {message}")
     except Exception as e:
