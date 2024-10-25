@@ -7,7 +7,7 @@ from key import KEY
 from auth import is_phone_number_in_power_bi
 from db import add_telegram_user, get_user_joined_at
 from sync_payments import sync_payments
-from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart, show_main_menu
+from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart
 from salary.salary_handlers import show_salary_years, show_salary_months, show_salary_details
 
 # Налаштування логування
@@ -94,14 +94,16 @@ def run_bot():
     return app
 
 async def main():
-    try:
-        loop = asyncio.get_event_loop()
-        loop.create_task(run_periodic_check())  # Запуск асинхронної перевірки платежів
+    app = run_bot()
 
-        app = run_bot()
-        await app.run_polling()
-    except Exception as e:
-        logging.error(f"Головна помилка: {e}")
+    # Запускаємо асинхронний цикл у фоновому режимі
+    asyncio.create_task(run_periodic_check())
+
+    # Запускаємо бота в режимі polling
+    await app.run_polling()
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        logging.error(f"Головна помилка: {e}")
