@@ -41,7 +41,7 @@ async def async_add_payment(phone_number, сума, currency, дата_плат�
         conn.close()
 
 async def sync_payments():
-    """Асинхронна функція для синхронізації платежів для всіх користувачів."""
+    """Асинхронна версія функції синхронізації для всіх користувачів з перевіркою дублювання платежів."""
     token = get_power_bi_token()
     if not token:
         logging.error("Не вдалося отримати токен Power BI.")
@@ -57,16 +57,13 @@ async def sync_payments():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Отримуємо список усіх користувачів із бази даних
-    cursor.execute("SELECT phone_number, employee_name, joined_at FROM users")
+    # Отримуємо список усіх користувачів
+    cursor.execute("SELECT phone_number, telegram_name, joined_at FROM users")
     users = cursor.fetchall()
 
     for user in users:
         phone_number, employee_name, joined_at = user
 
-        logging.info(f"Телефон {phone_number} платежів для користувача {employee_name} Приєднано {joined_at.strftime('%Y-%m-%d')}.")
-
-        # Формуємо DAX-запит для конкретного користувача
         query_data = {
             "queries": [
                 {
@@ -96,7 +93,6 @@ async def sync_payments():
             if response.status_code == 200:
                 data = response.json()
                 rows = data['results'][0]['tables'][0].get('rows', [])
-                logging.info(f"Отримано {len(rows)} платежів з Power BI для користувача {employee_name}.")
 
                 # Асинхронно додаємо кожен платіж до бази даних
                 for payment in rows:
@@ -113,8 +109,16 @@ async def sync_payments():
                         сума = сума_uah
                         currency = "UAH"
 
-                    logging.info(f"Додавання платежу: {сума} {currency} на {дата_платежу} (№ {номер_платежу}).")
-                    await async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу)
+                    # Перевірка на дублікати перед додаванням
+                    cursor.execute("""
+                        SELECT 1 FROM payments
+                        WHERE phone_number = %s AND amount = %s AND currency = %s AND payment_date = %s AND payment_number = %s
+                    """, (phone_number, сума, currency, дата_платежу, номер_платежу))
+
+                    if not cursor.fetchone():
+                        await async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу)
+                    else:
+                        logging.info(f"Платіж вже існує: {номер_платежу} для користувача {employee_name}.")
 
                 logging.info(f"Успішно синхронізовано {len(rows)} платежів для користувача {employee_name}.")
             else:
