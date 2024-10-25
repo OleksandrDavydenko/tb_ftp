@@ -1,3 +1,4 @@
+import asyncio  # Додаємо імпорт asyncio
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 import threading
@@ -49,8 +50,7 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
 
             if joined_at:
                 try:
-                    # Видаляємо 'await' перед викликом sync_payments()
-                    sync_payments(employee_name, phone_number, joined_at)
+                    await sync_payments(employee_name, phone_number, joined_at)  # Додаємо await
                 except Exception as e:
                     logging.error(f"Помилка при синхронізації платежів: {e}")
 
