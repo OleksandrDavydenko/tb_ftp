@@ -7,6 +7,7 @@ from key import KEY
 from auth import is_phone_number_in_power_bi
 from db import add_telegram_user, get_user_joined_at
 from sync_payments import sync_payments
+from sync_payments import run_periodic_sync  # Імпорт періодичної синхронізації
 import sys
 import os
 import logging
@@ -126,9 +127,13 @@ def main():
     app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
 
     # Створюємо окремий потік для перевірки нових виплат
+
     check_thread = threading.Thread(target=lambda: asyncio.run(run_periodic_check()))
+    sync_thread = threading.Thread(target=lambda: asyncio.run(run_periodic_sync()))
     check_thread.daemon = True
+    sync_thread.daemon = True
     check_thread.start()
+    sync_thread.start()
 
     app.run_polling()
 
