@@ -4,7 +4,6 @@ import logging
 import asyncio
 from telegram import Bot
 from key import KEY
-from sync_payments import sync_payments  # Імпортуємо функцію синхронізації
 
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -53,37 +52,19 @@ async def check_new_payments():
     cursor.close()
     conn.close()
 
-async def periodic_sync():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Отримуємо всіх користувачів із таблиці users
-    cursor.execute("SELECT DISTINCT phone_number, first_name, joined_at FROM users")
-    users = cursor.fetchall()
-
-    for user in users:
-        phone_number, employee_name, joined_at = user
-        logging.info(f"Синхронізація платежів для користувача: {employee_name} ({phone_number})")
-        try:
-            sync_payments(employee_name, phone_number, joined_at)
-            logging.info(f"Успішно синхронізовано для користувача: {employee_name}")
-        except Exception as e:
-            logging.error(f"Помилка при синхронізації для {employee_name}: {e}")
-
-    cursor.close()
-    conn.close()
+async def send_notification(telegram_id, amount, currency, payment_number):
+    try:
+        bot = Bot(token=KEY)
+        message = f"Доброго дня! Відбулась виплата на суму {amount} {currency} (№ {payment_number})."
+        await bot.send_message(chat_id=telegram_id, text=message)
+        logging.info(f"Сповіщення відправлено: {message}")
+    except Exception as e:
+        logging.error(f"Помилка при відправці сповіщення: {e}")
 
 async def run_periodic_check():
     while True:
         try:
             await check_new_payments()
-            await periodic_sync()  # Додаємо періодичну синхронізацію
         except Exception as e:
-            logging.error(f"Помилка при перевірці нових платежів або синхронізації: {e}")
-        await asyncio.sleep(30)  # Перевірка кожні 30 секунд
-
-if __name__ == '__main__':
-    try:
-        asyncio.run(run_periodic_check())
-    except Exception as e:
-        logging.error(f"Головна помилка: {e}")
+            logging.error(f"Помилка при перевірці нових платежів: {e}")
+        await asyncio.sleep(30)
