@@ -1,7 +1,7 @@
 import os
 import logging
 import asyncio
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, Bot
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 from sync_payments import sync_payments
 from auth import is_phone_number_in_power_bi
@@ -59,22 +59,13 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
             await update.message.reply_text("Ваш номер не знайдено. Доступ заборонено.")
             await prompt_for_phone_number(update, context)
 
-async def show_main_menu(update: Update, context: CallbackContext) -> None:
-    context.user_data['menu'] = 'main_menu'
-    debt_button = KeyboardButton(text="Дебіторка")
-    salary_button = KeyboardButton(text="Розрахунковий лист")
-    custom_keyboard = [[debt_button, salary_button]]
-    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
-    await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
-
 async def periodic_sync():
     while True:
         logging.info("Періодична синхронізація платежів розпочата.")
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            
-            # Отримуємо всіх користувачів для синхронізації
+
             cursor.execute("SELECT phone_number, first_name, joined_at FROM users")
             users = cursor.fetchall()
 
@@ -87,7 +78,7 @@ async def periodic_sync():
             conn.close()
         except Exception as e:
             logging.error(f"Помилка при періодичній синхронізації: {e}")
-        await asyncio.sleep(3600)  # Перевірка щогодини
+        await asyncio.sleep(3600)
 
 def main():
     token = KEY
@@ -95,13 +86,10 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-    app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Розрахунковий лист|Головне меню)$"), show_main_menu))
 
-    # Запускаємо асинхронну перевірку платежів
     loop = asyncio.get_event_loop()
     loop.create_task(periodic_sync())
 
-    # Запускаємо бота
     app.run_polling()
 
 if __name__ == '__main__':
