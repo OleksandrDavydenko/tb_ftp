@@ -51,7 +51,7 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
 
             if joined_at:
                 try:
-                    await sync_payments(employee_name, phone_number, joined_at)  # Додаємо await
+                    await sync_payments()  # Додаємо await
                 except Exception as e:
                     logging.error(f"Помилка при синхронізації платежів: {e}")
 

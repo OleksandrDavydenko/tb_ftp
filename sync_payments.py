@@ -40,8 +40,8 @@ async def async_add_payment(phone_number, сума, currency, дата_плат�
         cursor.close()
         conn.close()
 
-async def sync_payments(employee_name, phone_number, joined_at):
-    """Асинхронна версія функції синхронізації для всіх користувачів."""
+async def sync_payments():
+    """Асинхронна функція для синхронізації платежів для всіх користувачів."""
     token = get_power_bi_token()
     if not token:
         logging.error("Не вдалося отримати токен Power BI.")
@@ -126,7 +126,7 @@ async def run_periodic_sync():
     """Асинхронна функція для періодичної синхронізації."""
     while True:
         try:
-            await sync_payments()
+            await sync_payments()  # Тепер sync_payments не приймає аргументів
         except Exception as e:
             logging.error(f"Помилка при періодичній синхронізації: {e}")
         await asyncio.sleep(30)  # Перевірка кожні 30 секунд
