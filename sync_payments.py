@@ -88,3 +88,28 @@ def sync_payments(employee_name, phone_number, joined_at):
         logging.info(f"Успішно синхронізовано {len(rows)} платежів для користувача {employee_name}.")
     else:
         logging.error(f"Помилка при виконанні запиту: {response.status_code}, {response.text}")
+
+
+
+# Отримуємо URL бази даних з змінної середовища Heroku
+DATABASE_URL = os.getenv('DATABASE_URL')
+
+def get_db_connection():
+    # Підключаємось до бази даних PostgreSQL через URL з Heroku
+    return psycopg2.connect(DATABASE_URL, sslmode='require')
+
+def clear_payments_table():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Очищення таблиці payments
+    cursor.execute("TRUNCATE TABLE payments;")
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    print("Таблиця payments успішно очищена.")
+
+# Виконуємо очищення таблиці
+clear_payments_table()
