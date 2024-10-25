@@ -68,9 +68,3 @@ async def run_periodic_check():
         except Exception as e:
             logging.error(f"Помилка при перевірці нових платежів: {e}")
         await asyncio.sleep(30)
-
-if __name__ == '__main__':
-    try:
-        asyncio.run(run_periodic_check())
-    except Exception as e:
-        logging.error(f"Головна помилка: {e}")

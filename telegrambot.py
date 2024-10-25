@@ -84,18 +84,24 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         context.user_data['selected_month'] = menu_option
         await show_salary_details(update, context)
 
-async def main():
+def run_bot():
     app = ApplicationBuilder().token(KEY).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
 
-    asyncio.create_task(run_periodic_check())
-    await app.run_polling()
+    return app
 
-if __name__ == '__main__':
+async def main():
     try:
-        asyncio.run(main())
+        loop = asyncio.get_event_loop()
+        loop.create_task(run_periodic_check())  # Запуск асинхронної перевірки платежів
+
+        app = run_bot()
+        await app.run_polling()
     except Exception as e:
         logging.error(f"Головна помилка: {e}")
+
+if __name__ == '__main__':
+    asyncio.run(main())
