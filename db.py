@@ -9,11 +9,31 @@ def get_db_connection():
     # Підключаємось до бази даних PostgreSQL через URL з Heroku
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
+def alter_users_table():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Додаємо стовпець joined_at, якщо його ще не існує
+        cursor.execute("""
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS joined_at TIMESTAMP;
+        """)
+        
+        conn.commit()
+        print("Стовпець 'joined_at' додано успішно.")
+    except Exception as e:
+        conn.rollback()
+        print(f"Помилка при додаванні стовпця: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
 def create_tables():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Оновлюємо структуру таблиці користувачів
+    # Створюємо таблицю користувачів, якщо її ще не існує
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -70,6 +90,9 @@ def add_payment(phone_number, amount, currency, payment_date, payment_number):
     conn.commit()
     cursor.close()
     conn.close()
+
+# Викликаємо функцію для оновлення таблиці користувачів
+alter_users_table()
 
 # Викликаємо функцію для створення таблиць при запуску
 create_tables()
