@@ -1,6 +1,8 @@
 import psycopg2
 import os
+import time
 from telegram import Bot
+import logging
 
 # Отримуємо URL бази даних з змінної середовища Heroku
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -31,14 +33,15 @@ def check_new_payments():
 
         if user_data:
             telegram_id = user_data[0]
+            # Відправляємо сповіщення
             send_notification(telegram_id, amount, currency, payment_number)
 
             # Оновлюємо статус сповіщення
             cursor.execute("""
             UPDATE payments
             SET is_notified = TRUE
-            WHERE phone_number = %s AND amount = %s AND payment_date = %s
-            """, (phone_number, amount, payment_date))
+            WHERE phone_number = %s AND amount = %s AND payment_date = %s AND payment_number = %s
+            """, (phone_number, amount, payment_date, payment_number))
 
     conn.commit()
     cursor.close()
@@ -50,10 +53,12 @@ def send_notification(telegram_id, amount, currency, payment_number):
     bot.send_message(chat_id=telegram_id, text=message)
 
 def run_periodic_check():
-    import time
     while True:
-        check_new_payments()
-        time.sleep(60)  # Перевірка кожні 10 хвилин
+        try:
+            check_new_payments()
+        except Exception as e:
+            logging.error(f"Помилка при перевірці нових платежів: {e}")
+        time.sleep(30)  # Перевірка кожні 10 хвилин (600 секунд)
 
 if __name__ == '__main__':
     run_periodic_check()
