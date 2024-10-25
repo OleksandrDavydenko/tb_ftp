@@ -84,11 +84,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         context.user_data['selected_month'] = menu_option
         await show_salary_details(update, context)
 
-async def start_bot_and_check_payments():
-    # Запуск асинхронного фонових завдань
-    asyncio.create_task(run_periodic_check())
-
-    # Запуск бота
+async def run_bot():
     app = ApplicationBuilder().token(KEY).build()
 
     app.add_handler(CommandHandler("start", start))
@@ -97,8 +93,13 @@ async def start_bot_and_check_payments():
 
     await app.run_polling()
 
+async def main():
+    task1 = asyncio.create_task(run_bot())
+    task2 = asyncio.create_task(run_periodic_check())
+    await asyncio.gather(task1, task2)
+
 if __name__ == '__main__':
     try:
-        asyncio.run(start_bot_and_check_payments())
+        asyncio.run(main())
     except Exception as e:
         logging.error(f"Головна помилка: {e}")
