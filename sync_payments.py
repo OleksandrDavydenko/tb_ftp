@@ -54,10 +54,17 @@ def sync_payments(employee_name, phone_number):
 
         # Додаємо всі виплати в БД
         for payment in rows:
-            сума = float(payment.get("[Сума UAH]", 0))
+            сума_uah = float(payment.get("[Сума UAH]", 0))
+            сума_usd = float(payment.get("[Сума USD]", 0))
             дата_платежу = payment.get("[Дата платежу]", "")
             номер_платежу = payment.get("[Документ]", "")
-            currency = "UAH" if сума > 0 else "USD"
+
+            if сума_usd > 0:  # Якщо сума в USD, тоді використовуємо її
+                сума = сума_usd
+                currency = "USD"
+            else:  # В іншому випадку використовуємо UAH
+                сума = сума_uah
+                currency = "UAH"
 
             add_payment(phone_number, сума, currency, дата_платежу, номер_платежу)
 

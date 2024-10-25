@@ -44,7 +44,6 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
             context.user_data['last_name'] = update.message.from_user.last_name
 
             # Синхронізація всіх доступних виплат по employee_name
-            await update.message.reply_text("Синхронізуємо ваші платежі...")
             sync_payments(employee_name, phone_number)
 
             # Вітання та відображення головного меню
@@ -54,7 +53,7 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
             # Випадок, коли телефон не знайдено в Power BI
             await update.message.reply_text("Ваш номер не знайдено. Доступ заборонено.")
             await prompt_for_phone_number(update, context)
-            
+
 async def show_main_menu(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'main_menu'
     debt_button = KeyboardButton(text="Дебіторка")
