@@ -5,6 +5,7 @@ import asyncio
 from telegram import Bot
 from telegram.error import NetworkError, TelegramError
 from key import KEY
+from sync_payments import sync_payments  # Імпортуємо функцію синхронізації
 
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -60,6 +61,32 @@ async def check_new_payments():
         cursor.close()
         conn.close()
 
+async def sync_all_users():
+    logging.info("Початок періодичної синхронізації платежів.")
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Отримуємо всіх користувачів із таблиці users
+        cursor.execute("SELECT phone_number, first_name, joined_at FROM users")
+        users = cursor.fetchall()
+
+        for user in users:
+            phone_number, employee_name, joined_at = user
+            logging.info(f"Синхронізація платежів для користувача: {employee_name} ({phone_number})")
+            try:
+                await sync_payments(employee_name, phone_number, joined_at)
+                logging.info(f"Успішно синхронізовано для користувача: {employee_name}")
+            except Exception as e:
+                logging.error(f"Помилка при синхронізації для {employee_name}: {e}")
+
+    except Exception as e:
+        logging.error(f"Помилка під час періодичної синхронізації: {e}")
+
+    finally:
+        cursor.close()
+        conn.close()
+
 async def send_notification(telegram_id, amount, currency, payment_number):
     bot = Bot(token=KEY)
     message = f"Доброго дня! Відбулась виплата на суму {amount} {currency} (№ {payment_number})."
@@ -77,7 +104,8 @@ async def send_notification(telegram_id, amount, currency, payment_number):
 async def run_periodic_check():
     while True:
         await check_new_payments()
-        await asyncio.sleep(30)
+        await sync_all_users()  # Додаємо періодичну синхронізацію платежів
+        await asyncio.sleep(30)  # Інтервал між перевірками
 
 if __name__ == '__main__':
     try:
