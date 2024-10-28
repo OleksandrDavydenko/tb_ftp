@@ -44,7 +44,8 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
                 phone_number=phone_number,
                 telegram_id=update.message.from_user.id,
                 telegram_name=update.message.from_user.first_name,
-                employee_name=update.message.from_user.last_name
+                employee_name=employee_name
+                #employee_name=update.message.from_user.last_name
             )
 
             # Отримуємо дату приєднання користувача
