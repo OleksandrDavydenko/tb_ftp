@@ -30,11 +30,20 @@ async def prompt_for_phone_number(update: Update, context: CallbackContext) -> N
     reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
     await update.message.reply_text("Будь ласка, поділіться своїм номером телефону:", reply_markup=reply_markup)
 
+
+def normalize_phone_number(phone_number):
+    # Видаляємо '+' на початку номера
+    if phone_number.startswith('+'):
+        phone_number = phone_number[1:]
+    return phone_number
+
 async def handle_contact(update: Update, context: CallbackContext) -> None:
     if update.message.contact:
-        phone_number = update.message.contact.phone_number
+        phone_number = normalize_phone_number(update.message.contact.phone_number)
+
         logging.info(f"Отримано номер телефону: {phone_number}")
         found, employee_name = is_phone_number_in_power_bi(phone_number)
+        
 
         if found:
             logging.info(f"Користувач знайдений: {employee_name}")
