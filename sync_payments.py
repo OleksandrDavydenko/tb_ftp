@@ -15,10 +15,19 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
+def normalize_phone_number(phone_number):
+    # Видаляємо "+" на початку номера, якщо він є
+    if phone_number.startswith('+'):
+        phone_number = phone_number[1:]
+    return phone_number
+
+
 async def async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу):
     """Асинхронне додавання платежу до БД."""
     conn = get_db_connection()
     cursor = conn.cursor()
+
+    phone_number = normalize_phone_number(phone_number)
 
     try:
         # Перевірка на дублікати перед додаванням
@@ -63,6 +72,8 @@ async def sync_payments():
 
     for user in users:
         phone_number, employee_name, joined_at = user
+
+        phone_number = normalize_phone_number(phone_number)
 
         query_data = {
             "queries": [
