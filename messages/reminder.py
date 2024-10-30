@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import os
 from datetime import datetime
@@ -41,10 +40,10 @@ def schedule_monthly_reminder():
     """Налаштовуємо планувальник для щомісячного нагадування 5-го числа о 10:00."""
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
-        send_reminder_to_all_users, 
-        'cron', 
-        day=5, 
-        hour=10, 
+        send_reminder_to_all_users,
+        'cron',
+        day=5,
+        hour=10,
         minute=0
     )
     scheduler.start()

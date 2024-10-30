@@ -135,14 +135,18 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         await show_salary_details(update, context)
 
 async def main():
-    token = KEY
-    app = ApplicationBuilder().token(token).build()
+    # Ініціалізуємо додаток Telegram
+    app = ApplicationBuilder().token(KEY).build()
 
+    # Додаємо обробники команд та повідомлень
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
 
-    # Запускаємо періодичні завдання
+    # Запускаємо планувальник для щомісячного нагадування
+    schedule_monthly_reminder()
+
+    # Створюємо окремі потоки для періодичної перевірки та синхронізації виплат
     check_thread = threading.Thread(target=lambda: asyncio.run(run_periodic_check()))
     sync_thread = threading.Thread(target=lambda: asyncio.run(run_periodic_sync()))
     check_thread.daemon = True
@@ -150,11 +154,8 @@ async def main():
     check_thread.start()
     sync_thread.start()
 
-    # Запускаємо нагадування
-    schedule_monthly_reminder()
-
+    # Запускаємо бота
     await app.run_polling()
 
 if __name__ == '__main__':
     asyncio.run(main())
-
