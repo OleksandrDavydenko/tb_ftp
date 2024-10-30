@@ -1,5 +1,6 @@
 import re
 import requests
+import os
 
 # Функція для нормалізації номеру телефону (залишає лише останні 9 цифр)
 def normalize_phone_number(phone_number):
@@ -10,7 +11,7 @@ def normalize_phone_number(phone_number):
 def get_power_bi_token():
     client_id = '706d72b2-a9a2-4d90-b0d8-b08f58459ef6'
     username = 'od@ftpua.com'
-    password = 'Hq@ssw0rd352'
+    password = os.getenv('PASSWORD')
     url = 'https://login.microsoftonline.com/common/oauth2/token'
     
     body = {
