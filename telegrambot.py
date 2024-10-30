@@ -134,7 +134,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         context.user_data['selected_month'] = update.message.text
         await show_salary_details(update, context)
 
-def main():
+async def main():
     token = KEY
     app = ApplicationBuilder().token(token).build()
 
@@ -142,23 +142,19 @@ def main():
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
 
-    # Створюємо окремі потоки для перевірки нових виплат, синхронізації та нагадування
+    # Запускаємо періодичні завдання
     check_thread = threading.Thread(target=lambda: asyncio.run(run_periodic_check()))
     sync_thread = threading.Thread(target=lambda: asyncio.run(run_periodic_sync()))
-    reminder_thread = threading.Thread(target=schedule_monthly_reminder)  # Додаємо новий потік для нагадувань
-
-    # Встановлюємо всі потоки як фонові
     check_thread.daemon = True
     sync_thread.daemon = True
-    reminder_thread.daemon = True
-    
-    # Запускаємо всі потоки
     check_thread.start()
     sync_thread.start()
-    reminder_thread.start()
-    
-    app.run_polling()
+
+    # Запускаємо нагадування
+    schedule_monthly_reminder()
+
+    await app.run_polling()
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
 
