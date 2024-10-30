@@ -3,7 +3,8 @@ import os
 import logging
 import asyncio
 from telegram import Bot
-from key import KEY
+
+KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

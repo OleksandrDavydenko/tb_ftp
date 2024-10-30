@@ -3,7 +3,6 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 import threading
 from messages.check_payments import run_periodic_check
-from key import KEY
 from auth import is_phone_number_in_power_bi
 from db import add_telegram_user, get_user_joined_at
 from messages.sync_payments import sync_payments
@@ -11,6 +10,8 @@ from messages.sync_payments import run_periodic_sync  # Імпорт періо�
 import sys
 import os
 import logging
+
+KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart, show_main_menu
