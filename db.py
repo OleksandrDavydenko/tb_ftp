@@ -109,3 +109,20 @@ def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
 
+
+
+""" def get_all_users():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT telegram_id, telegram_name FROM users")
+    users = cursor.fetchall()
+
+    conn.close()
+
+    return [{'telegram_id': user[0], 'telegram_name': user[1]} for user in users] """
+
+def get_all_users():
+    # Для тестування повертаємо лише ваш telegram_id і ім'я
+    return [{'telegram_id': 203148640, 'telegram_name': 'Oleksandr'}]
+
