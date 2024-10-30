@@ -6,8 +6,8 @@ from messages.check_payments import run_periodic_check
 from key import KEY
 from auth import is_phone_number_in_power_bi
 from db import add_telegram_user, get_user_joined_at
-from sync_payments import sync_payments
-from sync_payments import run_periodic_sync  # Імпорт періодичної синхронізації
+from messages.sync_payments import sync_payments
+from messages.sync_payments import run_periodic_sync  # Імпорт періодичної синхронізації
 import sys
 import os
 import logging
