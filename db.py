@@ -111,7 +111,7 @@ def get_db_connection():
 
 
 
-""" def get_all_users():
+def get_all_users():
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -120,9 +120,7 @@ def get_db_connection():
 
     conn.close()
 
-    return [{'telegram_id': user[0], 'telegram_name': user[1]} for user in users] """
+    return [{'telegram_id': user[0], 'telegram_name': user[1]} for user in users] 
 
-def get_all_users():
-    # Для тестування повертаємо лише ваш telegram_id і ім'я
-    return [{'telegram_id': 203148640, 'telegram_name': 'Oleksandr'}]
+
 
