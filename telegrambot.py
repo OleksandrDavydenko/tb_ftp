@@ -115,8 +115,8 @@ def main():
     app = ApplicationBuilder().token(KEY).build()
 
     # Додаємо завдання до планувальника
-    scheduler.add_job(check_new_payments, 'interval', seconds=60)
-    scheduler.add_job(sync_payments, 'interval', seconds=60)
+    scheduler.add_job(check_new_payments, 'interval', seconds=300)
+    scheduler.add_job(sync_payments, 'interval', seconds=600)
     schedule_monthly_reminder(scheduler)
 
     scheduler.start()

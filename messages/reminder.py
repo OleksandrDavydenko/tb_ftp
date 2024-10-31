@@ -3,6 +3,8 @@ import os
 from datetime import datetime
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram import Bot
+from datetime import datetime, timedelta
+import calendar
 from db import get_all_users
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -21,8 +23,20 @@ def get_previous_month():
 
 async def send_reminder_to_all_users():
     users = get_all_users()
-    previous_month = get_previous_month()
-    message = f"Нагадування: будь ласка, закрийте свої угоди за {previous_month}."
+    
+    # Отримуємо поточну дату
+    today = datetime.today()
+    
+    # Визначаємо попередній місяць
+    previous_month_date = today - timedelta(days=today.day)
+    previous_month_name = calendar.month_name[previous_month_date.month]
+    
+    # Формуємо повідомлення
+    message = (
+        f"Закриваємо {previous_month_name.upper()} місяць 💪\n"
+        f"Прошу усіх в термін до {today.strftime('%d.%m')} включно, завершити свої угоди в Експедиторі.\n\n"
+        "Продуктивного дня."
+    )
 
     for user in users:
         try:
