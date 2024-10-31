@@ -136,6 +136,8 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         context.user_data['selected_month'] = update.message.text
         await show_salary_details(update, context)
 
+import asyncio
+
 async def main():
     token = KEY
     app = ApplicationBuilder().token(token).build()
@@ -144,15 +146,13 @@ async def main():
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
 
-    # Ініціалізація та запуск планувальника в основному циклі подій
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(run_periodic_check, 'interval', minutes=10)  # Перевірка платежів кожні 10 хвилин
-    scheduler.add_job(run_periodic_sync, 'interval', hours=1)  # Синхронізація платежів щогодини
-    scheduler.add_job(schedule_monthly_reminder, 'cron', day=1)  # Щомісячне нагадування
-    scheduler.start()
+    # Запуск планувальників
+    asyncio.create_task(run_periodic_check())
+    asyncio.create_task(run_periodic_sync())
 
-    # Запускаємо бота
     await app.run_polling()
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    # Запускаємо основну функцію без `asyncio.run()`
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
