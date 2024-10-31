@@ -146,18 +146,16 @@ async def main():
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
 
-    # Запуск задач без asyncio.run()
+    # Виконуємо задачі асинхронно
     asyncio.create_task(run_periodic_check())
     asyncio.create_task(run_periodic_sync())
 
     await app.run_polling()
 
 if __name__ == '__main__':
-    # Замість asyncio.run() використовуємо вже існуючий цикл подій
     loop = asyncio.get_event_loop()
     try:
-        loop.run_until_complete(main())
+        loop.create_task(main())  # Створюємо задачу для main() у поточному циклі
+        loop.run_forever()  # Підтримуємо цикл подій активним
     except (KeyboardInterrupt, SystemExit):
         pass
-    finally:
-        loop.close()
