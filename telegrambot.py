@@ -136,7 +136,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         context.user_data['selected_month'] = update.message.text
         await show_salary_details(update, context)
 
-import asyncio
+
 
 async def main():
     token = KEY
@@ -146,13 +146,18 @@ async def main():
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
 
-    # Запуск планувальників
+    # Запуск задач без asyncio.run()
     asyncio.create_task(run_periodic_check())
     asyncio.create_task(run_periodic_sync())
 
     await app.run_polling()
 
 if __name__ == '__main__':
-    # Запускаємо основну функцію без `asyncio.run()`
+    # Замість asyncio.run() використовуємо вже існуючий цикл подій
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+    try:
+        loop.run_until_complete(main())
+    except (KeyboardInterrupt, SystemExit):
+        pass
+    finally:
+        loop.close()
