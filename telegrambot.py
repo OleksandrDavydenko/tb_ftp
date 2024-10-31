@@ -7,6 +7,7 @@ from auth import is_phone_number_in_power_bi
 from db import add_telegram_user, get_user_joined_at
 from messages.sync_payments import sync_payments
 from messages.sync_payments import run_periodic_sync  # Імпорт періодичної синхронізації
+from messages.reminder import schedule_monthly_reminder
 
 import sys
 import os
@@ -142,16 +143,18 @@ def main():
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
 
-    # Створюємо окремий потік для перевірки нових виплат
-
+    # Запускаємо потоки для періодичних завдань
     check_thread = threading.Thread(target=lambda: asyncio.run(run_periodic_check()))
     sync_thread = threading.Thread(target=lambda: asyncio.run(run_periodic_sync()))
+    reminder_thread = threading.Thread(target=schedule_monthly_reminder)  # Додаємо потік для щомісячного нагадування
+    
     check_thread.daemon = True
     sync_thread.daemon = True
+    reminder_thread.daemon = True
+
     check_thread.start()
     sync_thread.start()
-
-    
+    reminder_thread.start()
 
     app.run_polling()
 
