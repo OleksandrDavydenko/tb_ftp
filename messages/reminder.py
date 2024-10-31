@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram import Bot
 from db import get_all_users
+from pytz import timezone
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 bot = Bot(token=KEY)
@@ -45,13 +46,17 @@ async def send_reminder_to_all_users():
             logging.error(f"Помилка при відправці повідомлення користувачу {user['telegram_name']}: {e}")
 
 # Функція для налаштування щомісячного нагадування
+
 def schedule_monthly_reminder(scheduler):
     scheduler.add_job(
         send_reminder_to_all_users,
         'cron',
         day=31,
         hour=15,
-        minute=0,
-        misfire_grace_time=60  # Дозволяє завданню пропустити запуск, якщо є затримка
+        minute=25,
+        misfire_grace_time=60,  # Дозволяє завданню пропустити запуск, якщо є затримка
+        timezone='Europe/Kiev'  # Вказуємо часовий пояс
     )
+    logging.info("Планувальник щомісячного нагадування на 31 число о 15:00 за київським часом запущено.")
+
     logging.info("Планувальник щомісячного нагадування на 5 число об 11:00 запущено.")
