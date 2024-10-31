@@ -138,7 +138,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
 
 
 
-async def main():
+def main():
     token = KEY
     app = ApplicationBuilder().token(token).build()
 
@@ -146,16 +146,18 @@ async def main():
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
 
-    # Виконуємо задачі асинхронно
-    asyncio.create_task(run_periodic_check())
-    asyncio.create_task(run_periodic_sync())
+    # Створюємо окремий потік для перевірки нових виплат
 
-    await app.run_polling()
+    check_thread = threading.Thread(target=lambda: asyncio.run(run_periodic_check()))
+    sync_thread = threading.Thread(target=lambda: asyncio.run(run_periodic_sync()))
+    check_thread.daemon = True
+    sync_thread.daemon = True
+    check_thread.start()
+    sync_thread.start()
+
+    
+
+    app.run_polling()
 
 if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    try:
-        loop.create_task(main())  # Створюємо задачу для main() у поточному циклі
-        loop.run_forever()  # Підтримуємо цикл подій активним
-    except (KeyboardInterrupt, SystemExit):
-        pass
+    main()
