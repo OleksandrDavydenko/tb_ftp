@@ -1,10 +1,8 @@
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram import Bot
-from datetime import datetime, timedelta
-import calendar
 from db import get_all_users
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -12,32 +10,32 @@ bot = Bot(token=KEY)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Функція для отримання української назви попереднього місяця
 def get_previous_month():
     current_month = datetime.now().month
     previous_month = current_month - 1 if current_month > 1 else 12
-    months = [
+    months_ua = [
         "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
         "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
     ]
-    return months[previous_month - 1]
+    return months_ua[previous_month - 1]
 
+# Асинхронна функція для відправки нагадування всім користувачам
 async def send_reminder_to_all_users():
     users = get_all_users()
     
-    # Отримуємо поточну дату
-    today = datetime.today()
-    
-    # Визначаємо попередній місяць
-    previous_month_date = today - timedelta(days=today.day)
-    previous_month_name = calendar.month_name[previous_month_date.month]
-    
+    # Визначаємо попередній місяць та дату для повідомлення
+    previous_month_name = get_previous_month()
+    reminder_date = f"07.{datetime.now().strftime('%m')}"
+
     # Формуємо повідомлення
     message = (
         f"Закриваємо {previous_month_name.upper()} місяць 💪\n"
-        f"Прошу усіх в термін до {today.strftime('%d.%m')} включно, завершити свої угоди в Експедиторі.\n\n"
+        f"Прошу усіх в термін до {reminder_date} включно, завершити свої угоди в Експедиторі.\n\n"
         "Продуктивного дня."
     )
 
+    # Відправляємо повідомлення кожному користувачу
     for user in users:
         try:
             await bot.send_message(chat_id=user['telegram_id'], text=message)
@@ -45,6 +43,7 @@ async def send_reminder_to_all_users():
         except Exception as e:
             logging.error(f"Помилка при відправці повідомлення користувачу {user['telegram_name']}: {e}")
 
+# Функція для налаштування періодичних нагадувань
 def schedule_monthly_reminder(scheduler):
     scheduler.add_job(
         send_reminder_to_all_users,
