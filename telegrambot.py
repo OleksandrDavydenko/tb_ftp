@@ -6,6 +6,7 @@ import logging
 import os
 import signal
 import sys
+import atexit
 
 from messages.check_payments import run_periodic_check
 from auth import is_phone_number_in_power_bi
@@ -130,15 +131,13 @@ def main():
     schedule_monthly_reminder(scheduler)
     scheduler.start()
     
-    # Додаємо обробник сигналів для коректної зупинки
-    def graceful_shutdown(*args):
-        logging.info("Завершення роботи... Зупиняємо планувальник.")
+    # Реєструємо функцію зупинки планувальника при виході
+    def shutdown_scheduler():
+        logging.info("Зупиняємо планувальник...")
         scheduler.shutdown(wait=True)
         logging.info("Планувальник зупинено.")
-        sys.exit(0)
-
-    signal.signal(signal.SIGTERM, graceful_shutdown)
-    signal.signal(signal.SIGINT, graceful_shutdown)
+    
+    atexit.register(shutdown_scheduler)
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
@@ -148,4 +147,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-"""еу"""
