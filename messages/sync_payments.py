@@ -5,32 +5,25 @@ import os
 import logging
 from datetime import datetime
 from auth import get_power_bi_token
-from db import add_payment  # Імпортуємо функцію додавання платежу в БД
+from db import add_payment
 
-# Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 DATABASE_URL = os.getenv('DATABASE_URL')
 
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
 def normalize_phone_number(phone_number):
-    # Видаляємо "+" на початку номера, якщо він є
     if phone_number.startswith('+'):
         phone_number = phone_number[1:]
     return phone_number
 
-
 async def async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу):
-    """Асинхронне додавання платежу до БД."""
     conn = get_db_connection()
     cursor = conn.cursor()
-
     phone_number = normalize_phone_number(phone_number)
 
     try:
-        # Перевірка на дублікати перед додаванням
         cursor.execute("""
             SELECT 1 FROM payments
             WHERE phone_number = %s AND amount = %s AND currency = %s AND payment_date = %s AND payment_number = %s
@@ -44,13 +37,11 @@ async def async_add_payment(phone_number, сума, currency, дата_плат�
 
     except Exception as e:
         logging.error(f"Помилка при додаванні платежу: {e}")
-
     finally:
         cursor.close()
         conn.close()
 
 async def sync_payments():
-    """Асинхронна версія функції синхронізації для всіх користувачів з перевіркою дублювання платежів."""
     token = get_power_bi_token()
     if not token:
         logging.error("Не вдалося отримати токен Power BI.")
@@ -65,14 +56,11 @@ async def sync_payments():
 
     conn = get_db_connection()
     cursor = conn.cursor()
-
-    # Отримуємо список усіх користувачів
     cursor.execute("SELECT phone_number, employee_name, joined_at FROM users")
     users = cursor.fetchall()
 
     for user in users:
         phone_number, employee_name, joined_at = user
-
         phone_number = normalize_phone_number(phone_number)
 
         query_data = {
@@ -104,15 +92,12 @@ async def sync_payments():
             if response.status_code == 200:
                 data = response.json()
                 rows = data['results'][0]['tables'][0].get('rows', [])
-
-                # Асинхронно додаємо кожен платіж до бази даних
                 for payment in rows:
                     сума_uah = float(payment.get("[Сума UAH]", 0))
                     сума_usd = float(payment.get("[Сума USD]", 0))
                     дата_платежу = payment.get("[Дата платежу]", "")
                     номер_платежу = payment.get("[Документ]", "")
 
-                    # Визначаємо валюту та суму
                     if сума_usd > 0:
                         сума = сума_usd
                         currency = "USD"
@@ -120,7 +105,6 @@ async def sync_payments():
                         сума = сума_uah
                         currency = "UAH"
 
-                    # Перевірка на дублікати перед додаванням
                     cursor.execute("""
                         SELECT 1 FROM payments
                         WHERE phone_number = %s AND amount = %s AND currency = %s AND payment_date = %s AND payment_number = %s
@@ -140,12 +124,3 @@ async def sync_payments():
 
     cursor.close()
     conn.close()
-
-async def run_periodic_sync():
-    """Асинхронна функція для періодичної синхронізації."""
-    while True:
-        try:
-            await sync_payments()  # Тепер sync_payments не приймає аргументів
-        except Exception as e:
-            logging.error(f"Помилка при періодичній синхронізації: {e}")
-        await asyncio.sleep(30)  # Перевірка кожні 30 секунд

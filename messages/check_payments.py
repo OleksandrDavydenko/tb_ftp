@@ -1,14 +1,11 @@
 import psycopg2
 import os
 import logging
-import asyncio
 from telegram import Bot
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 
-# Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 DATABASE_URL = os.getenv('DATABASE_URL')
 
 def get_db_connection():
@@ -26,11 +23,6 @@ async def check_new_payments():
     """)
     new_payments = cursor.fetchall()
 
-    if new_payments:
-        logging.info(f"Знайдено {len(new_payments)} нових платежів.")
-    else:
-        logging.info("Немає нових платежів.")
-
     for payment in new_payments:
         phone_number, amount, currency, payment_date, payment_number = payment
         cursor.execute("SELECT telegram_id FROM users WHERE phone_number = %s", (phone_number,))
@@ -40,7 +32,6 @@ async def check_new_payments():
             telegram_id = user_data[0]
             logging.info(f"Надсилаємо сповіщення користувачу з Telegram ID: {telegram_id}")
             await send_notification(telegram_id, amount, currency, payment_number)
-
             cursor.execute("""
             UPDATE payments
             SET is_notified = TRUE
@@ -61,11 +52,3 @@ async def send_notification(telegram_id, amount, currency, payment_number):
         logging.info(f"Сповіщення відправлено: {message}")
     except Exception as e:
         logging.error(f"Помилка при відправці сповіщення: {e}")
-
-async def run_periodic_check():
-    while True:
-        try:
-            await check_new_payments()
-        except Exception as e:
-            logging.error(f"Помилка при перевірці нових платежів: {e}")
-        await asyncio.sleep(30)
