@@ -36,15 +36,11 @@ async def send_reminder_to_all_users():
         except Exception as e:
             logging.error(f"Помилка при відправці повідомлення користувачу {user['telegram_name']}: {e}")
 
-def schedule_monthly_reminder():
-    """Налаштовуємо планувальник для щомісячного нагадування 5-го числа о 10:00."""
-    scheduler = AsyncIOScheduler()
+def schedule_monthly_reminder(scheduler):
+    """Налаштовуємо планувальник для нагадування кожні 2 хвилини для тестування."""
     scheduler.add_job(
         send_reminder_to_all_users,
-        'cron',
-        day=0,
-        hour=0,
-        minute=1
+        'interval',
+        minutes=2
     )
-
-    logging.info("Щомісячний планувальник нагадувань запущено.")
+    logging.info("Планувальник нагадувань кожні 2 хвилини запущено.")
