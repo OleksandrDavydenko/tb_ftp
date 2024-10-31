@@ -8,6 +8,7 @@ from db import add_telegram_user, get_user_joined_at
 from messages.sync_payments import sync_payments
 from messages.sync_payments import run_periodic_sync  # Імпорт періодичної синхронізації
 from messages.reminder import schedule_monthly_reminder
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 import sys
 import os
@@ -143,19 +144,16 @@ async def main():
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
 
-    # Створюємо та запускаємо планувальник для щомісячного нагадування в головному асинхронному циклі
+    # Ініціалізація та запуск планувальника
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(run_periodic_check, 'interval', minutes=10)  # Перевірка платежів кожні 10 хвилин
+    scheduler.add_job(run_periodic_sync, 'interval', hours=1)  # Синхронізація платежів щогодини
+    scheduler.start()
+    
+    # Запускаємо планувальник для щомісячного нагадування
     schedule_monthly_reminder()
 
-    # Створюємо потоки для перевірки та синхронізації виплат
-    check_thread = threading.Thread(target=lambda: asyncio.run(run_periodic_check()))
-    sync_thread = threading.Thread(target=lambda: asyncio.run(run_periodic_sync()))
-    
-    check_thread.daemon = True
-    sync_thread.daemon = True
-
-    check_thread.start()
-    sync_thread.start()
-
+    # Запускаємо бота
     await app.run_polling()
 
 if __name__ == '__main__':
