@@ -125,27 +125,27 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
 def main():
     token = KEY
     app = ApplicationBuilder().token(token).build()
-    
+    scheduler = AsyncIOScheduler()
+
+    # Налаштування запланованих завдань
     scheduler.add_job(run_periodic_check, 'interval', minutes=1, max_instances=1, misfire_grace_time=60)
     scheduler.add_job(run_periodic_sync, 'interval', minutes=1, max_instances=1, misfire_grace_time=60)
-    schedule_monthly_reminder(scheduler)
-    scheduler.start()
-    
-    # Реєструємо функцію зупинки планувальника при виході
-    def shutdown_scheduler():
-        logging.info("Зупиняємо планувальник...")
-        scheduler.shutdown(wait=True)
-        logging.info("Планувальник зупинено.")
-    
-    atexit.register(shutdown_scheduler)
+    schedule_monthly_reminder(scheduler)  # Додаємо нагадування до планувальника
 
+    scheduler.start()
+    logging.info("Планувальник запущено.")
+
+    # Обробники команд та повідомлень
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
 
-    app.run_polling()
+    try:
+        app.run_polling()
+    finally:
+        logging.info("Зупиняємо планувальник...")
+        scheduler.shutdown(wait=True)
+        logging.info("Планувальник зупинено.")
 
 if __name__ == '__main__':
     main()
-
-    """5454"""
