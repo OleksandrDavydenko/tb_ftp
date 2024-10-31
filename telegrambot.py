@@ -122,6 +122,12 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         context.user_data['selected_month'] = update.message.text
         await show_salary_details(update, context)
 
+async def shutdown(app, scheduler):
+    await app.shutdown()
+    logging.info("Зупиняємо планувальник...")
+    scheduler.shutdown(wait=True)
+    logging.info("Планувальник зупинено.")
+
 def main():
     token = KEY
     app = ApplicationBuilder().token(token).build()
@@ -140,15 +146,11 @@ def main():
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
 
+    # Запускаємо бота в циклі подій
     try:
         app.run_polling()
     finally:
-        logging.info("Зупиняємо планувальник...")
-        scheduler.shutdown(wait=True)
-        logging.info("Планувальник зупинено.")
+        asyncio.run(shutdown(app, scheduler))
 
 if __name__ == '__main__':
     main()
-
-
-    """54545"""
