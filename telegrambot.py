@@ -122,9 +122,9 @@ def main():
     app = ApplicationBuilder().token(token).build()
     
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(run_periodic_check, 'interval', minutes=1, max_instances=1)
-    scheduler.add_job(run_periodic_sync, 'interval', minutes=1, max_instances=1)
-    schedule_monthly_reminder(scheduler)  # Додаємо нагадування кожні 2 хвилини
+    scheduler.add_job(run_periodic_check, 'interval', minutes=1, max_instances=1, misfire_grace_time=60)
+    scheduler.add_job(run_periodic_sync, 'interval', minutes=1, max_instances=1, misfire_grace_time=60)
+    schedule_monthly_reminder(scheduler)
     scheduler.start()
     
     app.add_handler(CommandHandler("start", start))

@@ -3,18 +3,14 @@ import os
 from datetime import datetime
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram import Bot
-from db import get_all_users  # Імпортуємо функцію для отримання списку всіх користувачів
+from db import get_all_users
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
-
-# Ініціалізуємо бота
 bot = Bot(token=KEY)
 
-# Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def get_previous_month():
-    """Отримуємо назву попереднього місяця українською."""
     current_month = datetime.now().month
     previous_month = current_month - 1 if current_month > 1 else 12
     months = [
@@ -24,8 +20,7 @@ def get_previous_month():
     return months[previous_month - 1]
 
 async def send_reminder_to_all_users():
-    """Відправляє нагадування всім користувачам про закриття угод."""
-    users = get_all_users()  # Отримуємо список усіх користувачів з БД
+    users = get_all_users()
     previous_month = get_previous_month()
     message = f"Нагадування: будь ласка, закрийте свої угоди за {previous_month}."
 
@@ -37,10 +32,10 @@ async def send_reminder_to_all_users():
             logging.error(f"Помилка при відправці повідомлення користувачу {user['telegram_name']}: {e}")
 
 def schedule_monthly_reminder(scheduler):
-    """Налаштовуємо планувальник для нагадування кожні 2 хвилини для тестування."""
     scheduler.add_job(
         send_reminder_to_all_users,
         'interval',
-        minutes=2
+        minutes=2,
+        misfire_grace_time=60  # Дозволяє завданню пропустити запуск, якщо є затримка
     )
     logging.info("Планувальник нагадувань кожні 2 хвилини запущено.")
