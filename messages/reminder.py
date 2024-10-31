@@ -51,9 +51,9 @@ def schedule_monthly_reminder(scheduler):
     scheduler.add_job(
         send_reminder_to_all_users,
         'cron',
-        day=31,
-        hour=15,
-        minute=25,
+        day=5,
+        hour=10,
+        minute=00,
         misfire_grace_time=60,  # Дозволяє завданню пропустити запуск, якщо є затримка
         timezone='Europe/Kiev'  # Вказуємо часовий пояс
     )
