@@ -46,5 +46,5 @@ def schedule_monthly_reminder():
         hour=10,
         minute=0
     )
-    scheduler.start()
+
     logging.info("Щомісячний планувальник нагадувань запущено.")
