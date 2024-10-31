@@ -116,7 +116,7 @@ def main():
 
     # Додаємо завдання до планувальника
     scheduler.add_job(check_new_payments, 'interval', seconds=300)
-    scheduler.add_job(sync_payments, 'interval', seconds=600)
+    scheduler.add_job(sync_payments, 'interval', seconds=270)
     schedule_monthly_reminder(scheduler)
 
     scheduler.start()
