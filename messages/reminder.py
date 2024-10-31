@@ -49,8 +49,8 @@ def schedule_monthly_reminder(scheduler):
     scheduler.add_job(
         send_reminder_to_all_users,
         'cron',
-        day=5,
-        hour=10,
+        day=31,
+        hour=15,
         minute=0,
         misfire_grace_time=60  # Дозволяє завданню пропустити запуск, якщо є затримка
     )

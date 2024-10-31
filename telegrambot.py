@@ -29,7 +29,8 @@ async def start(update: Update, context: CallbackContext) -> None:
 async def prompt_for_phone_number(update: Update, context: CallbackContext) -> None:
     contact_button = KeyboardButton(text="Поділитися номером телефоном", request_contact=True)
     reply_markup = ReplyKeyboardMarkup([[contact_button]], one_time_keyboard=True)
-    await update.message.reply_text("Будь ласка, поділіться своїм номером телефону:", reply_markup=reply_markup)
+    await update.message.reply_text("Будь ласка, поділіться своїм номером телефону, натиснувши кнопку 'Поділитися номером телефоном' нижче.", reply_markup=reply_markup)
+
 
 def normalize_phone_number(phone_number):
     return phone_number[1:] if phone_number.startswith('+') else phone_number
