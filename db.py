@@ -124,3 +124,29 @@ def get_all_users():
 
 
 
+
+
+"Видалення записів"
+
+def delete_records(phone_number):
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cursor = conn.cursor()
+
+        # Видаляємо записи з таблиці payments
+        cursor.execute("DELETE FROM payments WHERE phone_number = %s", (phone_number,))
+        
+        # Видаляємо користувача з таблиці users
+        cursor.execute("DELETE FROM users WHERE phone_number = %s", (phone_number,))
+
+        conn.commit()
+        print(f"Записи з номером {phone_number} успішно видалено.")
+
+    except Exception as e:
+        print(f"Помилка при видаленні записів: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+# Виклик функції з номером телефону
+delete_records("+380632773227")
