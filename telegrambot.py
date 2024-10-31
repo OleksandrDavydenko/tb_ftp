@@ -4,6 +4,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import logging
 import os
+import signal
 import sys
 
 from messages.check_payments import run_periodic_check
@@ -19,6 +20,9 @@ from salary.salary_handlers import show_salary_years, show_salary_months, show_s
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Ініціалізуємо планувальник як глобальну змінну
+scheduler = AsyncIOScheduler()
 
 async def start(update: Update, context: CallbackContext) -> None:
     context.user_data['registered'] = False
@@ -121,12 +125,21 @@ def main():
     token = KEY
     app = ApplicationBuilder().token(token).build()
     
-    scheduler = AsyncIOScheduler()
     scheduler.add_job(run_periodic_check, 'interval', minutes=1, max_instances=1, misfire_grace_time=60)
     scheduler.add_job(run_periodic_sync, 'interval', minutes=1, max_instances=1, misfire_grace_time=60)
     schedule_monthly_reminder(scheduler)
     scheduler.start()
     
+    # Додаємо обробник сигналів для коректної зупинки
+    def graceful_shutdown(*args):
+        logging.info("Завершення роботи... Зупиняємо планувальник.")
+        scheduler.shutdown(wait=True)
+        logging.info("Планувальник зупинено.")
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, graceful_shutdown)
+    signal.signal(signal.SIGINT, graceful_shutdown)
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
