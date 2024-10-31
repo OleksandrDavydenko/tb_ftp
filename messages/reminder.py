@@ -22,7 +22,7 @@ def get_previous_month():
         "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
     ]
     return months[previous_month - 1]
-
+""""""
 async def send_reminder_to_all_users():
     """Відправляє нагадування всім користувачам про закриття угод."""
     users = get_all_users()  # Отримуємо список усіх користувачів з БД
