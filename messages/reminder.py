@@ -22,7 +22,7 @@ def get_previous_month():
         "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
     ]
     return months[previous_month - 1]
-""""""
+
 async def send_reminder_to_all_users():
     """Відправляє нагадування всім користувачам про закриття угод."""
     users = get_all_users()  # Отримуємо список усіх користувачів з БД
@@ -42,9 +42,9 @@ def schedule_monthly_reminder():
     scheduler.add_job(
         send_reminder_to_all_users,
         'cron',
-        day=5,
-        hour=10,
-        minute=0
+        day=0,
+        hour=0,
+        minute=1
     )
 
     logging.info("Щомісячний планувальник нагадувань запущено.")
