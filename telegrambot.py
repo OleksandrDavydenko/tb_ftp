@@ -15,7 +15,7 @@ from messages.reminder import schedule_monthly_reminder
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart
 from salary.salary_handlers import show_salary_years, show_salary_months, show_salary_details
-from analytics.analytics_handler import show_analytics_years, show_analytics_months, show_analytics_details  # Імпортуємо новий хендлер
+from employee_analytics.analytics_handler import show_analytics_years, show_analytics_months, show_analytics_details  # Імпортуємо новий хендлер
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 
