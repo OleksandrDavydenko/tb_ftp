@@ -53,4 +53,4 @@ async def show_analytics_details(update: Update, context: CallbackContext) -> No
 
     # Форматування таблиці з додаванням місяця та року
     formatted_table = format_analytics_table(income_data, employee_name, month, year)
-    await update.message.reply_text(f"\n{formatted_table}\n", parse_mode="Markdown")
+    await update.message.reply_text(f"```\n{formatted_table}\n```", parse_mode="Markdown")
