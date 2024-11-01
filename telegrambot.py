@@ -17,7 +17,7 @@ from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_hi
 from salary.salary_handlers import show_salary_years, show_salary_months, show_salary_details
 from employee_analytics.analytics_handler import (
     show_analytics_options, show_analytics_years, show_analytics_months,
-    show_analytics_details, show_yearly_analytics  # Оновлений імпорт
+    handle_analytics_selection, handle_year_selection, handle_month_selection, show_yearly_analytics
 )
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -73,7 +73,7 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
 async def show_main_menu(update: Update, context: CallbackContext) -> None:
     debt_button = KeyboardButton(text="Дебіторка")
     salary_button = KeyboardButton(text="Розрахунковий лист")
-    analytics_button = KeyboardButton(text="Аналітика працівника")  # Додаємо кнопку для аналітики
+    analytics_button = KeyboardButton(text="Аналітика працівника")
     reply_markup = ReplyKeyboardMarkup(
         [[debt_button, salary_button], [analytics_button]], 
         one_time_keyboard=True
@@ -102,10 +102,6 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         await handle_back_navigation(update, context)
     elif text == "Головне меню":
         await show_main_menu(update, context)
-    elif text in ["2024", "2025"]:
-        await handle_year_choice(update, context)
-    elif text in ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"]:
-        await handle_month_choice(update, context)
 
 async def handle_back_navigation(update: Update, context: CallbackContext) -> None:
     menu = context.user_data.get('menu')

@@ -10,7 +10,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 # Відображення вибору типу аналітики
 async def show_analytics_options(update: Update, context: CallbackContext) -> None:
-    custom_keyboard = [[KeyboardButton("Аналітика за місяць"), KeyboardButton("Аналітика за рік")]]
+    custom_keyboard = [
+        [KeyboardButton("Аналітика за місяць"), KeyboardButton("Аналітика за рік")],
+        [KeyboardButton("Головне меню")]
+    ]
     reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
     await update.message.reply_text("Оберіть тип аналітики:", reply_markup=reply_markup)
 
@@ -19,7 +22,7 @@ async def show_analytics_years(update: Update, context: CallbackContext) -> None
     current_year = datetime.datetime.now().year
     years = [str(year) for year in range(2024, current_year + 1)]
     custom_keyboard = [[KeyboardButton(year)] for year in years]
-    custom_keyboard.append([KeyboardButton("Назад")])
+    custom_keyboard.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
     reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
 
     context.user_data['menu'] = 'analytics_years'
@@ -75,14 +78,30 @@ async def show_yearly_analytics(update: Update, context: CallbackContext) -> Non
     await show_yearly_chart(update, context, employee_name, year)
 
 # Основний обробник для вибору аналітики
-async def show_analytics_details(update: Update, context: CallbackContext) -> None:
+async def handle_analytics_selection(update: Update, context: CallbackContext) -> None:
     choice = update.message.text
 
     if choice == "Аналітика за місяць":
-        await show_analytics_years(update, context)
         context.user_data['analytics_type'] = 'monthly'
-    elif choice == "Аналітика за рік":
         await show_analytics_years(update, context)
+    elif choice == "Аналітика за рік":
         context.user_data['analytics_type'] = 'yearly'
+        await show_analytics_years(update, context)
     else:
         await update.message.reply_text("Помилка вибору. Оберіть аналітику за місяць або за рік.")
+
+# Обробка вибору року та місяця залежно від типу аналітики
+async def handle_year_selection(update: Update, context: CallbackContext) -> None:
+    year = update.message.text
+    context.user_data['selected_year'] = year
+    analytics_type = context.user_data.get('analytics_type')
+
+    if analytics_type == 'monthly':
+        await show_analytics_months(update, context)
+    elif analytics_type == 'yearly':
+        await show_yearly_analytics(update, context)
+
+async def handle_month_selection(update: Update, context: CallbackContext) -> None:
+    month = update.message.text
+    context.user_data['selected_month'] = month
+    await show_monthly_analytics(update, context)
