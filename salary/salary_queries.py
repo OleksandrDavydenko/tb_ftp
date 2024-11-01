@@ -113,14 +113,17 @@ def get_salary_payments(employee_name, year, month):
             {
                 "query": f"""
                     EVALUATE 
-                    SUMMARIZECOLUMNS(
-                        'GrossProfitFromDeals'[Manager],
+                    SELECTCOLUMNS(
                         FILTER(
-                            'GrossProfitFromDeals',
-                            'GrossProfitFromDeals'[Manager] = "{employee_name}"
-                                && 'GrossProfitFromDeals'[RegistrDate] = "{month_name} {year} р."
+                            SalaryPayment,
+                            SalaryPayment[Employee] = "{employee_name}" &&
+                            FORMAT(DATEVALUE(SalaryPayment[МісяцьНарахування]), "YYYY-MM") = "{year}-{formatted_month}"
                         ),
-                        "TotalIncome", SUM('GrossProfitFromDeals'[Income])
+                        "Дата платежу", SalaryPayment[DocDate],
+                        "Документ", SalaryPayment[DocNumber],
+                        "Сума UAH", SalaryPayment[SUM_UAH],
+                        "Сума USD", SalaryPayment[SUM_USD],
+                        "Разом в USD", SalaryPayment[SUMINUSD]
                     )
                 """
             }
