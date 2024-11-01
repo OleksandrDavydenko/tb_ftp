@@ -127,11 +127,17 @@ async def handle_year_choice(update: Update, context: CallbackContext) -> None:
         await show_analytics_months(update, context)
     elif analytics_type == 'yearly':
         await show_yearly_analytics(update, context)
+    elif 'menu' in context.user_data and context.user_data['menu'] == 'salary_years':
+        context.user_data['selected_year'] = selected_year
+        await show_salary_months(update, context)
 
 async def handle_month_choice(update: Update, context: CallbackContext) -> None:
     selected_month = update.message.text
     context.user_data['selected_month'] = selected_month
-    await show_analytics_details(update, context)
+    if context.user_data.get('analytics_type') == 'monthly':
+        await show_analytics_details(update, context)
+    elif 'menu' in context.user_data and context.user_data['menu'] == 'salary_months':
+        await show_salary_details(update, context)
 
 async def shutdown(app, scheduler):
     await app.shutdown()
