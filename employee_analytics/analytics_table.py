@@ -5,7 +5,7 @@ from auth import get_power_bi_token
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Функція для отримання даних про дохід для конкретного співробітника
+# Функція для отримання даних про дохід для конкретного співробітника за обраний місяць та рік
 def get_income_data(employee_name, role, year, month):
     logging.info(f"Запит на отримання даних для: {employee_name}, роль: {role}, рік: {year}, місяць: {month}")
     token = get_power_bi_token()
@@ -22,8 +22,10 @@ def get_income_data(employee_name, role, year, month):
 
     # Визначення колонки для фільтрації за роллю
     role_column = "Manager" if role == "Менеджер" else "Seller"
+    # Формат для фільтрації за датою
+    formatted_date = f"{month} {year} р."
 
-    # Запит з використанням SUMMARIZECOLUMNS та фільтрації за співробітником
+    # Запит з фільтрацією за користувачем та датою
     query_data = {
         "queries": [
             {
@@ -33,7 +35,8 @@ def get_income_data(employee_name, role, year, month):
                         'GrossProfitFromDeals'[{role_column}],
                         FILTER(
                             'GrossProfitFromDeals',
-                            'GrossProfitFromDeals'[{role_column}] = "{employee_name}"
+                            'GrossProfitFromDeals'[{role_column}] = "{employee_name}" &&
+                            'GrossProfitFromDeals'[RegistrDate] = "{formatted_date}"
                         ),
                         "TotalIncome", SUM('GrossProfitFromDeals'[Income])
                     )
@@ -45,7 +48,7 @@ def get_income_data(employee_name, role, year, month):
         }
     }
 
-    logging.info(f"Виконуємо запит до Power BI для {role} {employee_name}.")
+    logging.info(f"Виконуємо запит до Power BI для {role} {employee_name} за {formatted_date}.")
     response = requests.post(power_bi_url, headers=headers, json=query_data)
 
     if response.status_code == 200:
