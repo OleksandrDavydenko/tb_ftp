@@ -72,11 +72,12 @@ def format_analytics_table(income_data, employee_name, month, year):
     table += f"{'Показник':<20}{'Sum USD':<10}\n"
     table += "-" * 30 + "\n"
 
-    # Отримання значення доходу, перевірка значень для ролей
-    income_value = income_data.get("Sum USD", 0) if income_data else 0
+    # Отримання значення доходу з правильним ключем
+    income_value = income_data.get("[Sum USD]", 0) if income_data else 0
 
     table += f"{'Дохід':<20}{income_value:<10}\n"
     table += "-" * 30 + "\n"
     
     logging.info("Формування таблиці аналітики завершено.")
     return table
+
