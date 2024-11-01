@@ -69,7 +69,7 @@ def format_analytics_table(income_data, employee_name, month, year):
     formatted_date = f"{month.lower()} {year} р."
     table = f"Аналітика {employee_name} за {formatted_date}:\n"
     table += "-" * 30 + "\n"
-    table += f"{'Показник':<20}{'Sum USD':<10}\n"
+    table += f"{'Показник':<20}{'Сума USD':<10}\n"
     table += "-" * 30 + "\n"
 
     # Отримання значень з правильними ключами
