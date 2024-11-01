@@ -65,6 +65,7 @@ def get_income_data(employee_name, role, year, month):
     }
 
     logging.info(f"Виконуємо запит до Power BI для {role} {employee_name}.")
+    logging.info(f"Дата {formatted_date}.")
     response = requests.post(power_bi_url, headers=headers, json=query_data)
 
     if response.status_code == 200:
@@ -78,7 +79,7 @@ def get_income_data(employee_name, role, year, month):
         logging.error(f"Помилка при виконанні запиту: {response.status_code}, {response.text}")
         return None
     
-    
+
 # Функція для форматування таблиці аналітики працівника
 def format_analytics_table(manager_income, sales_income):
     table = "Аналітика працівника:\n"
