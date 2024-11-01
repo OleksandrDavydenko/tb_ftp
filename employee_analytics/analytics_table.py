@@ -48,7 +48,7 @@ def get_income_data(employee_name, role, year, month):
                 "query": f"""
                     EVALUATE 
                     SUMMARIZECOLUMNS(
-                        'GrossProfitFromDeals'[Manager],
+                        'GrossProfitFromDeals',
                         FILTER(
                             'GrossProfitFromDeals',
                             'GrossProfitFromDeals'[Manager] = "{employee_name}" &&
