@@ -70,7 +70,11 @@ async def show_main_menu(update: Update, context: CallbackContext) -> None:
     debt_button = KeyboardButton(text="Дебіторка")
     salary_button = KeyboardButton(text="Розрахунковий лист")
     analytics_button = KeyboardButton(text="Аналітика працівника")  # Додаємо кнопку для аналітики
-    reply_markup = ReplyKeyboardMarkup([[debt_button, salary_button, analytics_button]], one_time_keyboard=True)
+       # Розміщуємо "Аналітика працівника" на новому рядку
+    reply_markup = ReplyKeyboardMarkup(
+        [[debt_button, salary_button], [analytics_button]], 
+        one_time_keyboard=True
+    )
     await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
 
 async def handle_main_menu(update: Update, context: CallbackContext) -> None:
