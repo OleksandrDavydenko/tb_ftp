@@ -20,10 +20,10 @@ def get_income_data(employee_name, role, year, month):
         'Content-Type': 'application/json'
     }
 
-    # Визначення колонки для фільтрування за роллю
+    # Визначення колонки для фільтрації за роллю
     role_column = "Manager" if role == "Менеджер" else "Seller"
 
-    # Запит з використанням SUMMARIZECOLUMNS та фільтруванням
+    # Запит з використанням SUMMARIZECOLUMNS та фільтрації за співробітником
     query_data = {
         "queries": [
             {
@@ -51,6 +51,7 @@ def get_income_data(employee_name, role, year, month):
     if response.status_code == 200:
         logging.info(f"Запит до Power BI для {role} {employee_name} успішний.")
         data = response.json()
+        logging.info(f"Повна відповідь від Power BI: {data}")  # Логування повної відповіді
         rows = data['results'][0]['tables'][0].get('rows', [])
         logging.info(f"Отримано {len(rows)} рядків для {role} {employee_name}.")
         return rows[0] if rows else None
