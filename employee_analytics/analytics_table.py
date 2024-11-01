@@ -3,10 +3,10 @@ import logging
 from auth import get_power_bi_token
 
 # Налаштування логування
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(asctime)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Функція для отримання даних про дохід та валовий прибуток для конкретного співробітника за обраний місяць та рік
-def get_income_and_profit_data(employee_name, role, year, month):
+def get_income_data(employee_name, role, year, month):
     logging.info(f"Запит на отримання даних для: {employee_name}, роль: {role}, рік: {year}, місяць: {month}")
     token = get_power_bi_token()
     if not token:
@@ -22,7 +22,6 @@ def get_income_and_profit_data(employee_name, role, year, month):
 
     # Визначення колонки для фільтрування за роллю
     role_column = "Manager" if role == "Менеджер" else "Seller"
-    # Формат дати з малої літери
     formatted_date = f"{month.lower()} {year} р."
 
     # Запит з фільтрацією за користувачем та текстовим форматом дати для обчислення доходу та валового прибутку

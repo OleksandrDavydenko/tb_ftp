@@ -2,6 +2,10 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 import datetime
 from .analytics_table import get_income_data, format_analytics_table
+import logging
+
+# Налаштування логування
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 async def show_analytics_years(update: Update, context: CallbackContext) -> None:
     current_year = datetime.datetime.now().year
@@ -35,10 +39,18 @@ async def show_analytics_details(update: Update, context: CallbackContext) -> No
         await update.message.reply_text("Помилка: необхідно вибрати рік і місяць.")
         return
 
-    # Отримуємо дані аналітики
-    manager_income = get_income_data(employee_name, "Менеджер", year, month)
-    sales_income = get_income_data(employee_name, "Сейлс", year, month)
+    # Визначення ролі користувача (Менеджер або Сейлс) за наявністю даних
+    income_data = get_income_data(employee_name, "Менеджер", year, month)
+    if not income_data:
+        income_data = get_income_data(employee_name, "Сейлс", year, month)
+    
+    if not income_data:
+        await update.message.reply_text("Немає даних для вибраного періоду.")
+        return
+
+    # Логування отриманих даних
+    logging.info(f"Отримані дані для аналітики {employee_name}: {income_data}")
 
     # Форматування таблиці з додаванням місяця та року
-    formatted_table = format_analytics_table(manager_income or sales_income, employee_name, month, year)
+    formatted_table = format_analytics_table(income_data, employee_name, month, year)
     await update.message.reply_text(f"```\n{formatted_table}\n```", parse_mode="Markdown")
