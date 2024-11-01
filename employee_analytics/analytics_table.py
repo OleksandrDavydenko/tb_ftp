@@ -46,7 +46,7 @@ def get_income_data(employee_name, role, year, month):
                         FILTER(
                             'GrossProfitFromDeals',
                             'GrossProfitFromDeals'[{role_column}] = "{employee_name}" &&
-                            'GrossProfitFromDeals'[RegistrDate] = "{formatted_date}"
+                            FORMAT('GrossProfitFromDeals'[RegistrDate], "MMMM yyyy 'р.'") = "{formatted_date}"
                         ),
                         "Дохід", SUM('GrossProfitFromDeals'[Income])
                     )
