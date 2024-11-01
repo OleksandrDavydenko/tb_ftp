@@ -20,12 +20,12 @@ def get_income_data(employee_name, role, year, month):
         'Content-Type': 'application/json'
     }
 
-    # Визначення колонки для фільтрації за роллю
+    # Визначення колонки для фільтрування за роллю
     role_column = "Manager" if role == "Менеджер" else "Seller"
     # Формат дати з малої літери
     formatted_date = f"{month.lower()} {year} р."
 
-    # Запит з фільтрацією за користувачем та датою
+    # Запит з фільтрацією за користувачем та текстовим форматом дати
     query_data = {
         "queries": [
             {
@@ -36,7 +36,7 @@ def get_income_data(employee_name, role, year, month):
                         FILTER(
                             'GrossProfitFromDeals',
                             'GrossProfitFromDeals'[{role_column}] = "{employee_name}" &&
-                            'GrossProfitFromDeals'[RegistrDate] = "{formatted_date}"
+                            FORMAT('GrossProfitFromDeals'[RegistrDate], "MMMM yyyy р.") = "{formatted_date}"
                         ),
                         "TotalIncome", SUM('GrossProfitFromDeals'[Income])
                     )
