@@ -71,13 +71,14 @@ def format_analytics_table(income_data, employee_name, month, year):
     table += f"{'Показник':<20}{'Sum USD':<10}\n"
     table += "-" * 30 + "\n"
 
-    # Отримання значень доходу та валового прибутку з правильними ключами
-    income_value = income_data.get("Sum USD", 0) if income_data else 0
-    gross_profit_value = income_data.get("Gross Profit", 0) if income_data else 0
+    # Отримання значень з правильними ключами
+    total_income = income_data.get("[Sum USD]", 0) if income_data else 0
+    gross_profit = income_data.get("[Gross Profit]", 0) if income_data else 0
 
-    table += f"{'Загальний дохід':<20}{income_value:<10}\n"
-    table += f"{'Валовий прибуток':<20}{gross_profit_value:<10}\n"
+    table += f"{'Загальний дохід':<20}{total_income:<10}\n"
+    table += f"{'Валовий прибуток':<20}{gross_profit:<10}\n"
     table += "-" * 30 + "\n"
     
     logging.info("Формування таблиці аналітики завершено.")
     return table
+
