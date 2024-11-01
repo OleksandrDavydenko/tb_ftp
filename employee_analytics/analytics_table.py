@@ -70,9 +70,9 @@ def format_analytics_table(manager_income, sales_income):
     table += f"{'Показник':<25}{'Менеджер':<10}{'Сейлс':<10}\n"
     table += "-" * 45 + "\n"
 
-    # Значення доходу для менеджера і сейлза
-    manager_income_value = manager_income.get("TotalIncome", 0) if manager_income else 0
-    sales_income_value = sales_income.get("TotalIncome", 0) if sales_income else 0
+    # Отримання значень доходу з результатів запиту
+    manager_income_value = manager_income.get("[TotalIncome]", 0) if manager_income else 0
+    sales_income_value = sales_income.get("[TotalIncome]", 0) if sales_income else 0
 
     table += f"{'Дохід':<25}{manager_income_value:<10}{sales_income_value:<10}\n"
     table += "-" * 45 + "\n"
