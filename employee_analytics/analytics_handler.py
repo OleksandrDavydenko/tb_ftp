@@ -41,7 +41,7 @@ async def show_analytics_details(update: Update, context: CallbackContext) -> No
         await update.message.reply_text("Помилка: необхідно вибрати рік і місяць.")
         return
 
-    # Отримуємо дані для менеджера та сейлза
+    # Отримуємо дані доходу для Менеджера і Сейлза
     manager_income = get_income_data(employee_name, "Менеджер", year, month)
     sales_income = get_income_data(employee_name, "Сейлс", year, month)
 

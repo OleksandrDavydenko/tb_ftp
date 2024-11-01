@@ -2,7 +2,7 @@ import requests
 import logging
 from auth import get_power_bi_token
 
-# Налаштування логування
+# Налаштовуємо logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Функція для отримання доходу за місяць і рік для Менеджера та Сейлза
@@ -68,7 +68,7 @@ def get_income_data(employee_name, role, year, month):
         return None
 
 # Форматування таблиці для відображення доходу працівника
-def format_income_table(manager_income, sales_income):
+def format_analytics_table(manager_income, sales_income):
     table = "Аналітика працівника:\n"
     table += "-" * 45 + "\n"
     table += f"{'Показник':<25}{'Менеджер':<10}{'Сейлс':<10}\n"
