@@ -3,10 +3,10 @@ import logging
 from auth import get_power_bi_token
 
 # Налаштування логування
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(asctime)s - %(message)s')
 
-# Функція для отримання даних про дохід для конкретного співробітника за обраний місяць та рік
-def get_income_data(employee_name, role, year, month):
+# Функція для отримання даних про дохід та валовий прибуток для конкретного співробітника за обраний місяць та рік
+def get_income_and_profit_data(employee_name, role, year, month):
     logging.info(f"Запит на отримання даних для: {employee_name}, роль: {role}, рік: {year}, місяць: {month}")
     token = get_power_bi_token()
     if not token:
@@ -25,7 +25,7 @@ def get_income_data(employee_name, role, year, month):
     # Формат дати з малої літери
     formatted_date = f"{month.lower()} {year} р."
 
-    # Запит з фільтрацією за користувачем та текстовим форматом дати
+    # Запит з фільтрацією за користувачем та текстовим форматом дати для обчислення доходу та валового прибутку
     query_data = {
         "queries": [
             {
@@ -35,10 +35,11 @@ def get_income_data(employee_name, role, year, month):
                         'GrossProfitFromDeals'[{role_column}],
                         FILTER(
                             'GrossProfitFromDeals',
-                            'GrossProfitFromDeals'[{role_column}] = "Халабузарь Олександр" &&
+                            'GrossProfitFromDeals'[{role_column}] = "{employee_name}" &&
                             FORMAT('GrossProfitFromDeals'[RegistrDate], "MMMM yyyy р.") = "{formatted_date}"
                         ),
-                        "Sum USD", SUM('GrossProfitFromDeals'[Income])
+                        "Sum USD", SUM('GrossProfitFromDeals'[Income]),
+                        "Gross Profit", SUM('GrossProfitFromDeals'[GrossProfit])
                     )
                 """
             }
@@ -62,7 +63,6 @@ def get_income_data(employee_name, role, year, month):
         logging.error(f"Помилка при виконанні запиту: {response.status_code}, {response.text}")
         return None
 
-
 # Функція для форматування таблиці аналітики для одного співробітника
 def format_analytics_table(income_data, employee_name, month, year):
     # Форматування заголовка таблиці
@@ -72,12 +72,13 @@ def format_analytics_table(income_data, employee_name, month, year):
     table += f"{'Показник':<20}{'Sum USD':<10}\n"
     table += "-" * 30 + "\n"
 
-    # Отримання значення доходу з правильним ключем
-    income_value = income_data.get("[Sum USD]", 0) if income_data else 0
+    # Отримання значень доходу та валового прибутку з правильними ключами
+    income_value = income_data.get("Sum USD", 0) if income_data else 0
+    gross_profit_value = income_data.get("Gross Profit", 0) if income_data else 0
 
-    table += f"{'Дохід':<20}{income_value:<10}\n"
+    table += f"{'Загальний дохід':<20}{income_value:<10}\n"
+    table += f"{'Валовий прибуток':<20}{gross_profit_value:<10}\n"
     table += "-" * 30 + "\n"
     
     logging.info("Формування таблиці аналітики завершено.")
     return table
-
