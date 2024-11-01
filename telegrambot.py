@@ -15,6 +15,7 @@ from messages.reminder import schedule_monthly_reminder
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart
 from salary.salary_handlers import show_salary_years, show_salary_months, show_salary_details
+from analytics.analytics_handler import show_analytics_years, show_analytics_months, show_analytics_details  # Імпортуємо новий хендлер
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 
@@ -30,7 +31,6 @@ async def prompt_for_phone_number(update: Update, context: CallbackContext) -> N
     contact_button = KeyboardButton(text="Поділитися номером телефоном", request_contact=True)
     reply_markup = ReplyKeyboardMarkup([[contact_button]], one_time_keyboard=True)
     await update.message.reply_text("Будь ласка, поділіться своїм номером телефону, натиснувши кнопку 'Поділитися номером телефоном' нижче.", reply_markup=reply_markup)
-
 
 def normalize_phone_number(phone_number):
     return phone_number[1:] if phone_number.startswith('+') else phone_number
@@ -69,7 +69,8 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
 async def show_main_menu(update: Update, context: CallbackContext) -> None:
     debt_button = KeyboardButton(text="Дебіторка")
     salary_button = KeyboardButton(text="Розрахунковий лист")
-    reply_markup = ReplyKeyboardMarkup([[debt_button, salary_button]], one_time_keyboard=True)
+    analytics_button = KeyboardButton(text="Аналітика працівника")  # Додаємо кнопку для аналітики
+    reply_markup = ReplyKeyboardMarkup([[debt_button, salary_button, analytics_button]], one_time_keyboard=True)
     await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
 
 async def handle_main_menu(update: Update, context: CallbackContext) -> None:
@@ -86,26 +87,40 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         await show_debt_histogram(update, context)
     elif text == "Діаграма":
         await show_debt_pie_chart(update, context)
+    elif text == "Розрахунковий лист":
+        await show_salary_years(update, context)
+    elif text == "Аналітика працівника":  # Додаємо обробку для аналітики
+        await show_analytics_years(update, context)
     elif text == "Назад":
         menu = context.user_data.get('menu')
         if menu == 'salary_months':
             await show_salary_years(update, context)
         elif menu == 'salary_years' or menu == 'debt_options':
             await show_main_menu(update, context)
+        elif menu == 'analytics_months':  # Повернення до вибору року для аналітики
+            await show_analytics_years(update, context)
+        elif menu == 'analytics_years':  # Повернення до головного меню
+            await show_main_menu(update, context)
         elif menu in ['debt_details', 'debt_histogram', 'debt_pie_chart']:
             await show_debt_options(update, context)
         else:
             await show_main_menu(update, context)
-    elif text == "Розрахунковий лист":
-        await show_salary_years(update, context)
     elif text == "Головне меню":
         await show_main_menu(update, context)
     elif text in ["2024", "2025"]:
-        context.user_data['selected_year'] = text
-        await show_salary_months(update, context)
+        if context.user_data.get('menu') == 'analytics_years':
+            context.user_data['selected_year'] = text
+            await show_analytics_months(update, context)
+        else:
+            context.user_data['selected_year'] = text
+            await show_salary_months(update, context)
     elif text in ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"]:
-        context.user_data['selected_month'] = text
-        await show_salary_details(update, context)
+        if context.user_data.get('menu') == 'analytics_months':
+            context.user_data['selected_month'] = text
+            await show_analytics_details(update, context)
+        else:
+            context.user_data['selected_month'] = text
+            await show_salary_details(update, context)
 
 async def shutdown(app, scheduler):
     await app.shutdown()
@@ -126,7 +141,7 @@ def main():
     # Обробники команд та повідомлень
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-    app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
+    app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|Аналітика працівника|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
 
     # Запускаємо бота в циклі подій
     try:
