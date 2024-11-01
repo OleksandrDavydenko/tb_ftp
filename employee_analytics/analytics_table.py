@@ -27,7 +27,13 @@ def get_income_data(employee_name, role, year, month):
         'Content-Type': 'application/json'
     }
 
-    # Перетворення назви місяця на український формат
+    # Мапінг для українського формату місяця
+    months_mapping = {
+        "Січень": "січень", "Лютий": "лютий", "Березень": "березень", "Квітень": "квітень",
+        "Травень": "травень", "Червень": "червень", "Липень": "липень", "Серпень": "серпень",
+        "Вересень": "вересень", "Жовтень": "жовтень", "Листопад": "листопад", "Грудень": "грудень"
+    }
+    
     month_name = months_mapping.get(month)
     if not month_name:
         logging.error(f"Неправильний місяць: {month}")
@@ -64,12 +70,15 @@ def get_income_data(employee_name, role, year, month):
     if response.status_code == 200:
         logging.info(f"Запит до Power BI для {role} {employee_name} успішний.")
         data = response.json()
+        logging.info(f"Відповідь від Power BI: {data}")  # Логування повної відповіді
         rows = data['results'][0]['tables'][0].get('rows', [])
-        return rows[0] if rows else None  # Повертаємо перший рядок як результат
+        logging.info(f"Отримано {len(rows)} рядків для {role}.")
+        return rows[0] if rows else None
     else:
         logging.error(f"Помилка при виконанні запиту: {response.status_code}, {response.text}")
         return None
-
+    
+    
 # Функція для форматування таблиці аналітики працівника
 def format_analytics_table(manager_income, sales_income):
     table = "Аналітика працівника:\n"
