@@ -69,15 +69,14 @@ def format_analytics_table(income_data, employee_name, month, year):
     formatted_date = f"{month.lower()} {year} р."
     table = f"Аналітика {employee_name} за {formatted_date}:\n"
     table += "-" * 30 + "\n"
-    table += f"{'Показник':<20}{'Sum USD':<10}\n"
+    table += f"{'Показник':<20}{'TotalIncome':<10}\n"
     table += "-" * 30 + "\n"
 
-    # Отримання значення доходу
-    income_value = income_data.get("Sum USD", 0) if income_data else 0
+    # Отримання значення доходу з урахуванням правильного ключа
+    income_value = income_data.get("[TotalIncome]", 0) if income_data else 0
 
     table += f"{'Дохід':<20}{income_value:<10}\n"
     table += "-" * 30 + "\n"
     
     logging.info("Формування таблиці аналітики завершено.")
     return table
-
