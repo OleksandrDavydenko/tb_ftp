@@ -22,8 +22,8 @@ def get_income_data(employee_name, role, year, month):
 
     # Визначення колонки для фільтрації за роллю
     role_column = "Manager" if role == "Менеджер" else "Seller"
-    # Формат для фільтрації за датою
-    formatted_date = f"{month} {year} р."
+    # Формат дати з малої літери
+    formatted_date = f"{month.lower()} {year} р."
 
     # Запит з фільтрацією за користувачем та датою
     query_data = {
