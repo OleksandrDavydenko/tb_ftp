@@ -5,7 +5,7 @@ from auth import get_power_bi_token
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Функція для отримання даних про дохід
+# Функція для отримання даних про дохід для конкретного співробітника
 def get_income_data(employee_name, role, year, month):
     logging.info(f"Запит на отримання даних для: {employee_name}, роль: {role}, рік: {year}, місяць: {month}")
     token = get_power_bi_token()
@@ -23,15 +23,19 @@ def get_income_data(employee_name, role, year, month):
     # Визначення колонки для фільтрування за роллю
     role_column = "Manager" if role == "Менеджер" else "Seller"
 
-    # Спрощений запит без фільтрації за датою
+    # Формування запиту з фільтром для одного співробітника і обраного періоду
     query_data = {
         "queries": [
             {
-                "query": """
+                "query": f"""
                     EVALUATE 
                     SUMMARIZECOLUMNS(
-                        'GrossProfitFromDeals'[Manager],
+                        'GrossProfitFromDeals'[{role_column}],
                         "TotalIncome", SUM('GrossProfitFromDeals'[Income])
+                    )
+                    FILTER(
+                        'GrossProfitFromDeals',
+                        'GrossProfitFromDeals'[{role_column}] = "{employee_name}"
                     )
                 """
             }
@@ -41,30 +45,30 @@ def get_income_data(employee_name, role, year, month):
         }
     }
 
-    logging.info(f"Виконуємо запит до Power BI для {role} {employee_name} без фільтрації за датою.")
+    logging.info(f"Виконуємо запит до Power BI для {role} {employee_name}.")
     response = requests.post(power_bi_url, headers=headers, json=query_data)
 
     if response.status_code == 200:
         logging.info(f"Запит до Power BI для {role} {employee_name} успішний.")
         data = response.json()
-        logging.info(f"Відповідь від Power BI: {data}")  # Логування повної відповіді для перевірки
         rows = data['results'][0]['tables'][0].get('rows', [])
-        logging.info(f"Отримано {len(rows)} рядків для {role}.")
+        logging.info(f"Отримано {len(rows)} рядків для {role} {employee_name}.")
         return rows[0] if rows else None
     else:
         logging.error(f"Помилка при виконанні запиту: {response.status_code}, {response.text}")
         return None
 
 
-# Функція для форматування таблиці аналітики
+# Функція для форматування таблиці аналітики для одного співробітника
 def format_analytics_table(manager_income, sales_income):
     table = "Аналітика працівника:\n"
     table += "-" * 45 + "\n"
     table += f"{'Показник':<25}{'Менеджер':<10}{'Сейлс':<10}\n"
     table += "-" * 45 + "\n"
 
-    manager_income_value = manager_income[0].get("Дохід", 0) if manager_income else 0
-    sales_income_value = sales_income[0].get("Дохід", 0) if sales_income else 0
+    # Значення доходу для менеджера і сейлза
+    manager_income_value = manager_income.get("TotalIncome", 0) if manager_income else 0
+    sales_income_value = sales_income.get("TotalIncome", 0) if sales_income else 0
 
     table += f"{'Дохід':<25}{manager_income_value:<10}{sales_income_value:<10}\n"
     table += "-" * 45 + "\n"
