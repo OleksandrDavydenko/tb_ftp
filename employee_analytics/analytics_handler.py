@@ -25,17 +25,20 @@ async def show_analytics_months(update: Update, context: CallbackContext) -> Non
     context.user_data['menu'] = 'analytics_months'
     await update.message.reply_text("Оберіть місяць:", reply_markup=reply_markup)
 
+# Функція для відображення аналітики
 async def show_analytics_details(update: Update, context: CallbackContext) -> None:
-    employee_name = context.user_data.get('employee_name')
-    year = context.user_data.get('selected_year')
-    month = context.user_data.get('selected_month')
+    employee_name = context.user_data.get('employee_name')  # Отримуємо ім'я працівника
+    year = context.user_data.get('selected_year')           # Отримуємо вибраний рік
+    month = context.user_data.get('selected_month')         # Отримуємо вибраний місяць
 
     if not employee_name or not year or not month:
         await update.message.reply_text("Помилка: необхідно вибрати рік і місяць.")
         return
 
+    # Отримуємо дані аналітики
     manager_income = get_income_data(employee_name, "Менеджер", year, month)
     sales_income = get_income_data(employee_name, "Сейлс", year, month)
-    formatted_table = format_analytics_table(manager_income, sales_income)
 
+    # Форматування таблиці з додаванням місяця та року
+    formatted_table = format_analytics_table(manager_income or sales_income, employee_name, month, year)
     await update.message.reply_text(f"```\n{formatted_table}\n```", parse_mode="Markdown")
