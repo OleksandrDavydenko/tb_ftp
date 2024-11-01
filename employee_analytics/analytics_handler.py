@@ -1,7 +1,7 @@
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 import datetime
-from .analytics_table import get_analytics_data, format_analytics_table  # Імпорт функцій для отримання і форматування даних
+from .analytics_table import get_income_data, format_analytics_table  # Імпорт функцій для отримання і форматування даних
 
 # Функція для відображення списку доступних років для аналітики
 async def show_analytics_years(update: Update, context: CallbackContext) -> None:
@@ -41,11 +41,12 @@ async def show_analytics_details(update: Update, context: CallbackContext) -> No
         await update.message.reply_text("Помилка: необхідно вибрати рік і місяць.")
         return
 
-    # Отримуємо дані аналітики (залежить від того, як реалізовано `get_analytics_data`)
-    analytics_data = get_analytics_data(employee_name, year, month)
+    # Отримуємо дані для менеджера та сейлза
+    manager_income = get_income_data(employee_name, "Менеджер", year, month)
+    sales_income = get_income_data(employee_name, "Сейлс", year, month)
 
-    if analytics_data:
-        formatted_table = format_analytics_table(analytics_data, employee_name, year, month)
+    if manager_income or sales_income:
+        formatted_table = format_analytics_table(manager_income, sales_income)
         await update.message.reply_text(f"```\n{formatted_table}\n```", parse_mode="Markdown")
     else:
         await update.message.reply_text("Немає даних для вибраного періоду.")
