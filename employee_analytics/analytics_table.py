@@ -5,6 +5,13 @@ from auth import get_power_bi_token
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Маппінг для перетворення місяців на українські назви
+months_mapping = {
+    "Січень": "січень", "Лютий": "лютий", "Березень": "березень", "Квітень": "квітень",
+    "Травень": "травень", "Червень": "червень", "Липень": "липень", "Серпень": "серпень",
+    "Вересень": "вересень", "Жовтень": "жовтень", "Листопад": "листопад", "Грудень": "грудень"
+}
+
 # Функція для отримання даних про дохід менеджера та сейлза за рік і місяць
 def get_income_data(employee_name, role, year, month):
     logging.info(f"Запит на отримання даних для: {employee_name}, роль: {role}, рік: {year}, місяць: {month}")
@@ -20,17 +27,12 @@ def get_income_data(employee_name, role, year, month):
         'Content-Type': 'application/json'
     }
 
-    months_mapping = {
-        "Січень": 1, "Лютий": 2, "Березень": 3, "Квітень": 4,
-        "Травень": 5, "Червень": 6, "Липень": 7, "Серпень": 8,
-        "Вересень": 9, "Жовтень": 10, "Листопад": 11, "Грудень": 12
-    }
-    
-    month_number = months_mapping.get(month)
-    if month_number is None:
+    # Перетворення назви місяця на український формат
+    month_name = months_mapping.get(month)
+    if not month_name:
         logging.error(f"Неправильний місяць: {month}")
         return None
-    formatted_month = f"{month_number:02d}"
+    formatted_date = f"{month_name} {year} р."
 
     role_column = "Manager" if role == "Менеджер" else "Seller"
 
@@ -44,7 +46,7 @@ def get_income_data(employee_name, role, year, month):
                         FILTER(
                             'GrossProfitFromDeals',
                             'GrossProfitFromDeals'[{role_column}] = "{employee_name}" &&
-                            FORMAT('GrossProfitFromDeals'[Date], "YYYY-MM") = "{year}-{formatted_month}"
+                            'GrossProfitFromDeals'[RegistrDate] = "{formatted_date}"
                         ),
                         "Дохід", SUM('GrossProfitFromDeals'[Income])
                     )
