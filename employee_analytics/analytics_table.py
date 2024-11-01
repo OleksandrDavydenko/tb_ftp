@@ -51,8 +51,8 @@ def get_income_data(employee_name, role, year, month):
                         'GrossProfitFromDeals',
                         FILTER(
                             'GrossProfitFromDeals',
-                            'GrossProfitFromDeals'[Manager] = "{employee_name}" &&
-                            FORMAT('GrossProfitFromDeals'[RegistrDate], "MMMM yyyy 'р.'") = "{formatted_date}"
+                            'GrossProfitFromDeals'[Manager] = "Давиденко Олександр" &&
+                            FORMAT('GrossProfitFromDeals'[RegistrDate], "MMMM yyyy 'р.'") = "листопад 2024 р."
                         ),
                         "Дохід", SUM('GrossProfitFromDeals'[Income])
                     )
@@ -63,6 +63,9 @@ def get_income_data(employee_name, role, year, month):
             "includeNulls": True
         }
     }
+
+
+    
 
     logging.info(f"Виконуємо запит до Power BI для {role} {employee_name}.")
     logging.info(f"Дата {formatted_date}")
