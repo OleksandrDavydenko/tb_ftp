@@ -17,7 +17,7 @@ from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_hi
 from salary.salary_handlers import show_salary_years, show_salary_months, show_salary_details
 from employee_analytics.analytics_handler import (
     show_analytics_options, show_analytics_years, show_analytics_months,
-    show_analytics_details, show_yearly_analytics_chart
+    show_analytics_details, show_yearly_analytics  # Оновлений імпорт
 )
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -130,7 +130,7 @@ async def handle_year_choice(update: Update, context: CallbackContext) -> None:
     if analytics_type == 'monthly':
         await show_analytics_months(update, context)
     elif analytics_type == 'yearly':
-        await show_yearly_analytics_chart(update, context)
+        await show_yearly_analytics(update, context)
 
 async def handle_month_choice(update: Update, context: CallbackContext) -> None:
     selected_month = update.message.text
