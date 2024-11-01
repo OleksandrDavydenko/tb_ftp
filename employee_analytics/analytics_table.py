@@ -48,10 +48,10 @@ def get_income_data(employee_name, role, year, month):
                 "query": f"""
                     EVALUATE 
                     SUMMARIZECOLUMNS(
-                        'GrossProfitFromDeals'[{role_column}],
+                        'GrossProfitFromDeals'[Manager],
                         FILTER(
                             'GrossProfitFromDeals',
-                            'GrossProfitFromDeals'[{role_column}] = "{employee_name}" &&
+                            'GrossProfitFromDeals'[Manager] = "{employee_name}" &&
                             FORMAT('GrossProfitFromDeals'[RegistrDate], "MMMM yyyy 'р.'") = "{formatted_date}"
                         ),
                         "Дохід", SUM('GrossProfitFromDeals'[Income])
@@ -65,7 +65,7 @@ def get_income_data(employee_name, role, year, month):
     }
 
     logging.info(f"Виконуємо запит до Power BI для {role} {employee_name}.")
-    logging.info(f"Дата {formatted_date}.")
+    logging.info(f"Дата {formatted_date}")
     response = requests.post(power_bi_url, headers=headers, json=query_data)
 
     if response.status_code == 200:
