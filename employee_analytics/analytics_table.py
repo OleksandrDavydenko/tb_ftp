@@ -24,7 +24,7 @@ def get_income_data(employee_name, role, year, month):
     role_column = "Manager" if role == "Менеджер" else "Seller"
     formatted_date = f"{month.lower()} {year} р."
 
-    # Запит з фільтрацією за користувачем та текстовим форматом дати для обчислення доходу та валового прибутку
+    # Запит з фільтрацією за користувачем, для обчислення доходу, валового прибутку та бонусів
     query_data = {
         "queries": [
             {
@@ -38,7 +38,8 @@ def get_income_data(employee_name, role, year, month):
                             FORMAT('GrossProfitFromDeals'[RegistrDate], "MMMM yyyy р.") = "{formatted_date}"
                         ),
                         "Sum USD", SUM('GrossProfitFromDeals'[Income]),
-                        "Gross Profit", SUM('GrossProfitFromDeals'[GrossProfit])
+                        "Gross Profit", SUM('GrossProfitFromDeals'[GrossProfit]),
+                        "Bonuses", SUM('GrossProfitFromDeals'[Bonuses])
                     )
                 """
             }
@@ -54,7 +55,7 @@ def get_income_data(employee_name, role, year, month):
     if response.status_code == 200:
         logging.info(f"Запит до Power BI для {role} {employee_name} успішний.")
         data = response.json()
-        logging.info(f"Повна відповідь від Power BI: {data}")  # Логування повної відповіді
+        logging.info(f"Повна відповідь від Power BI: {data}")
         rows = data['results'][0]['tables'][0].get('rows', [])
         logging.info(f"Отримано {len(rows)} рядків для {role} {employee_name}.")
         return rows[0] if rows else None
@@ -74,11 +75,17 @@ def format_analytics_table(income_data, employee_name, month, year):
     # Отримання значень з правильними ключами
     total_income = income_data.get("[Sum USD]", 0) if income_data else 0
     gross_profit = income_data.get("[Gross Profit]", 0) if income_data else 0
+    bonuses = income_data.get("[Bonuses]", 0) if income_data else 0
+
+    # Розрахунок валового прибутку з урахуванням бонусів
+    total_gross_profit = gross_profit + bonuses
+    # Розрахунок маржинальності
+    margin = (total_gross_profit / total_income * 100) if total_income else 0
 
     table += f"{'Загальний дохід':<20}{total_income:<10}\n"
-    table += f"{'Валовий прибуток':<20}{gross_profit:<10}\n"
+    table += f"{'Валовий прибуток':<20}{total_gross_profit:<10}\n"
+    table += f"{'Маржинальність':<20}{margin:.2f}%\n"
     table += "-" * 30 + "\n"
     
     logging.info("Формування таблиці аналітики завершено.")
     return table
-
