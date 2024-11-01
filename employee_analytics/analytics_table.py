@@ -27,32 +27,20 @@ def get_income_data(employee_name, role, year, month):
         'Content-Type': 'application/json'
     }
 
-    # Мапінг для українського формату місяця
-    months_mapping = {
-        "Січень": "січень", "Лютий": "лютий", "Березень": "березень", "Квітень": "квітень",
-        "Травень": "травень", "Червень": "червень", "Липень": "липень", "Серпень": "серпень",
-        "Вересень": "вересень", "Жовтень": "жовтень", "Листопад": "листопад", "Грудень": "грудень"
-    }
-    
-    month_name = months_mapping.get(month)
-    if not month_name:
-        logging.error(f"Неправильний місяць: {month}")
-        return None
-    formatted_date = f"{month_name} {year} р."
-
+    # Визначення колонки для фільтрування за роллю
     role_column = "Manager" if role == "Менеджер" else "Seller"
 
+    # Спрощений запит без фільтрації за датою
     query_data = {
         "queries": [
             {
                 "query": f"""
                     EVALUATE 
                     SUMMARIZECOLUMNS(
-                        'GrossProfitFromDeals',
+                        'GrossProfitFromDeals'[{role_column}],
                         FILTER(
                             'GrossProfitFromDeals',
-                            'GrossProfitFromDeals'[Manager] = "Ніколаєва Дар'я" &&
-                            FORMAT('GrossProfitFromDeals'[RegistrDate], "MMMM yyyy 'р.'") = "жовтень 2024 р."
+                            'GrossProfitFromDeals'[{role_column}] = "{employee_name}"
                         ),
                         "Дохід", SUM('GrossProfitFromDeals'[Income])
                     )
@@ -64,23 +52,20 @@ def get_income_data(employee_name, role, year, month):
         }
     }
 
-
-    
-
-    logging.info(f"Виконуємо запит до Power BI для {role} {employee_name}.")
-    logging.info(f"Дата {formatted_date}")
+    logging.info(f"Виконуємо запит до Power BI для {role} {employee_name} без фільтрації за датою.")
     response = requests.post(power_bi_url, headers=headers, json=query_data)
 
     if response.status_code == 200:
         logging.info(f"Запит до Power BI для {role} {employee_name} успішний.")
         data = response.json()
-        logging.info(f"Відповідь від Power BI: {data}")  # Логування повної відповіді
+        logging.info(f"Відповідь від Power BI: {data}")  # Логування повної відповіді для перевірки
         rows = data['results'][0]['tables'][0].get('rows', [])
         logging.info(f"Отримано {len(rows)} рядків для {role}.")
         return rows[0] if rows else None
     else:
         logging.error(f"Помилка при виконанні запиту: {response.status_code}, {response.text}")
         return None
+
     
 
 # Функція для форматування таблиці аналітики працівника
