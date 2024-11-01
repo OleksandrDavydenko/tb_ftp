@@ -23,7 +23,7 @@ def get_income_data(employee_name, role, year, month):
     # Визначення колонки для фільтрування за роллю
     role_column = "Manager" if role == "Менеджер" else "Seller"
 
-    # Формування запиту з фільтром для одного співробітника і обраного періоду
+    # Запит з використанням SUMMARIZECOLUMNS та фільтруванням
     query_data = {
         "queries": [
             {
@@ -31,11 +31,11 @@ def get_income_data(employee_name, role, year, month):
                     EVALUATE 
                     SUMMARIZECOLUMNS(
                         'GrossProfitFromDeals'[{role_column}],
+                        FILTER(
+                            'GrossProfitFromDeals',
+                            'GrossProfitFromDeals'[{role_column}] = "{employee_name}"
+                        ),
                         "TotalIncome", SUM('GrossProfitFromDeals'[Income])
-                    )
-                    FILTER(
-                        'GrossProfitFromDeals',
-                        'GrossProfitFromDeals'[{role_column}] = "{employee_name}"
                     )
                 """
             }
