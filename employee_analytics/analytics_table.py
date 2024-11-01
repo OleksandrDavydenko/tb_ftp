@@ -41,11 +41,13 @@ def get_income_data(employee_name, role, year, month):
                     EVALUATE 
                     SUMMARIZECOLUMNS(
                         'GrossProfitFromDeals'[{role_column}],
+                        FILTER(
+                            'GrossProfitFromDeals',
+                            'GrossProfitFromDeals'[{role_column}] = "{employee_name}" &&
+                            FORMAT('GrossProfitFromDeals'[Date], "YYYY-MM") = "{year}-{formatted_month}"
+                        ),
                         "Дохід", SUM('GrossProfitFromDeals'[Income])
                     )
-                    WHERE 
-                        'GrossProfitFromDeals'[{role_column}] = "{employee_name}" &&
-                        FORMAT('GrossProfitFromDeals'[Date], "YYYY-MM") = "{year}-{formatted_month}"
                 """
             }
         ],
