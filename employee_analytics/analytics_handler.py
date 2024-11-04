@@ -2,6 +2,7 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 import datetime
 from .analytics_table import get_income_data, format_analytics_table
+from .analytics_chart import show_yearly_chart
 import logging
 
 # Налаштування логування
@@ -59,6 +60,13 @@ async def show_monthly_analytics(update: Update, context: CallbackContext) -> No
     await update.message.reply_text(f"```\n{formatted_table}\n```", parse_mode="Markdown")
 
 # Відображення аналітики за рік (тільки для графіків або інший річний аналіз)
-async def show_yearly_analytics(update: Update, context: CallbackContext) -> None:
-    # Ваш код для обробки річної аналітики, якщо є
-    await update.message.reply_text("Річна аналітика наразі недоступна.")
+async def show_yearly_analytics(update: Update, context: CallbackContext):
+    employee_name = context.user_data.get('employee_name')
+    year = context.user_data.get('selected_year')
+
+    if not employee_name or not year:
+        await update.message.reply_text("Помилка: необхідно вибрати рік.")
+        return
+
+    # Виклик річного графіка
+    await show_yearly_chart(update, context, employee_name, year)

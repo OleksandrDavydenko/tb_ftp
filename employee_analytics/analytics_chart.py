@@ -29,6 +29,7 @@ async def show_yearly_chart(update: Update, context: CallbackContext, employee_n
     plt.title(f"Аналітика доходів {employee_name} за {year} рік")
     plt.xlabel("Місяці")
     plt.ylabel("Доходи (USD)")
+    plt.xticks(rotation=45)
     plt.grid()
     plt.legend()
 
