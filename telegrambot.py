@@ -68,10 +68,10 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
             await prompt_for_phone_number(update, context)
 
 async def show_main_menu(update: Update, context: CallbackContext) -> None:
-    debt_button = KeyboardButton(text="Дебіторка")
+    analytics_button = KeyboardButton(text="Аналітика")  # Змінили з "Аналітика працівника"
     salary_button = KeyboardButton(text="Розрахунковий лист")
-    analytics_button = KeyboardButton(text="Аналітика працівника")
-    reply_markup = ReplyKeyboardMarkup([[debt_button, salary_button], [analytics_button]], one_time_keyboard=True)
+    debt_button = KeyboardButton(text="Дебіторська заборгованість")  # Змінили з "Дебіторка"
+    reply_markup = ReplyKeyboardMarkup([[analytics_button, salary_button], [debt_button]], one_time_keyboard=True)
     await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
 
 async def handle_main_menu(update: Update, context: CallbackContext) -> None:
@@ -80,7 +80,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         return
 
     text = update.message.text
-    if text == "Дебіторка":
+    if text == "Дебіторська заборгованість":
         await show_debt_options(update, context)
     elif text == "Таблиця":
         await show_debt_details(update, context)
@@ -89,9 +89,9 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     elif text == "Діаграма":
         await show_debt_pie_chart(update, context)
     elif text == "Розрахунковий лист":
-        context.user_data['menu'] = 'salary_years'  # Додаємо відмітку для розрахункового листа
+        context.user_data['menu'] = 'salary_years'
         await show_salary_years(update, context)
-    elif text == "Аналітика працівника":
+    elif text == "Аналітика":
         await show_analytics_options(update, context)
     elif text == "Назад":
         await handle_back_navigation(update, context)
@@ -111,15 +111,14 @@ async def handle_back_navigation(update: Update, context: CallbackContext) -> No
         await show_salary_years(update, context)
     elif menu == 'salary_years':
         await show_main_menu(update, context)
-    elif menu == 'analytics_years':  # Якщо користувач на екрані вибору року в аналітиці
-        await show_analytics_options(update, context)  # Повернення до вибору аналітики за місяць чи рік
+    elif menu == 'analytics_years':
+        await show_analytics_options(update, context)
     elif menu == 'analytics_months':
         await show_analytics_years(update, context)
     elif menu in ['debt_details', 'debt_histogram', 'debt_pie_chart']:
         await show_debt_options(update, context)
     else:
         await show_main_menu(update, context)
-
 
 async def handle_analytics_selection(update: Update, context: CallbackContext, selection: str) -> None:
     context.user_data['analytics_type'] = 'monthly' if selection == "Аналітика за місяць" else 'yearly'
@@ -131,7 +130,7 @@ async def handle_year_choice(update: Update, context: CallbackContext) -> None:
     current_menu = context.user_data.get('menu')
 
     if current_menu == 'salary_years':
-        await show_salary_months(update, context)  # Переходимо до вибору місяця для розрахункового листа
+        await show_salary_months(update, context)
     elif context.user_data.get('analytics_type') == 'monthly':
         await show_analytics_months(update, context)
     elif context.user_data.get('analytics_type') == 'yearly':
@@ -143,7 +142,7 @@ async def handle_month_choice(update: Update, context: CallbackContext) -> None:
     current_menu = context.user_data.get('menu')
 
     if current_menu == 'salary_months':
-        await show_salary_details(update, context)  # Показуємо деталі розрахункового листа
+        await show_salary_details(update, context)
     else:
         await show_monthly_analytics(update, context)
 
@@ -161,7 +160,7 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-    app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|Аналітика працівника|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
+    app.add_handler(MessageHandler(filters.Regex("^(Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
 
     try:
         app.run_polling()
