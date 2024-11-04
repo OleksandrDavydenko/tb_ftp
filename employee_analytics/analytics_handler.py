@@ -62,7 +62,7 @@ async def show_monthly_analytics(update: Update, context: CallbackContext) -> No
 # Відображення параметрів для вибору графіка за рік
 async def show_yearly_parameters(update: Update, context: CallbackContext) -> None:
     parameter_keyboard = [
-        [KeyboardButton("Дохід"), KeyboardButton("Валовий прибуток"), KeyboardButton("Кількість угод")],
+        [KeyboardButton("Дохід"), KeyboardButton("Валовий прибуток"), KeyboardButton("Маржинальність"), KeyboardButton("Кількість угод")],
         [KeyboardButton("Назад"), KeyboardButton("Головне меню")]
     ]
     reply_markup = ReplyKeyboardMarkup(parameter_keyboard, one_time_keyboard=True)

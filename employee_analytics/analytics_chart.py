@@ -24,6 +24,7 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
     parameter_column = {
         "Дохід": "[Sum USD]",
         "Валовий прибуток": "[Gross Profit]",
+        "Маржинальність": "[Margin Percentage]",
         "Кількість угод": "[Deal Count]"
     }.get(parameter)
 
@@ -35,15 +36,23 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
     # Отримання даних про обраний параметр за кожен місяць року
     for month in months:
         income_data = get_income_data(employee_name, "Менеджер", year, month) or get_income_data(employee_name, "Сейлс", year, month)
-        value = income_data.get(parameter_column, 0) if income_data else 0
+        
+        # Розрахунок маржинальності, якщо вибрано цей параметр
+        if parameter == "Маржинальність":
+            income = income_data.get("[Sum USD]", 0) if income_data else 0
+            gross_profit = income_data.get("[Gross Profit]", 0) if income_data else 0
+            value = (gross_profit / income * 100) if income else 0
+        else:
+            value = income_data.get(parameter_column, 0) if income_data else 0
+        
         monthly_values.append(value)
 
     # Побудова графіка з більшим розміром
-    plt.figure(figsize=(12, 6))  # Збільшений розмір графіка
+    plt.figure(figsize=(12, 8))  # Збільшений розмір графіка
     plt.plot(months, monthly_values, marker='o', label=parameter)
     plt.title(f"Аналітика {parameter.lower()} {employee_name} за {year} рік")
     plt.xlabel("Місяці")
-    plt.ylabel(f"{parameter} (USD)" if parameter != "Кількість угод" else "Кількість угод")
+    plt.ylabel(f"{parameter} (USD)" if parameter not in ["Кількість угод", "Маржинальність"] else parameter)
     plt.xticks(rotation=45)
     plt.grid()
     plt.legend()
