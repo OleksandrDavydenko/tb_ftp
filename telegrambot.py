@@ -143,6 +143,11 @@ async def handle_year_choice(update: Update, context: CallbackContext) -> None:
     elif context.user_data.get('analytics_type') == 'yearly':
         await show_parameter_selection(update, context)
 
+async def handle_month_choice(update: Update, context: CallbackContext) -> None:
+    selected_month = update.message.text
+    context.user_data['selected_month'] = selected_month
+    await show_monthly_analytics(update, context)
+
 async def show_parameter_selection(update: Update, context: CallbackContext) -> None:
     parameter_buttons = [
         [KeyboardButton("Дохід")],
