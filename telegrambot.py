@@ -15,12 +15,13 @@ from messages.reminder import schedule_monthly_reminder
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart
 from salary.salary_handlers import show_salary_years, show_salary_months, show_salary_details
-from employee_analytics.analytics_handler import show_analytics_years, show_analytics_months, show_analytics_details  # Імпортуємо новий хендлер
+from employee_analytics.analytics_handler import (
+    show_analytics_options, show_analytics_years, show_analytics_months,
+    show_monthly_analytics, show_yearly_analytics, show_analytics_details
+)
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
-
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 scheduler = AsyncIOScheduler()
 
 async def start(update: Update, context: CallbackContext) -> None:
@@ -30,7 +31,10 @@ async def start(update: Update, context: CallbackContext) -> None:
 async def prompt_for_phone_number(update: Update, context: CallbackContext) -> None:
     contact_button = KeyboardButton(text="Поділитися номером телефоном", request_contact=True)
     reply_markup = ReplyKeyboardMarkup([[contact_button]], one_time_keyboard=True)
-    await update.message.reply_text("Будь ласка, поділіться своїм номером телефону, натиснувши кнопку 'Поділитися номером телефоном' нижче.", reply_markup=reply_markup)
+    await update.message.reply_text(
+        "Будь ласка, поділіться своїм номером телефону, натиснувши кнопку 'Поділитися номером телефоном' нижче.",
+        reply_markup=reply_markup
+    )
 
 def normalize_phone_number(phone_number):
     return phone_number[1:] if phone_number.startswith('+') else phone_number
@@ -70,9 +74,8 @@ async def show_main_menu(update: Update, context: CallbackContext) -> None:
     debt_button = KeyboardButton(text="Дебіторка")
     salary_button = KeyboardButton(text="Розрахунковий лист")
     analytics_button = KeyboardButton(text="Аналітика працівника")  # Додаємо кнопку для аналітики
-       # Розміщуємо "Аналітика працівника" на новому рядку
     reply_markup = ReplyKeyboardMarkup(
-        [[debt_button, salary_button], [analytics_button]], 
+        [[debt_button, salary_button], [analytics_button]],
         one_time_keyboard=True
     )
     await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
@@ -93,38 +96,51 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         await show_debt_pie_chart(update, context)
     elif text == "Розрахунковий лист":
         await show_salary_years(update, context)
-    elif text == "Аналітика працівника":  # Додаємо обробку для аналітики
-        await show_analytics_years(update, context)
+    elif text == "Аналітика працівника":
+        await show_analytics_options(update, context)
     elif text == "Назад":
-        menu = context.user_data.get('menu')
-        if menu == 'salary_months':
-            await show_salary_years(update, context)
-        elif menu == 'salary_years' or menu == 'debt_options':
-            await show_main_menu(update, context)
-        elif menu == 'analytics_months':  # Повернення до вибору року для аналітики
-            await show_analytics_years(update, context)
-        elif menu == 'analytics_years':  # Повернення до головного меню
-            await show_main_menu(update, context)
-        elif menu in ['debt_details', 'debt_histogram', 'debt_pie_chart']:
-            await show_debt_options(update, context)
-        else:
-            await show_main_menu(update, context)
+        await handle_back_navigation(update, context)
     elif text == "Головне меню":
         await show_main_menu(update, context)
-    elif text in ["2024", "2025"]:
-        if context.user_data.get('menu') == 'analytics_years':
-            context.user_data['selected_year'] = text
-            await show_analytics_months(update, context)
-        else:
-            context.user_data['selected_year'] = text
-            await show_salary_months(update, context)
+    elif text in ["Аналітика за місяць", "Аналітика за рік"]:
+        await handle_analytics_selection(update, context, text)
+    elif text in ["2024", "2025"]:  # Можна додати більше років за потреби
+        await handle_year_choice(update, context)
     elif text in ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"]:
-        if context.user_data.get('menu') == 'analytics_months':
-            context.user_data['selected_month'] = text
-            await show_analytics_details(update, context)
-        else:
-            context.user_data['selected_month'] = text
-            await show_salary_details(update, context)
+        await handle_month_choice(update, context)
+
+async def handle_back_navigation(update: Update, context: CallbackContext) -> None:
+    menu = context.user_data.get('menu')
+    if menu == 'salary_months':
+        await show_salary_years(update, context)
+    elif menu == 'salary_years' or menu == 'debt_options':
+        await show_main_menu(update, context)
+    elif menu == 'analytics_months':
+        await show_analytics_years(update, context)
+    elif menu == 'analytics_years':
+        await show_main_menu(update, context)
+    elif menu in ['debt_details', 'debt_histogram', 'debt_pie_chart']:
+        await show_debt_options(update, context)
+    else:
+        await show_main_menu(update, context)
+
+async def handle_analytics_selection(update: Update, context: CallbackContext, selection: str) -> None:
+    context.user_data['analytics_type'] = 'monthly' if selection == "Аналітика за місяць" else 'yearly'
+    await show_analytics_years(update, context)
+
+async def handle_year_choice(update: Update, context: CallbackContext) -> None:
+    selected_year = update.message.text
+    context.user_data['selected_year'] = selected_year
+
+    if context.user_data.get('analytics_type') == 'monthly':
+        await show_analytics_months(update, context)
+    elif context.user_data.get('analytics_type') == 'yearly':
+        await show_yearly_analytics(update, context)
+
+async def handle_month_choice(update: Update, context: CallbackContext) -> None:
+    selected_month = update.message.text
+    context.user_data['selected_month'] = selected_month
+    await show_monthly_analytics(update, context)
 
 async def shutdown(app, scheduler):
     await app.shutdown()
@@ -133,21 +149,15 @@ async def shutdown(app, scheduler):
 
 def main():
     app = ApplicationBuilder().token(KEY).build()
-
-    # Додаємо завдання до планувальника
     scheduler.add_job(check_new_payments, 'interval', seconds=300)
     scheduler.add_job(sync_payments, 'interval', seconds=270)
     schedule_monthly_reminder(scheduler)
-
     scheduler.start()
-    logging.info("Планувальник запущено.")
 
-    # Обробники команд та повідомлень
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-    app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|Аналітика працівника|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
+    app.add_handler(MessageHandler(filters.Regex("^(Дебіторка|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|Аналітика працівника|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
 
-    # Запускаємо бота в циклі подій
     try:
         app.run_polling()
     finally:
