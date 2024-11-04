@@ -48,7 +48,7 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
         monthly_values.append(value)
 
     # Побудова графіка з більшим розміром
-    plt.figure(figsize=(10, 8))  # Збільшений розмір графіка
+    plt.figure(figsize=(12, 8))  # Збільшений розмір графіка
     plt.plot(months, monthly_values, marker='o', label=parameter)
     plt.title(f"Аналітика {parameter.lower()} {employee_name} за {year} рік")
     plt.xlabel("Місяці")
