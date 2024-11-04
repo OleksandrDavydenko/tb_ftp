@@ -146,7 +146,12 @@ async def handle_year_choice(update: Update, context: CallbackContext) -> None:
 async def handle_month_choice(update: Update, context: CallbackContext) -> None:
     selected_month = update.message.text
     context.user_data['selected_month'] = selected_month
-    await show_monthly_analytics(update, context)
+    current_menu = context.user_data.get('menu')
+
+    if current_menu == 'salary_months':
+        await show_salary_details(update, context)
+    else:
+        await show_monthly_analytics(update, context)
 
 async def show_parameter_selection(update: Update, context: CallbackContext) -> None:
     parameter_buttons = [
