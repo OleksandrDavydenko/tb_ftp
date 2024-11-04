@@ -17,7 +17,7 @@ from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_hi
 from salary.salary_handlers import show_salary_years, show_salary_months, show_salary_details
 from employee_analytics.analytics_handler import (
     show_analytics_options, show_analytics_years, show_analytics_months,
-    show_monthly_analytics, show_yearly_analytics, show_analytics_details
+    show_monthly_analytics, show_yearly_analytics  # Додаємо необхідні імпорти
 )
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
