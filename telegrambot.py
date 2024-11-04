@@ -15,7 +15,10 @@ from messages.reminder import schedule_monthly_reminder
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart
 from salary.salary_handlers import show_salary_years, show_salary_months, show_salary_details
-from employee_analytics.analytics_handler import show_analytics_options, show_analytics_years, show_analytics_months, show_monthly_analytics, show_yearly_analytics
+from employee_analytics.analytics_handler import (
+    show_analytics_options, show_analytics_years, show_analytics_months, 
+    show_monthly_analytics, show_yearly_chart_for_parameter
+)
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -103,6 +106,8 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         await handle_year_choice(update, context)
     elif text in ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"]:
         await handle_month_choice(update, context)
+    elif text in ["Дохід", "Валовий прибуток", "Маржинальність", "Кількість угод"]:
+        await handle_parameter_choice(update, context)
 
 async def handle_back_navigation(update: Update, context: CallbackContext) -> None:
     menu = context.user_data.get('menu')
@@ -113,6 +118,8 @@ async def handle_back_navigation(update: Update, context: CallbackContext) -> No
         await show_main_menu(update, context)
     elif menu == 'analytics_years':
         await show_analytics_options(update, context)
+    elif menu == 'parameter_selection':
+        await show_analytics_years(update, context)  # Повернення до вибору року
     elif menu == 'analytics_months':
         await show_analytics_years(update, context)
     elif menu in ['debt_details', 'debt_histogram', 'debt_pie_chart']:
@@ -134,17 +141,27 @@ async def handle_year_choice(update: Update, context: CallbackContext) -> None:
     elif context.user_data.get('analytics_type') == 'monthly':
         await show_analytics_months(update, context)
     elif context.user_data.get('analytics_type') == 'yearly':
-        await show_yearly_analytics(update, context)
+        await show_parameter_selection(update, context)
 
-async def handle_month_choice(update: Update, context: CallbackContext) -> None:
-    selected_month = update.message.text
-    context.user_data['selected_month'] = selected_month
-    current_menu = context.user_data.get('menu')
+async def show_parameter_selection(update: Update, context: CallbackContext) -> None:
+    parameter_buttons = [
+        [KeyboardButton("Дохід")],
+        [KeyboardButton("Валовий прибуток")],
+        [KeyboardButton("Маржинальність")],
+        [KeyboardButton("Кількість угод")],
+        [KeyboardButton("Назад")]
+    ]
+    reply_markup = ReplyKeyboardMarkup(parameter_buttons, one_time_keyboard=True)
+    await update.message.reply_text("Оберіть параметр для відображення графіка:", reply_markup=reply_markup)
+    context.user_data['menu'] = 'parameter_selection'
 
-    if current_menu == 'salary_months':
-        await show_salary_details(update, context)
-    else:
-        await show_monthly_analytics(update, context)
+async def handle_parameter_choice(update: Update, context: CallbackContext) -> None:
+    selected_parameter = update.message.text
+    context.user_data['selected_parameter'] = selected_parameter
+    employee_name = context.user_data['employee_name']
+    selected_year = context.user_data['selected_year']
+
+    await show_yearly_chart_for_parameter(update, context, employee_name, selected_year, selected_parameter)
 
 async def shutdown(app, scheduler):
     await app.shutdown()
@@ -160,7 +177,7 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-    app.add_handler(MessageHandler(filters.Regex("^(Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень)$"), handle_main_menu))
+    app.add_handler(MessageHandler(filters.Regex("^(Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|Розрахунковий лист|Головне меню|Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод)$"), handle_main_menu))
 
     try:
         app.run_polling()
