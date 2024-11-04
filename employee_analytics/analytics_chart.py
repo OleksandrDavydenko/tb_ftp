@@ -5,16 +5,15 @@ from telegram.ext import CallbackContext
 from .analytics_table import get_income_data
 import logging
 
-# Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Функція для побудови річного графіка доходів
 async def show_yearly_chart(update: Update, context: CallbackContext, employee_name: str, year: str):
+    # Повідомлення користувачу про очікування
+    await update.message.reply_text("Завантаження даних для побудови графіка. Це може зайняти кілька секунд...")
+
     # Місяці для отримання даних та побудови графіка
-    months = [
-        "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
-        "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
-    ]
+    months = ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"]
     monthly_incomes = []
 
     # Отримання даних про доходи за кожен місяць року
@@ -24,12 +23,13 @@ async def show_yearly_chart(update: Update, context: CallbackContext, employee_n
         monthly_incomes.append(total_income)
 
     # Побудова графіка
-    plt.figure(figsize=(10, 5))
+    plt.figure(figsize=(12, 6))  # Збільшено розмір графіка
     plt.plot(months, monthly_incomes, marker='o', label='Доходи')
     plt.title(f"Аналітика доходів {employee_name} за {year} рік")
     plt.xlabel("Місяці")
     plt.ylabel("Доходи (USD)")
-    plt.xticks(rotation=45)
+    plt.xticks(rotation=45, ha="right")  # Поворот місяців для кращого вигляду
+    plt.tight_layout()  # Відступи, щоб вмістити повні назви місяців
     plt.grid()
     plt.legend()
 
