@@ -10,6 +10,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 # Функція для побудови річного графіка за обраним параметром
 async def show_yearly_chart_for_parameter(update: Update, context: CallbackContext, employee_name: str, year: str, parameter: str):
+    # Повідомлення користувачу про очікування
+    await update.message.reply_text("Зачекайте, будь ласка. Це може зайняти деякий час...")
+
     # Місяці для отримання даних та побудови графіка
     months = [
         "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
@@ -35,8 +38,8 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
         value = income_data.get(parameter_column, 0) if income_data else 0
         monthly_values.append(value)
 
-    # Побудова графіка
-    plt.figure(figsize=(10, 5))
+    # Побудова графіка з більшим розміром
+    plt.figure(figsize=(12, 6))  # Збільшений розмір графіка
     plt.plot(months, monthly_values, marker='o', label=parameter)
     plt.title(f"Аналітика {parameter.lower()} {employee_name} за {year} рік")
     plt.xlabel("Місяці")
