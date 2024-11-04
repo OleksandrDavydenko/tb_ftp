@@ -106,18 +106,20 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
 
 async def handle_back_navigation(update: Update, context: CallbackContext) -> None:
     menu = context.user_data.get('menu')
+
     if menu == 'salary_months':
         await show_salary_years(update, context)
-    elif menu == 'salary_years' or menu == 'debt_options':
+    elif menu == 'salary_years':
         await show_main_menu(update, context)
+    elif menu == 'analytics_years':  # Якщо користувач на екрані вибору року в аналітиці
+        await show_analytics_options(update, context)  # Повернення до вибору аналітики за місяць чи рік
     elif menu == 'analytics_months':
         await show_analytics_years(update, context)
-    elif menu == 'analytics_years':
-        await show_main_menu(update, context)
     elif menu in ['debt_details', 'debt_histogram', 'debt_pie_chart']:
         await show_debt_options(update, context)
     else:
         await show_main_menu(update, context)
+
 
 async def handle_analytics_selection(update: Update, context: CallbackContext, selection: str) -> None:
     context.user_data['analytics_type'] = 'monthly' if selection == "Аналітика за місяць" else 'yearly'
