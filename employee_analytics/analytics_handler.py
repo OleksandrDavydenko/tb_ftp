@@ -2,7 +2,7 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 import datetime
 from .analytics_table import get_income_data, format_analytics_table
-from .analytics_chart import show_yearly_chart
+from .analytics_chart import show_yearly_chart_for_parameter  # Оновлена функція для відображення графіка
 import logging
 
 # Налаштування логування
@@ -59,14 +59,31 @@ async def show_monthly_analytics(update: Update, context: CallbackContext) -> No
     formatted_table = format_analytics_table(income_data, employee_name, month, year)
     await update.message.reply_text(f"```\n{formatted_table}\n```", parse_mode="Markdown")
 
-# Відображення аналітики за рік (тільки для графіків або інший річний аналіз)
+# Відображення параметрів для вибору графіка за рік
+async def show_yearly_parameters(update: Update, context: CallbackContext) -> None:
+    parameter_keyboard = [
+        [KeyboardButton("Дохід"), KeyboardButton("Валовий прибуток"), KeyboardButton("Кількість угод")],
+        [KeyboardButton("Назад"), KeyboardButton("Головне меню")]
+    ]
+    reply_markup = ReplyKeyboardMarkup(parameter_keyboard, one_time_keyboard=True)
+    context.user_data['menu'] = 'analytics_parameters'
+    await update.message.reply_text("Оберіть параметр для аналізу:", reply_markup=reply_markup)
+
+# Відображення аналітики за рік для обраного параметра
 async def show_yearly_analytics(update: Update, context: CallbackContext):
     employee_name = context.user_data.get('employee_name')
     year = context.user_data.get('selected_year')
+    selected_parameter = context.user_data.get('selected_parameter')
 
-    if not employee_name or not year:
-        await update.message.reply_text("Помилка: необхідно вибрати рік.")
+    if not employee_name or not year or not selected_parameter:
+        await update.message.reply_text("Помилка: необхідно вибрати рік і параметр.")
         return
 
-    # Виклик річного графіка
-    await show_yearly_chart(update, context, employee_name, year)
+    # Виклик річного графіка для обраного параметра
+    await show_yearly_chart_for_parameter(update, context, employee_name, year, selected_parameter)
+
+# Обробка вибору параметра для аналітики за рік
+async def handle_yearly_parameter_selection(update: Update, context: CallbackContext) -> None:
+    parameter = update.message.text
+    context.user_data['selected_parameter'] = parameter
+    await show_yearly_analytics(update, context)
