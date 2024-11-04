@@ -71,9 +71,9 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
             await prompt_for_phone_number(update, context)
 
 async def show_main_menu(update: Update, context: CallbackContext) -> None:
-    analytics_button = KeyboardButton(text="Аналітика")  # Змінили з "Аналітика працівника"
+    analytics_button = KeyboardButton(text="Аналітика")
     salary_button = KeyboardButton(text="Розрахунковий лист")
-    debt_button = KeyboardButton(text="Дебіторська заборгованість")  # Змінили з "Дебіторка"
+    debt_button = KeyboardButton(text="Дебіторська заборгованість")
     reply_markup = ReplyKeyboardMarkup([[analytics_button, salary_button], [debt_button]], one_time_keyboard=True)
     await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
 
@@ -119,7 +119,7 @@ async def handle_back_navigation(update: Update, context: CallbackContext) -> No
     elif menu == 'analytics_years':
         await show_analytics_options(update, context)
     elif menu == 'parameter_selection':
-        await show_analytics_years(update, context)  # Повернення до вибору року
+        await show_analytics_years(update, context)
     elif menu == 'analytics_months':
         await show_analytics_years(update, context)
     elif menu in ['debt_details', 'debt_histogram', 'debt_pie_chart']:
