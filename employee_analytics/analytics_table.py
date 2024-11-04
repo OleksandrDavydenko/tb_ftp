@@ -5,7 +5,7 @@ from auth import get_power_bi_token
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Функція для отримання даних про дохід та валовий прибуток для конкретного співробітника за обраний місяць та рік
+# Функція для отримання даних про дохід, валовий прибуток та кількість угод для конкретного співробітника за обраний місяць та рік
 def get_income_data(employee_name, role, year, month):
     logging.info(f"Запит на отримання даних для: {employee_name}, роль: {role}, рік: {year}, місяць: {month}")
     token = get_power_bi_token()
@@ -24,7 +24,7 @@ def get_income_data(employee_name, role, year, month):
     role_column = "Manager" if role == "Менеджер" else "Seller"
     formatted_date = f"{month.lower()} {year} р."
 
-    # Запит з фільтрацією за користувачем, для обчислення доходу, валового прибутку та бонусів
+    # Запит з фільтрацією за користувачем, для обчислення доходу, валового прибутку, бонусів та кількості угод
     query_data = {
         "queries": [
             {
@@ -39,7 +39,8 @@ def get_income_data(employee_name, role, year, month):
                         ),
                         "Sum USD", SUM('GrossProfitFromDeals'[Income]),
                         "Gross Profit", SUM('GrossProfitFromDeals'[GrossProfit]),
-                        "Bonuses", SUM('GrossProfitFromDeals'[Bonuses])
+                        "Bonuses", SUM('GrossProfitFromDeals'[Bonuses]),
+                        "Deal Count", COUNTROWS(SUMMARIZE('GrossProfitFromDeals', 'GrossProfitFromDeals'[DealNumber]))
                     )
                 """
             }
@@ -76,6 +77,7 @@ def format_analytics_table(income_data, employee_name, month, year):
     total_income = income_data.get("[Sum USD]", 0) if income_data else 0
     gross_profit = income_data.get("[Gross Profit]", 0) if income_data else 0
     bonuses = income_data.get("[Bonuses]", 0) if income_data else 0
+    deal_count = income_data.get("[Deal Count]", 0) if income_data else 0
 
     # Розрахунок валового прибутку з урахуванням бонусів
     total_gross_profit = gross_profit + bonuses
@@ -84,6 +86,7 @@ def format_analytics_table(income_data, employee_name, month, year):
 
     table += f"{'Загальний дохід':<20}{total_income:<10}\n"
     table += f"{'Валовий прибуток':<20}{total_gross_profit:<10}\n"
+    table += f"{'Кількість угод':<20}{deal_count:<10}\n"
     table += f"{'Маржинальність':<20}{margin:.2f}%\n"
     table += "-" * 30 + "\n"
     
