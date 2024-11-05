@@ -71,9 +71,9 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
             await prompt_for_phone_number(update, context)
 
 async def show_main_menu(update: Update, context: CallbackContext) -> None:
-    analytics_button = KeyboardButton(text="Аналітика")
-    salary_button = KeyboardButton(text="Розрахунковий лист")
-    debt_button = KeyboardButton(text="Дебіторська заборгованість")
+    analytics_button = KeyboardButton(text="📊 Аналітика")
+    salary_button = KeyboardButton(text="💼 Розрахунковий лист")
+    debt_button = KeyboardButton(text="📉 Дебіторська заборгованість")
     reply_markup = ReplyKeyboardMarkup([[analytics_button, salary_button], [debt_button]], one_time_keyboard=True)
     await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
 
