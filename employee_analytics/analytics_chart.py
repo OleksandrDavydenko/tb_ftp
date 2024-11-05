@@ -4,6 +4,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 from .analytics_table import get_income_data
 import logging
+from datetime import datetime
 
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -56,6 +57,10 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
     plt.xticks(rotation=45)
     plt.grid()
     plt.legend()
+
+    # Додавання підпису з датою формування та інформацією про генерацію через бот
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    plt.figtext(0.5, 0.01, f"Згенеровано ботом FTP | Дата формування: {current_date}", ha="center", fontsize=8, color="gray")
 
     # Збереження графіка як зображення
     buffer = BytesIO()
