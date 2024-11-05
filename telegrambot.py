@@ -83,7 +83,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         return
 
     text = update.message.text
-    if text == "Дебіторська заборгованість":
+    if text == "📉 Дебіторська заборгованість":
         await show_debt_options(update, context)
     elif text == "Таблиця":
         await show_debt_details(update, context)
@@ -91,10 +91,10 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         await show_debt_histogram(update, context)
     elif text == "Діаграма":
         await show_debt_pie_chart(update, context)
-    elif text == "Розрахунковий лист":
+    elif text == "💼 Розрахунковий лист":
         context.user_data['menu'] = 'salary_years'
         await show_salary_years(update, context)
-    elif text == "Аналітика":
+    elif text == "📊 Аналітика":
         await show_analytics_options(update, context)
     elif text == "Назад":
         await handle_back_navigation(update, context)
