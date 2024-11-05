@@ -58,9 +58,9 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
     plt.grid()
     plt.legend()
 
-    # Додавання підпису з датою формування та інформацією про генерацію через бот
-    current_date = datetime.now().strftime("%Y-%m-%d")
-    plt.figtext(0.5, 0.01, f"Згенеровано ботом FTP | Дата формування: {current_date}", ha="center", fontsize=8, color="gray")
+    # Додавання підпису з датою та часом формування в лівому верхньому куті
+    current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M")
+    plt.figtext(0.01, 0.98, f"Згенеровано ботом FTP | Дата формування: {current_datetime}", ha="left", fontsize=8, color="gray", va="top")
 
     # Збереження графіка як зображення
     buffer = BytesIO()
