@@ -5,6 +5,7 @@ from telegram.ext import CallbackContext
 from .analytics_table import get_income_data
 import logging
 from datetime import datetime
+import pytz
 
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -58,9 +59,10 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
     plt.grid()
     plt.legend()
 
-    # Додавання підпису з датою та часом формування в лівому верхньому куті
-    current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M")
-    plt.figtext(0.01, 0.98, f"Згенеровано ботом FTP | Дата формування: {current_datetime}", ha="left", fontsize=8, color="gray", va="top")
+    # Додавання підпису з датою та часом формування в лівому верхньому куті (київський час)
+    kyiv_timezone = pytz.timezone("Europe/Kyiv")
+    current_datetime = datetime.now(kyiv_timezone).strftime("%Y-%m-%d %H:%M")
+    plt.figtext(0.01, 0.98, f"Згенеровано ботом FTP | Дата формування: {current_datetime} (Київ)", ha="left", fontsize=8, color="gray", va="top")
 
     # Збереження графіка як зображення
     buffer = BytesIO()
