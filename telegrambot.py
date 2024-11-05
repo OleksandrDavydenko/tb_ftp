@@ -75,7 +75,7 @@ async def show_main_menu(update: Update, context: CallbackContext) -> None:
     salary_button = KeyboardButton(text="💼 Розрахунковий лист")
     debt_button = KeyboardButton(text="📉 Дебіторська заборгованість")
     reply_markup = ReplyKeyboardMarkup([[analytics_button, salary_button], [debt_button]], one_time_keyboard=True)
-    await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
+    await update.message.reply_text("🏠 Виберіть опцію:", reply_markup=reply_markup)
 
 async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     if not context.user_data.get('registered', False):
