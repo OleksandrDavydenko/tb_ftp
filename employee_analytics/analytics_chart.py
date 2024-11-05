@@ -62,7 +62,7 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
     # Додавання підпису з датою та часом формування в лівому верхньому куті (київський час)
     kyiv_timezone = pytz.timezone("Europe/Kyiv")
     current_datetime = datetime.now(kyiv_timezone).strftime("%Y-%m-%d %H:%M")
-    plt.figtext(0.01, 0.98, f"Згенеровано ботом FTP | Дата формування: {current_datetime} (Київ)", ha="left", fontsize=8, color="gray", va="top")
+    plt.figtext(0.01, 0.98, f"Згенеровано ботом FTP | Дата формування: {current_datetime}", ha="left", fontsize=8, color="gray", va="top")
 
     # Збереження графіка як зображення
     buffer = BytesIO()
