@@ -124,11 +124,9 @@ def get_all_users():
 
 
 
-""" hhh """
-
 "Видалення записів"
 
-def delete_records(phone_number):
+""" def delete_records(phone_number):
     try:
         conn = psycopg2.connect(DATABASE_URL, sslmode='require')
         cursor = conn.cursor()
@@ -149,4 +147,4 @@ def delete_records(phone_number):
         conn.close()
 
 # Виклик функції з номером телефону
-delete_records("380500878790")
+delete_records("380500878790") """
