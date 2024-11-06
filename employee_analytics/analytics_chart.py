@@ -51,7 +51,7 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
 
     # Перевірка на випадок, якщо всі значення рівні нулю
     if all(value == 0 for value in monthly_values):
-        await update.message.reply_text("Немає інформації за поточний період.")
+        await update.message.reply_text(f"Для {employee_name} немає інформації за {year} рік.")
         logging.info(f"Немає даних для графіка {parameter.lower()} для {employee_name} за {year} рік.")
         return
 
