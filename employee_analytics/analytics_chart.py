@@ -49,6 +49,12 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
         
         monthly_values.append(value)
 
+    # Перевірка на випадок, якщо всі значення рівні нулю
+    if all(value == 0 for value in monthly_values):
+        await update.message.reply_text("Немає інформації за поточний період.")
+        logging.info(f"Немає даних для графіка {parameter.lower()} для {employee_name} за {year} рік.")
+        return
+
     # Побудова графіка з більшим розміром
     plt.figure(figsize=(12, 8))  # Збільшений розмір графіка
     plt.plot(months, monthly_values, marker='o', label=parameter)
