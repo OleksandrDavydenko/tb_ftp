@@ -63,7 +63,6 @@ def get_salary_data(employee_name, year, month):
         }
     }
 
-    
     logging.info(f"Виконуємо запит до Power BI для користувача {employee_name}.")
     response = requests.post(power_bi_url, headers=headers, json=query_data)
     
@@ -163,14 +162,14 @@ def format_salary_table(rows, employee_name, year, month, payments):
         # Обробка кожного рядка і додавання даних у таблицю
         for row in rows:
             оклад_uah = float(row.get("[Нараховано Оклад UAH]", 0))
-            оклад_usd = 0.0  # Оклад в доларах завжди 0
+            оклад_usd = float(row.get("[Нараховано Оклад USD]", 0)) if оклад_uah == 0 else 0.0  # Використовуємо USD, якщо UAH дорівнює 0
             премії_uah = float(row.get("[Нараховано Премії UAH]", 0))  # Премії в UAH
             премії_usd = float(row.get("[Нараховано Премії USD]", 0))
             додат_uah = float(row.get("[Додаткові нарахування UAH]", 0))
             додат_usd = float(row.get("[Додаткові нарахування USD]", 0))
 
             total_uah += оклад_uah + премії_uah + додат_uah
-            total_usd += додат_usd + премії_usd
+            total_usd += оклад_usd + додат_usd + премії_usd
 
             # Додаємо рядки до таблиці
             table += f"{'Нараховано Оклад':<30}{оклад_uah:<10}{оклад_usd:<10}\n"
