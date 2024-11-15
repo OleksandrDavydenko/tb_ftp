@@ -16,6 +16,9 @@ async def async_add_devaluation_record(data):
     cursor = conn.cursor()
 
     try:
+        # Логування отриманих даних перед вставкою
+        logging.info(f"Отримані дані для вставки: {data}")
+
         # Вставка даних у таблицю DevaluationAnalysis
         cursor.execute("""
             INSERT INTO DevaluationAnalysis (
@@ -88,7 +91,10 @@ async def sync_devaluation_data():
         if response.status_code == 200:
             data = response.json()
             rows = data['results'][0]['tables'][0].get('rows', [])
+            logging.info(f"Отримано {len(rows)} записів з Power BI.")
+            
             for record in rows:
+                logging.info(f"Дані запису перед вставкою в базу даних: {record}")
                 await async_add_devaluation_record(record)
 
             logging.info(f"Успішно синхронізовано {len(rows)} записів.")
