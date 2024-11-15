@@ -59,21 +59,21 @@ async def sync_devaluation_data():
                 "query": """
                     EVALUATE 
                     SELECTCOLUMNS(
-                        DevaluationData,
-                        "Client", DevaluationData[Client],
-                        "PaymentNumber", DevaluationData[PaymentNumber],
-                        "AccNumber", DevaluationData[AccNumber],
-                        "ContractNumber", DevaluationData[ContractNumber],
-                        "DateFromAcc", DevaluationData[DateFromAcc],
-                        "DateFromPayment", DevaluationData[DateFromPayment],
-                        "DateDifferenceInDays", DevaluationData[DateDifferenceInDays],
-                        "CurrencyFromInformAcc", DevaluationData[CurrencyFromInformAcc],
-                        "ExchangeRateAccNBU", DevaluationData[ExchangeRateAccNBU],
-                        "ExchangeRatePaymentNBU", DevaluationData[ExchangeRatePaymentNBU],
-                        "Devalvation%", DevaluationData[Devalvation%],
-                        "PaymentSum", DevaluationData[PaymentSum],
-                        "Compensation", DevaluationData[Compensation],
-                        "Manager", DevaluationData[Manager]
+                        DevaluationAnalysis,
+                        "Client", DevaluationAnalysis[Client],
+                        "PaymentNumber", DevaluationAnalysis[PaymentNumber],
+                        "AccNumber", DevaluationAnalysis[AccNumber],
+                        "ContractNumber", DevaluationAnalysis[ContractNumber],
+                        "DateFromAcc", DevaluationAnalysis[DateFromAcc],
+                        "DateFromPayment", DevaluationAnalysis[DateFromPayment],
+                        "DateDifferenceInDays", DevaluationAnalysis[DateDifferenceInDays],
+                        "CurrencyFromInformAcc", DevaluationAnalysis[CurrencyFromInformAcc],
+                        "ExchangeRateAccNBU", DevaluationAnalysis[ExchangeRateAccNBU],
+                        "ExchangeRatePaymentNBU", DevaluationAnalysis[ExchangeRatePaymentNBU],
+                        "Devalvation%", DevaluationAnalysis[Devalvation%],
+                        "PaymentSum", DevaluationAnalysis[PaymentSum],
+                        "Compensation", DevaluationAnalysis[Compensation],
+                        "Manager", DevaluationAnalysis[Manager]
                     )
                 """
             }
