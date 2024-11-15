@@ -11,6 +11,7 @@ from messages.sync_payments import sync_payments
 from auth import is_phone_number_in_power_bi
 from db import add_telegram_user, get_user_joined_at
 from messages.reminder import schedule_monthly_reminder
+from messages.sync_devaluation import sync_devaluation_data  # Імпорт функції з нового файлу
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart
@@ -182,6 +183,7 @@ def main():
     app = ApplicationBuilder().token(KEY).build()
     scheduler.add_job(check_new_payments, 'interval', seconds=300)
     scheduler.add_job(sync_payments, 'interval', seconds=270)
+    scheduler.add_job(sync_devaluation_data, 'interval', seconds=60)  # Додаємо нову синхронізацію девальваційних даних
     schedule_monthly_reminder(scheduler)
     scheduler.start()
 
