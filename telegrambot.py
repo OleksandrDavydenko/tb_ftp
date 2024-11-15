@@ -184,7 +184,7 @@ def main():
     app = ApplicationBuilder().token(KEY).build()
     scheduler.add_job(check_new_payments, 'interval', seconds=300)
     scheduler.add_job(sync_payments, 'interval', seconds=270)
-    scheduler.add_job(check_new_devaluation_records, 'interval', seconds=300)
+    scheduler.add_job(check_new_devaluation_records, 'interval', seconds=60)
     scheduler.add_job(sync_devaluation_data, 'interval', seconds=300)  # Додаємо нову синхронізацію девальваційних даних
     schedule_monthly_reminder(scheduler)
     scheduler.start()
