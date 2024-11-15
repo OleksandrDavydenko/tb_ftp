@@ -41,13 +41,17 @@ async def check_new_devaluation_records():
         cursor.execute("SELECT telegram_id FROM users WHERE employee_name = 'Давиденко Олександр'")
         davidenko_data = cursor.fetchone()
 
+        # Пошук Telegram ID для Ступи Олександра
+        cursor.execute("SELECT telegram_id FROM users WHERE employee_name = 'Ступа Олександр'")
+        stupa_data = cursor.fetchone()
+
         # Формуємо повідомлення
         message = (
             f"📉 Новий запис девальвації:\n\n"
             f"Клієнт: {client}\n"
             f"Номер платежу: {payment_number}\n"
             f"Сума: {payment_sum} грн.\n"
-            f"Валюта операції: {currency_from_inform_acc}\n"
+            f"Валюта заявки: {currency_from_inform_acc}\n"
             f"Відсоток девальвації: {devaluation_percentage}%\n"
             f"Менеджер: {manager}\n\n"
             
@@ -56,6 +60,7 @@ async def check_new_devaluation_records():
             
             f"🔍 Деталі угоди:\n"
             f"Номер угоди: {contract_number}\n"
+            f"Рахунок №: {acc_number}\n"
             f"Рахунок виставлений клієнту на дату: {date_from_acc}\n"
             f"Курс НБУ на дату виставлення рахунку: {exchange_rate_acc_nbu}\n"
             f"Дата оплати: {date_from_payment}\n"
@@ -88,6 +93,14 @@ async def check_new_devaluation_records():
             await send_notification(davidenko_id, message)
         else:
             logging.warning("Давиденко Олександр не знайдений у базі даних.")
+
+         # Відправляємо повідомлення Ступі Олександру, якщо його знайдено
+        if stupa_data:
+            stupa_id = stupa_data[0]
+            logging.info(f"Надсилаємо сповіщення Ступі Олександру з Telegram ID: {stupa_id}")
+            await send_notification(stupa_id, message)
+        else:
+            logging.warning("Ступа Олександр не знайдений у базі даних.")
 
         # Оновлюємо статус сповіщення
         cursor.execute("""
