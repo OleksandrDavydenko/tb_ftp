@@ -1,6 +1,7 @@
 import psycopg2
 import os
 from datetime import datetime
+import logging
 
 # Отримуємо URL бази даних з змінної середовища Heroku
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -144,3 +145,25 @@ def get_all_users():
 
 
 create_tables()
+
+
+
+
+
+def delete_all_records_in_devaluationanalysis():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Видаляємо всі записи з таблиці DevaluationAnalysis
+        cursor.execute("DELETE FROM DevaluationAnalysis")
+        conn.commit()
+        logging.info("Всі записи з таблиці DevaluationAnalysis успішно видалено.")
+    except Exception as e:
+        logging.error(f"Помилка при видаленні записів з таблиці DevaluationAnalysis: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+# Викликаємо функцію для видалення всіх записів
+delete_all_records_in_devaluationanalysis()
