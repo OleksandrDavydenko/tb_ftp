@@ -15,9 +15,12 @@ async def async_add_devaluation_record(data):
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    # Очищуємо ключі від квадратних дужок
+    cleaned_data = {key.strip("[]"): value for key, value in data.items()}
+
     try:
-        # Логування отриманих даних перед вставкою
-        logging.info(f"Отримані дані для вставки: {data}")
+        # Логування очищених даних перед вставкою
+        logging.info(f"Очищені дані для вставки: {cleaned_data}")
 
         # Вставка даних у таблицю DevaluationAnalysis
         cursor.execute("""
@@ -28,14 +31,14 @@ async def async_add_devaluation_record(data):
                 payment_sum, compensation, manager
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
-            data.get("Client"), data.get("PaymentNumber"), data.get("AccNumber"), data.get("ContractNumber"),
-            data.get("DateFromAcc"), data.get("DateFromPayment"), data.get("DateDifferenceInDays"),
-            data.get("CurrencyFromInformAcc"), data.get("ExchangeRateAccNBU"), data.get("ExchangeRatePaymentNBU"),
-            data.get("Devalvation%"), data.get("PaymentSum"), data.get("Compensation"), data.get("Manager")
+            cleaned_data.get("Client"), cleaned_data.get("PaymentNumber"), cleaned_data.get("AccNumber"), cleaned_data.get("ContractNumber"),
+            cleaned_data.get("DateFromAcc"), cleaned_data.get("DateFromPayment"), cleaned_data.get("DateDifferenceInDays"),
+            cleaned_data.get("CurrencyFromInformAcc"), cleaned_data.get("ExchangeRateAccNBU"), cleaned_data.get("ExchangeRatePaymentNBU"),
+            cleaned_data.get("Devalvation%"), cleaned_data.get("PaymentSum"), cleaned_data.get("Compensation"), cleaned_data.get("Manager")
         ))
 
         conn.commit()
-        logging.info(f"Додано новий запис для клієнта: {data.get('Client')}, платіж: {data.get('PaymentNumber')}.")
+        logging.info(f"Додано новий запис для клієнта: {cleaned_data.get('Client')}, платіж: {cleaned_data.get('PaymentNumber')}.")
 
     except Exception as e:
         logging.error(f"Помилка при додаванні запису: {e}")
