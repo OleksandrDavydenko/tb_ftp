@@ -6,6 +6,8 @@ import logging
 # Отримуємо URL бази даних з змінної середовища Heroku
 DATABASE_URL = os.getenv('DATABASE_URL')
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 def get_db_connection():
     # Підключаємось до бази даних PostgreSQL через URL з Heroku
     return psycopg2.connect(DATABASE_URL, sslmode='require')
@@ -39,7 +41,7 @@ def create_tables():
     )
     """)
 
-    # Створюємо таблицю для аналізу девальвації
+    # Створюємо таблицю для аналізу девальвації з колонкою is_notified
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS DevaluationAnalysis (
         id SERIAL PRIMARY KEY,
@@ -56,13 +58,18 @@ def create_tables():
         devaluation_percentage NUMERIC(5, 2),
         payment_sum NUMERIC(12, 2),
         compensation NUMERIC(12, 2),
-        manager VARCHAR(255)
+        manager VARCHAR(255),
+        is_notified BOOLEAN DEFAULT FALSE
     )
     """)
 
     conn.commit()
     cursor.close()
     conn.close()
+    logging.info("Усі таблиці створено або оновлено успішно.")
+
+# Викликаємо функцію для створення таблиць при запуску
+create_tables()
 
 def add_telegram_user(phone_number, telegram_id, telegram_name, employee_name):
     conn = get_db_connection()
@@ -106,6 +113,7 @@ def add_devaluation_record(data):
         exchange_rate_acc_nbu, exchange_rate_payment_nbu, devaluation_percentage,
         payment_sum, compensation, manager
     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    ON CONFLICT (payment_number) DO NOTHING  -- Перевірка унікальності payment_number
     """, (
         data["Client"], data["PaymentNumber"], data["AccNumber"], data["ContractNumber"],
         data["DateFromAcc"], data["DateFromPayment"], data["DateDifferenceInDays"],
@@ -141,36 +149,7 @@ def get_all_users():
 
     conn.close()
 
-    return [{'telegram_id': user[0], 'telegram_name': user[1]} for user in users] 
-
-
-create_tables()
-
-
-def get_db_connection():
-    # Підключаємось до бази даних PostgreSQL через URL з Heroku
-    return psycopg2.connect(DATABASE_URL, sslmode='require')
-
-def add_is_notified_column():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    try:
-        # Додаємо колонку is_notified, якщо вона не існує
-        cursor.execute("""
-            ALTER TABLE DevaluationAnalysis
-            ADD COLUMN IF NOT EXISTS is_notified BOOLEAN DEFAULT FALSE;
-        """)
-        conn.commit()
-        logging.info("Колонка is_notified успішно додана до таблиці DevaluationAnalysis.")
-    except Exception as e:
-        logging.error(f"Помилка при додаванні колонки is_notified: {e}")
-    finally:
-        cursor.close()
-        conn.close()
-
-# Викликаємо функцію для додавання колонки
-add_is_notified_column()
+    return [{'telegram_id': user[0], 'telegram_name': user[1]} for user in users]
 
 
 
