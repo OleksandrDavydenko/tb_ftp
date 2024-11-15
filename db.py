@@ -147,6 +147,32 @@ def get_all_users():
 create_tables()
 
 
+def get_db_connection():
+    # Підключаємось до бази даних PostgreSQL через URL з Heroku
+    return psycopg2.connect(DATABASE_URL, sslmode='require')
+
+def add_is_notified_column():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Додаємо колонку is_notified, якщо вона не існує
+        cursor.execute("""
+            ALTER TABLE DevaluationAnalysis
+            ADD COLUMN IF NOT EXISTS is_notified BOOLEAN DEFAULT FALSE;
+        """)
+        conn.commit()
+        logging.info("Колонка is_notified успішно додана до таблиці DevaluationAnalysis.")
+    except Exception as e:
+        logging.error(f"Помилка при додаванні колонки is_notified: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+# Викликаємо функцію для додавання колонки
+add_is_notified_column()
+
+
 
 
 
