@@ -45,7 +45,14 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
     payments_data = get_salary_payments(employee_name, year, month)
 
     if salary_data or payments_data:
-        formatted_table = format_salary_table(salary_data, employee_name, year, month, payments_data)  # Передаємо аргументи
+        formatted_table = format_salary_table(salary_data, employee_name, year, month, payments_data)
         await update.message.reply_text(f"```\n{formatted_table}\n```", parse_mode="Markdown")
     else:
         await update.message.reply_text("Немає даних для вибраного періоду.")
+
+    # Додаємо кнопки "Назад" та "Головне меню"
+    custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
+    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
+
+    # Відправляємо повідомлення з кнопками
+    await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
