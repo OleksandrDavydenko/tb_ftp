@@ -81,6 +81,15 @@ async def show_yearly_analytics(update: Update, context: CallbackContext):
 
     # Виклик річного графіка для обраного параметра
     await show_yearly_chart_for_parameter(update, context, employee_name, year, selected_parameter)
+    
+    
+    # Додаємо кнопки "Назад" та "Головне меню"
+    custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
+    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
+
+    # Відправляємо повідомлення з кнопками
+    await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
+
 
 # Обробка вибору параметра для аналітики за рік
 async def handle_yearly_parameter_selection(update: Update, context: CallbackContext) -> None:
