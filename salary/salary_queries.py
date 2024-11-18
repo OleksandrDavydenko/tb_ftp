@@ -221,7 +221,7 @@ def format_salary_table(rows, employee_name, year, month, payments):
 
     # Перевірка наявності нарахувань
     if rows:
-        table += f"{'Нарахування':<18}{'UAH':<8} {'USD':<8}\n"  # Вирівнювання UAH та USD під нижньою таблицею
+        table += f"{'Нарахування':<18}{'UAH':<8}  {'USD':<8}\n"  # Вирівнювання UAH та USD під нижньою таблицею з додатковим пробілом
         table += "-" * 41 + "\n"
 
         total_uah = 0
@@ -240,20 +240,20 @@ def format_salary_table(rows, employee_name, year, month, payments):
             total_usd += оклад_usd + додат_usd + премії_usd
 
             # Додаємо рядки до таблиці з відступами
-            table += f"{'Оклад':<18}{оклад_uah:<8.2f} {оклад_usd:<8.2f}\n"
-            table += f"{'Премії':<18}{премії_uah:<8.2f} {премії_usd:<8.2f}\n"
-            table += f"{'Додаткові':<18}{додат_uah:<8.2f} {додат_usd:<8.2f}\n"
+            table += f"{'Оклад':<18}{оклад_uah:<8.2f}  {оклад_usd:<8.2f}\n"
+            table += f"{'Премії':<18}{премії_uah:<8.2f}  {премії_usd:<8.2f}\n"
+            table += f"{'Додаткові':<18}{додат_uah:<8.2f}  {додат_usd:<8.2f}\n"
 
         # Підсумки таблиці
         table += "-" * 41 + "\n"
-        table += f"{'Всього':<18}{total_uah:<8.2f} {total_usd:<8.2f}\n"
+        table += f"{'Всього':<18}{total_uah:<8.2f}  {total_usd:<8.2f}\n"
     else:
         table += "Немає даних про нарахування.\n"
 
     # Додаємо секцію виплат, якщо є дані про виплати
     if payments:
         table += "\nВиплата ЗП:\n"
-        table += f"{'Дата':<10}{'Документ':<12} {'UAH':<8} {'USD':<8}\n"  # Додано місце для відступу
+        table += f"{'Дата':<10}{'Документ':<10} {'UAH':<8}  {'USD':<8}\n"  # Зменшено відстань між документом та UAH, збільшено відстань між UAH і USD
         table += "-" * 41 + "\n"
 
         total_payment_uah = 0
@@ -269,10 +269,11 @@ def format_salary_table(rows, employee_name, year, month, payments):
             total_payment_uah += сума_uah
             total_payment_usd += сума_usd
 
-            table += f"{дата:<10}{doc_number:<12} {сума_uah:<8.2f} {сума_usd:<8.2f}\n"  # Додано пробіл між датою та документом
+            # Додаємо пробіл між номером документа і сумою UAH, відстань між UAH та USD на 1 пробіл більше
+            table += f"{дата:<10}{doc_number:<10} {сума_uah:<8.2f}  {сума_usd:<8.2f}\n"
 
         table += "-" * 41 + "\n"
-        table += f"{'Всього виплачено:':<18}{total_payment_uah:<8.2f} {total_payment_usd:<8.2f}\n"
+        table += f"{'Всього виплачено:':<18}{total_payment_uah:<8.2f}  {total_payment_usd:<8.2f}\n"
     else:
         table += "Немає даних про виплати.\n"
 
