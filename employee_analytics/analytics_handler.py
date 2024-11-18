@@ -54,6 +54,13 @@ async def show_monthly_analytics(update: Update, context: CallbackContext) -> No
     income_data = get_income_data(employee_name, "Менеджер", year, month) or get_income_data(employee_name, "Сейлс", year, month)
     if not income_data:
         await update.message.reply_text("Немає даних для вибраного періоду.")
+
+        # Додаємо кнопки "Назад" та "Головне меню"
+        custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
+        reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
+
+        # Відправляємо повідомлення з кнопками
+        await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
         return
 
     formatted_table = format_analytics_table(income_data, employee_name, month, year)
