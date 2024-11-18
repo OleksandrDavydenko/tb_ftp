@@ -246,7 +246,7 @@ def format_salary_table(rows, employee_name, year, month, payments):
 
         # Підсумки таблиці
         table += "-" * 41 + "\n"
-        table += f"{'Всього нараховано:':<18}{total_uah:<8.2f}  {total_usd:<8.2f}\n"
+        table += f"{'Всього нараховано: ':<18}{total_uah:<8.2f}  {total_usd:<8.2f}\n"
     else:
         table += "Немає даних про нарахування.\n"
 
