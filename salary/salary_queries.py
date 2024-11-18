@@ -212,7 +212,6 @@ def get_salary_payments(employee_name, year, month):
     return table """
 
 
-from datetime import datetime
 
 def format_salary_table(rows, employee_name, year, month, payments):
     # Заголовок таблиці з іменем користувача, місяцем і роком
@@ -276,6 +275,11 @@ def format_salary_table(rows, employee_name, year, month, payments):
         table += f"{'Всього виплачено:':<18}{total_payment_uah:<8.2f}  {total_payment_usd:<8.2f}\n"
     else:
         table += "Немає даних про виплати.\n"
+
+    # Розрахунок невиплаченого залишку
+    remaining_uah = total_uah - total_payment_uah
+    remaining_usd = total_usd - total_payment_usd
+    table += f"{'Невиплачений залишок: ':<18}{remaining_uah:<8.2f}  {remaining_usd:<8.2f}\n"
 
     logging.info("Формування таблиці завершено.")
     return table
