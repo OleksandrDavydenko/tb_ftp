@@ -1,7 +1,7 @@
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram.ext import CallbackContext
 import matplotlib.pyplot as plt
 from io import BytesIO
-from telegram import Update
-from telegram.ext import CallbackContext
 from .analytics_table import get_income_data
 import logging
 from datetime import datetime
@@ -49,14 +49,18 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
         
         monthly_values.append(value)
 
+    # Додавання кнопок "Назад" та "Головне меню" для навігації
+    custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
+    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
+
     # Перевірка на випадок, якщо всі значення рівні нулю
     if all(value == 0 for value in monthly_values):
-        await update.message.reply_text(f"Для {employee_name} немає інформації за {year} рік.")
+        await update.message.reply_text(f"Для {employee_name} немає інформації за {year} рік.", reply_markup=reply_markup)
         logging.info(f"Немає даних для графіка {parameter.lower()} для {employee_name} за {year} рік.")
         return
 
     # Побудова графіка з більшим розміром
-    plt.figure(figsize=(12, 8))  # Збільшений розмір графіка
+    plt.figure(figsize=(12, 8))
     plt.plot(months, monthly_values, marker='o', label=parameter)
     plt.title(f"Аналітика {parameter.lower()} {employee_name} за {year} рік")
     plt.xlabel("Місяці")
@@ -76,5 +80,7 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
     buffer.seek(0)
     plt.close()
 
+    # Відправка графіка як зображення
     await update.message.reply_photo(photo=buffer)
+    await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
     logging.info(f"Графік {parameter.lower()} для {employee_name} за {year} рік відображено.")
