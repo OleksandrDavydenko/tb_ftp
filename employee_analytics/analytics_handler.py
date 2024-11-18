@@ -59,6 +59,14 @@ async def show_monthly_analytics(update: Update, context: CallbackContext) -> No
     formatted_table = format_analytics_table(income_data, employee_name, month, year)
     await update.message.reply_text(f"```\n{formatted_table}\n```", parse_mode="Markdown")
 
+
+        # Додаємо кнопки "Назад" та "Головне меню"
+    custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
+    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
+
+    # Відправляємо повідомлення з кнопками
+    await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
+
 # Відображення параметрів для вибору графіка за рік
 async def show_yearly_parameters(update: Update, context: CallbackContext) -> None:
     parameter_keyboard = [
@@ -82,13 +90,6 @@ async def show_yearly_analytics(update: Update, context: CallbackContext):
     # Виклик річного графіка для обраного параметра
     await show_yearly_chart_for_parameter(update, context, employee_name, year, selected_parameter)
     
-    
-    # Додаємо кнопки "Назад" та "Головне меню"
-    custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
-
-    # Відправляємо повідомлення з кнопками
-    await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
 
 
 # Обробка вибору параметра для аналітики за рік
