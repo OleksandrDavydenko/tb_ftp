@@ -148,13 +148,13 @@ def get_salary_payments(employee_name, year, month):
 
 def format_salary_table(rows, employee_name, year, month, payments):
     # Заголовок таблиці з іменем користувача, місяцем і роком
-    table = f"Розрахунковий лист: \n{employee_name} за {month} {year}:\n"
-    table += "-" * 45 + "\n"
+    table = f"Розрахунковий лист: {employee_name}\nза {month} {year}:\n"
+    table += "-" * 40 + "\n"
 
     # Перевірка наявності нарахувань
     if rows:
-        table += f"{'Нарахування':<30}{'UAH':<10}{'USD':<10}\n"
-        table += "-" * 45 + "\n"
+        table += f"{'Нарахування':<25}{'UAH':<8}{'USD':<8}\n"
+        table += "-" * 40 + "\n"
 
         total_uah = 0
         total_usd = 0
@@ -162,8 +162,8 @@ def format_salary_table(rows, employee_name, year, month, payments):
         # Обробка кожного рядка і додавання даних у таблицю
         for row in rows:
             оклад_uah = float(row.get("[Нараховано Оклад UAH]", 0))
-            оклад_usd = float(row.get("[Нараховано Оклад USD]", 0)) if оклад_uah == 0 else 0.0  # Використовуємо USD, якщо UAH дорівнює 0
-            премії_uah = float(row.get("[Нараховано Премії UAH]", 0))  # Премії в UAH
+            оклад_usd = float(row.get("[Нараховано Оклад USD]", 0)) if оклад_uah == 0 else 0.0
+            премії_uah = float(row.get("[Нараховано Премії UAH]", 0))
             премії_usd = float(row.get("[Нараховано Премії USD]", 0))
             додат_uah = float(row.get("[Додаткові нарахування UAH]", 0))
             додат_usd = float(row.get("[Додаткові нарахування USD]", 0))
@@ -172,21 +172,21 @@ def format_salary_table(rows, employee_name, year, month, payments):
             total_usd += оклад_usd + додат_usd + премії_usd
 
             # Додаємо рядки до таблиці
-            table += f"{'Нараховано Оклад':<30}{оклад_uah:<10}{оклад_usd:<10}\n"
-            table += f"{'Нараховано Премії':<30}{премії_uah:<10}{премії_usd:<10}\n"
-            table += f"{'Додаткові нарахування':<30}{додат_uah:<10}{додат_usd:<10}\n"
+            table += f"{'Оклад':<25}{оклад_uah:<8}{оклад_usd:<8}\n"
+            table += f"{'Премії':<25}{премії_uah:<8}{премії_usd:<8}\n"
+            table += f"{'Дод. нарахування':<25}{додат_uah:<8}{додат_usd:<8}\n"
 
         # Підсумки таблиці
-        table += "-" * 45 + "\n"
-        table += f"{'Всього нараховано:':<30}{total_uah:<10}{total_usd:<10}\n"
+        table += "-" * 40 + "\n"
+        table += f"{'Всього нараховано:':<25}{total_uah:<8}{total_usd:<8}\n"
     else:
-        table += "Немає даних про нарахування для цього періоду.\n"
+        table += "Немає даних про нарахування.\n"
 
     # Додаємо секцію виплат, якщо є дані про виплати
     if payments:
         table += "\nВиплата ЗП:\n"
-        table += f"{'Дата':<15}{'Документ':<15}{'UAH':<10}{'USD':<10}\n"
-        table += "-" * 45 + "\n"
+        table += f"{'Дата':<12}{'Документ':<12}{'UAH':<8}{'USD':<8}\n"
+        table += "-" * 40 + "\n"
 
         total_payment_uah = 0
         total_payment_usd = 0
@@ -200,12 +200,13 @@ def format_salary_table(rows, employee_name, year, month, payments):
             total_payment_uah += сума_uah
             total_payment_usd += сума_usd
 
-            table += f"{дата:<15}{doc_number:<15}{сума_uah:<10}{сума_usd:<10}\n"
+            table += f"{дата:<12}{doc_number:<12}{сума_uah:<8}{сума_usd:<8}\n"
 
-        table += "-" * 45 + "\n"
-        table += f"{'Всього виплачено ЗП:':<30}{total_payment_uah:<10}{total_payment_usd:<10}\n"
+        table += "-" * 40 + "\n"
+        table += f"{'Всього виплачено:':<25}{total_payment_uah:<8}{total_payment_usd:<8}\n"
     else:
-        table += "Немає даних про виплати для цього періоду.\n"
+        table += "Немає даних про виплати.\n"
 
     logging.info("Формування таблиці завершено.")
     return table
+
