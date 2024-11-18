@@ -2,7 +2,7 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 import datetime
 from .analytics_table import get_income_data, format_analytics_table
-from .analytics_chart import show_yearly_chart_for_parameter  # Оновлена функція для відображення графіка
+from .analytics_chart import show_yearly_chart_for_parameter
 import logging
 
 # Налаштування логування
@@ -54,24 +54,13 @@ async def show_monthly_analytics(update: Update, context: CallbackContext) -> No
     income_data = get_income_data(employee_name, "Менеджер", year, month) or get_income_data(employee_name, "Сейлс", year, month)
     if not income_data:
         await update.message.reply_text("Немає даних для вибраного періоду.")
+    else:
+        formatted_table = format_analytics_table(income_data, employee_name, month, year)
+        await update.message.reply_text(f"```\n{formatted_table}\n```", parse_mode="Markdown")
 
-        # Додаємо кнопки "Назад" та "Головне меню"
-        custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-        reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
-
-        # Відправляємо повідомлення з кнопками
-        await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
-        return
-
-    formatted_table = format_analytics_table(income_data, employee_name, month, year)
-    await update.message.reply_text(f"```\n{formatted_table}\n```", parse_mode="Markdown")
-
-
-        # Додаємо кнопки "Назад" та "Головне меню"
+    # Додаємо кнопки "Назад" та "Головне меню"
     custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
     reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
-
-    # Відправляємо повідомлення з кнопками
     await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
 
 # Відображення параметрів для вибору графіка за рік
@@ -96,8 +85,11 @@ async def show_yearly_analytics(update: Update, context: CallbackContext):
 
     # Виклик річного графіка для обраного параметра
     await show_yearly_chart_for_parameter(update, context, employee_name, year, selected_parameter)
-    
 
+    # Додаємо кнопки "Назад" та "Головне меню" після показу річної аналітики
+    custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
+    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
+    await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
 
 # Обробка вибору параметра для аналітики за рік
 async def handle_yearly_parameter_selection(update: Update, context: CallbackContext) -> None:
