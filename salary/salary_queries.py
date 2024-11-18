@@ -275,8 +275,8 @@ def format_salary_table(rows, employee_name, year, month, payments):
         table += f"{'Всього виплачено:':<18}{total_payment_uah:<8.2f}  {total_payment_usd:<8.2f}\n"
     else:
         table += "Немає даних про виплати.\n"
-        
-    table += "-" * 41 + "\n"
+
+    table += "-" * 41 + "\n\n"
     # Розрахунок невиплаченого залишку
     remaining_uah = total_uah - total_payment_uah
     remaining_usd = total_usd - total_payment_usd
