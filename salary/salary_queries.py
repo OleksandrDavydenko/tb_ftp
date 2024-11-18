@@ -146,7 +146,7 @@ def get_salary_payments(employee_name, year, month):
         logging.error(f"Помилка при виконанні запиту: {response.status_code}, {response.text}")
         return None
 
-def format_salary_table(rows, employee_name, year, month, payments):
+""" def format_salary_table(rows, employee_name, year, month, payments):
     # Заголовок таблиці з іменем користувача, місяцем і роком
     table = f"Розрахунковий лист: \n{employee_name} за {month} {year}:\n"
     table += "-" * 45 + "\n"
@@ -208,4 +208,70 @@ def format_salary_table(rows, employee_name, year, month, payments):
         table += "Немає даних про виплати для цього періоду.\n"
 
     logging.info("Формування таблиці завершено.")
+    return table """
+
+
+def format_salary_table(rows, employee_name, year, month, payments):
+    # Заголовок таблиці з іменем користувача, місяцем і роком
+    table = f"Розрахунок: {employee_name}\n{month} {year}\n"
+    table += "-" * 32 + "\n"
+
+    # Перевірка наявності нарахувань
+    if rows:
+        table += f"{'Нарахування':<20}{'UAH':<7}{'USD':<7}\n"
+        table += "-" * 32 + "\n"
+
+        total_uah = 0
+        total_usd = 0
+
+        # Обробка кожного рядка і додавання даних у таблицю
+        for row in rows:
+            оклад_uah = float(row.get("[Нараховано Оклад UAH]", 0))
+            оклад_usd = float(row.get("[Нараховано Оклад USD]", 0)) if оклад_uah == 0 else 0.0
+            премії_uah = float(row.get("[Нараховано Премії UAH]", 0))
+            премії_usd = float(row.get("[Нараховано Премії USD]", 0))
+            додат_uah = float(row.get("[Додаткові нарахування UAH]", 0))
+            додат_usd = float(row.get("[Додаткові нарахування USD]", 0))
+
+            total_uah += оклад_uah + премії_uah + додат_uah
+            total_usd += оклад_usd + додат_usd + премії_usd
+
+            # Додаємо рядки до таблиці з короткими заголовками
+            table += f"{'Оклад':<20}{оклад_uah:<7}{оклад_usd:<7}\n"
+            table += f"{'Премії':<20}{премії_uah:<7}{премії_usd:<7}\n"
+            table += f"{'Додаткові':<20}{додат_uah:<7}{додат_usd:<7}\n"
+
+        # Підсумки таблиці
+        table += "-" * 32 + "\n"
+        table += f"{'Всього':<20}{total_uah:<7}{total_usd:<7}\n"
+    else:
+        table += "Немає даних про нарахування.\n"
+
+    # Додаємо секцію виплат, якщо є дані про виплати
+    if payments:
+        table += "\nВиплата ЗП:\n"
+        table += f"{'Дата':<10}{'Документ':<10}{'UAH':<7}{'USD':<7}\n"
+        table += "-" * 32 + "\n"
+
+        total_payment_uah = 0
+        total_payment_usd = 0
+
+        for payment in payments:
+            дата = payment.get("[Дата платежу]", "")
+            doc_number = payment.get("[Документ]", "")
+            сума_uah = float(payment.get("[Сума UAH]", 0))
+            сума_usd = float(payment.get("[Сума USD]", 0))
+
+            total_payment_uah += сума_uah
+            total_payment_usd += сума_usd
+
+            table += f"{дата:<10}{doc_number:<10}{сума_uah:<7}{сума_usd:<7}\n"
+
+        table += "-" * 32 + "\n"
+        table += f"{'Всього виплачено:':<20}{total_payment_uah:<7}{total_payment_usd:<7}\n"
+    else:
+        table += "Немає даних про виплати.\n"
+
+    logging.info("Формування таблиці завершено.")
     return table
+
