@@ -215,12 +215,12 @@ def get_salary_payments(employee_name, year, month):
 def format_salary_table(rows, employee_name, year, month, payments):
     # Заголовок таблиці з іменем користувача, місяцем і роком
     table = f"Розрахунок: {employee_name}\n{month} {year}\n"
-    table += "-" * 50 + "\n"
+    table += "-" * 41 + "\n"  # Зменшено довжину рисок
 
     # Перевірка наявності нарахувань
     if rows:
-        table += f"{'Нарахування':<20}{'UAH':<10}  {'USD':<10}\n"
-        table += "-" * 50 + "\n"
+        table += f"{'Нарахування':<18}{'UAH':<8}  {'USD':<8}\n"  # Вирівнюємо під нижньою таблицею
+        table += "-" * 41 + "\n"
 
         total_uah = 0
         total_usd = 0
@@ -238,21 +238,21 @@ def format_salary_table(rows, employee_name, year, month, payments):
             total_usd += оклад_usd + додат_usd + премії_usd
 
             # Додаємо рядки до таблиці з відступами
-            table += f"{'Оклад':<20}{оклад_uah:<10.2f}  {оклад_usd:<10.2f}\n"
-            table += f"{'Премії':<20}{премії_uah:<10.2f}  {премії_usd:<10.2f}\n"
-            table += f"{'Додаткові':<20}{додат_uah:<10.2f}  {додат_usd:<10.2f}\n"
+            table += f"{'Оклад':<18}{оклад_uah:<8.2f}  {оклад_usd:<8.2f}\n"
+            table += f"{'Премії':<18}{премії_uah:<8.2f}  {премії_usd:<8.2f}\n"
+            table += f"{'Додаткові':<18}{додат_uah:<8.2f}  {додат_usd:<8.2f}\n"
 
         # Підсумки таблиці
-        table += "-" * 50 + "\n"
-        table += f"{'Всього':<20}{total_uah:<10.2f}  {total_usd:<10.2f}\n"
+        table += "-" * 41 + "\n"
+        table += f"{'Всього':<18}{total_uah:<8.2f}  {total_usd:<8.2f}\n"
     else:
         table += "Немає даних про нарахування.\n"
 
     # Додаємо секцію виплат, якщо є дані про виплати
     if payments:
         table += "\nВиплата ЗП:\n"
-        table += f"{'Дата':<10}{'Документ':<15}{'UAH':<10}  {'USD':<10}\n"
-        table += "-" * 50 + "\n"
+        table += f"{'Дата':<8}{'Документ':<13}  {'UAH':<8}  {'USD':<8}\n"  # Зменшено відстань між колонками
+        table += "-" * 41 + "\n"
 
         total_payment_uah = 0
         total_payment_usd = 0
@@ -267,10 +267,10 @@ def format_salary_table(rows, employee_name, year, month, payments):
             total_payment_uah += сума_uah
             total_payment_usd += сума_usd
 
-            table += f"{дата:<10}{doc_number:<15}{сума_uah:<10.2f}  {сума_usd:<10.2f}\n"
+            table += f"{дата:<8}{doc_number:<13}  {сума_uah:<8.2f}  {сума_usd:<8.2f}\n"  # Відступ у 2 пробіли між колонками
 
-        table += "-" * 50 + "\n"
-        table += f"{'Всього виплачено:':<20}{total_payment_uah:<10.2f}  {total_payment_usd:<10.2f}\n"
+        table += "-" * 41 + "\n"
+        table += f"{'Всього виплачено:':<18}{total_payment_uah:<8.2f}  {total_payment_usd:<8.2f}\n"
     else:
         table += "Немає даних про виплати.\n"
 
