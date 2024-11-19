@@ -62,6 +62,11 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
     # Побудова графіка з більшим розміром
     plt.figure(figsize=(12, 8))
     plt.plot(months, monthly_values, marker='o', label=parameter)
+
+    # Додавання значень біля точок
+    for i, value in enumerate(monthly_values):
+        plt.annotate(f"{value:.2f}", (months[i], monthly_values[i]), textcoords="offset points", xytext=(0, 10), ha='center')
+
     plt.title(f"Аналітика {parameter.lower()} {employee_name} за {year} рік")
     plt.xlabel("Місяці")
     plt.ylabel(f"{parameter} (USD)" if parameter not in ["Кількість угод", "Маржинальність"] else parameter)
@@ -84,3 +89,4 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
     await update.message.reply_photo(photo=buffer)
     await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
     logging.info(f"Графік {parameter.lower()} для {employee_name} за {year} рік відображено.")
+
