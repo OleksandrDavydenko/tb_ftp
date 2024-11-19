@@ -272,7 +272,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
             table += f"{дата:<10}{doc_number:<10} {сума_uah:<8.2f}  {сума_usd:<8.2f}\n"
 
         table += "-" * 41 + "\n"
-        table += f"{'Всього виплачено:':<18}{total_payment_uah:<8.2f}  {total_payment_usd:<8.2f}\n"
+        table += f"{'Всього виплачено:':<18}{total_payment_uah:<8.2f}  {total_payment_usd:<8.2f}\n\n"
 
     # Невиплачений залишок
     remaining_uah = total_uah - total_payment_uah
