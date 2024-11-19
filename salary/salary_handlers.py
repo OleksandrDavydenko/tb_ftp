@@ -1,7 +1,7 @@
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 import datetime
-from .salary_queries import get_salary_data, get_salary_payments, format_salary_table  # Додано імпорт функції для платежів
+from .salary_queries import get_salary_data, get_salary_payments, get_bonuses, format_salary_table  # Додано імпорт функції для платежів
 
 # Функція для відображення списку доступних років
 async def show_salary_years(update: Update, context: CallbackContext) -> None:
@@ -43,9 +43,11 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
 
     salary_data = get_salary_data(employee_name, year, month)
     payments_data = get_salary_payments(employee_name, year, month)
+    bonuses_data = get_bonuses(employee_name, year, month)  # Додаємо отримання бонусів
 
-    if salary_data or payments_data:
-        formatted_table = format_salary_table(salary_data, employee_name, year, month, payments_data)
+    if salary_data or payments_data or bonuses_data:
+        # Формуємо таблицю з урахуванням бонусів
+        formatted_table = format_salary_table(salary_data, employee_name, year, month, payments_data, bonuses_data)
         await update.message.reply_text(f"```\n{formatted_table}\n```", parse_mode="Markdown")
     else:
         await update.message.reply_text("Немає даних для вибраного періоду.")
