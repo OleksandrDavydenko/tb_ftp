@@ -202,12 +202,14 @@ def get_bonuses(employee_name, year, month):
         }
     }
 
+    logging.info(f"Запит Power BI для бонусів:\n{query_data['queries'][0]['query']}")
     response = requests.post(power_bi_url, headers=headers, json=query_data)
 
     if response.status_code == 200:
         logging.info("Запит на бонуси успішний.")
         data = response.json()
         rows = data['results'][0]['tables'][0].get('rows', [])
+        logging.info(f"Отримано бонусів: {len(rows)}. Дані: {rows}")
         return rows
     else:
         logging.error(f"Помилка при виконанні запиту: {response.status_code}, {response.text}")
@@ -280,6 +282,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
     table += f"{'Невиплачений залишок: ':<18}{remaining_uah:<8.2f}  {remaining_usd:<8.2f}\n\n"
 
     # Бонуси
+    # Бонуси
     if bonuses:
         table += "\nБонуси:\n"
         table += "-" * 41 + "\n"
@@ -287,11 +290,26 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
         table += "-" * 41 + "\n"
 
         total_bonuses = 0
+        bonuses_summary = {
+            "Сейлс": 0,
+            "Оперативний менеджер": 0
+        }
+
         for bonus in bonuses:
-            role = "Сейлс" if bonus.get("ManagerRole") == "Сейлс" else "Опер Менеджер"
+            role = bonus.get("ManagerRole", "")
             amount = float(bonus.get("TotalAccrued", 0))
+
+            # Логіка для накопичення бонусів за ролями
+            if role == "Сейлс":
+                bonuses_summary["Сейлс"] += amount
+            elif role == "Оперативний менеджер":
+                bonuses_summary["Оперативний менеджер"] += amount
+
             total_bonuses += amount
-            table += f"{f'Бонуси {role}':<26}{amount:<8.2f}\n"
+
+        # Додаємо дані до таблиці для кожної ролі
+        table += f"{'Бонуси Сейлс':<26}{bonuses_summary['Сейлс']:<8.2f}\n"
+        table += f"{'Бонуси Опер Менеджера':<26}{bonuses_summary['Оперативний менеджер']:<8.2f}\n"
 
         table += "-" * 41 + "\n"
         table += f"{'Всього нараховано бонусів:':<26}{total_bonuses:<8.2f}\n"
