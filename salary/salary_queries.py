@@ -277,7 +277,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
     # Невиплачений залишок
     remaining_uah = total_uah - total_payment_uah
     remaining_usd = total_usd - total_payment_usd
-    table += f"{'Невиплачений залишок: ':<18}{remaining_uah:<8.2f}  {remaining_usd:<8.2f}\n"
+    table += f"{'Невиплачений залишок: ':<18}{remaining_uah:<8.2f}  {remaining_usd:<8.2f}\n\n"
 
     # Бонуси
     if bonuses:
