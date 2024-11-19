@@ -282,38 +282,39 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
     table += f"{'Невиплачений залишок: ':<18}{remaining_uah:<8.2f}  {remaining_usd:<8.2f}\n\n"
 
     # Бонуси
-    # Бонуси
     if bonuses:
-        table += "\nБонуси:\n"
-        table += "-" * 41 + "\n"
-        table += f"{'Нарахування Бонусів':<26}{'USD':<8}\n"
-        table += "-" * 41 + "\n"
+            table += "\nБонуси:\n"
+            table += "-" * 41 + "\n"
+            table += f"{'Нарахування Бонусів':<26}{'USD':<8}\n"
+            table += "-" * 41 + "\n"
 
-        total_bonuses = 0
-        bonuses_summary = {
-            "Сейлс": 0,
-            "Оперативний менеджер": 0
-        }
+            total_bonuses = 0
+            bonuses_summary = {
+                "Сейлс": 0,
+                "Оперативний менеджер": 0
+            }
 
-        for bonus in bonuses:
-            role = bonus.get("ManagerRole", "")
-            amount = float(bonus.get("TotalAccrued", 0))
+            # Очищення ключів бонусів
+            cleaned_bonuses = [{key.strip("[]"): value for key, value in bonus.items()} for bonus in bonuses]
 
-            # Логіка для накопичення бонусів за ролями
-            if role == "Сейлс":
-                bonuses_summary["Сейлс"] += amount
-            elif role == "Оперативний менеджер":
-                bonuses_summary["Оперативний менеджер"] += amount
+            for bonus in cleaned_bonuses:
+                role = bonus.get("ManagerRole", "")
+                amount = float(bonus.get("TotalAccrued", 0))
 
-            total_bonuses += amount
+                if role == "Сейлс":
+                    bonuses_summary["Сейлс"] += amount
+                elif role == "Оперативний менеджер":
+                    bonuses_summary["Оперативний менеджер"] += amount
 
-        # Додаємо дані до таблиці для кожної ролі
-        table += f"{'Бонуси Сейлс':<26}{bonuses_summary['Сейлс']:<8.2f}\n"
-        table += f"{'Бонуси Опер Менеджера':<26}{bonuses_summary['Оперативний менеджер']:<8.2f}\n"
+                total_bonuses += amount
 
-        table += "-" * 41 + "\n"
-        table += f"{'Всього нараховано бонусів:':<26}{total_bonuses:<8.2f}\n"
+            table += f"{'Бонуси Сейлс':<26}{bonuses_summary['Сейлс']:<8.2f}\n"
+            table += f"{'Бонуси Опер Менеджера':<26}{bonuses_summary['Оперативний менеджер']:<8.2f}\n"
+
+            table += "-" * 41 + "\n"
+            table += f"{'Всього нараховано бонусів: ':<26}{total_bonuses:<8.2f}\n"
 
     logging.info("Формування таблиці завершено.")
     return table
+
 
