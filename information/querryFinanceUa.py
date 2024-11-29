@@ -9,7 +9,7 @@ from db import add_exchange_rate  # Імпортуємо функцію для �
 import logging
 import os
 import time
-
+""" dfdf """
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
