@@ -5,7 +5,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.jobstores.base import ConflictingIdError
 from pytz import timezone
 from datetime import datetime
-from ..database import add_exchange_rate  # Імпортуємо функцію для запису в БД
+from ..db import add_exchange_rate  # Імпортуємо функцію для запису в БД
 import logging
 import time
 
