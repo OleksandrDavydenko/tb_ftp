@@ -17,7 +17,7 @@ options = webdriver.ChromeOptions()
 options.add_argument('--headless')
 options.add_argument('--disable-gpu')
 
-def parse_currency_table(currency_name):
+def parse_currency_table(currency_name, driver):
     """Парсинг таблиці для валюти та отримання максимального курсу."""
     html = driver.page_source
     soup = BeautifulSoup(html, 'html.parser')
