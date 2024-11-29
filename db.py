@@ -63,6 +63,16 @@ def create_tables():
     )
     """)
 
+    # Створюємо таблицю курсів валют
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS ExchangeRates (
+        id SERIAL PRIMARY KEY,
+        timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        currency VARCHAR(10) NOT NULL,
+        rate NUMERIC(10, 4) NOT NULL
+    )
+    """)
+
     conn.commit()
     cursor.close()
     conn.close()
@@ -125,6 +135,22 @@ def add_devaluation_record(data):
     cursor.close()
     conn.close()
 
+def add_exchange_rate(currency, rate):
+    """
+    Функція для додавання запису про курс валют у таблицю ExchangeRates.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    INSERT INTO ExchangeRates (currency, rate)
+    VALUES (%s, %s)
+    """, (currency, rate))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
 def get_user_joined_at(phone_number):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -150,8 +176,3 @@ def get_all_users():
     conn.close()
 
     return [{'telegram_id': user[0], 'telegram_name': user[1]} for user in users]
-
-
-
-
-
