@@ -2,9 +2,11 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.jobstores.base import ConflictingIdError
+from pytz import timezone
 import time
 from datetime import datetime
-from ..database import add_exchange_rate  # Імпортуємо функцію для додавання даних у таблицю
+from ..database import add_exchange_rate  # Імпортуємо функцію для запису в БД
 
 # Налаштування Selenium
 options = webdriver.ChromeOptions()
@@ -76,11 +78,24 @@ def store_exchange_rates():
 # Налаштування планувальника завдань
 scheduler = BlockingScheduler()
 
-# Додаємо завдання, яке запускає `store_exchange_rates` щодня о 10:00 ранку
-scheduler.add_job(store_exchange_rates, 'cron', hour=10, minute=0, id='daily_exchange_rates')
+# Часовий пояс Києва
+kyiv_timezone = timezone('Europe/Kiev')
+
+try:
+    # Додаємо завдання, яке запускає `store_exchange_rates` щодня о 10:00 ранку за київським часом
+    scheduler.add_job(
+        store_exchange_rates,
+        'cron',
+        hour=17,
+        minute=0,
+        timezone=kyiv_timezone,
+        id='daily_exchange_rates'
+    )
+except ConflictingIdError:
+    print("Завдання з таким ID вже існує.")
 
 if __name__ == "__main__":
-    print("Планувальник завдань запущено. Завдання: запис курсів валют щодня о 10:00.")
+    print("Планувальник завдань запущено. Завдання: запис курсів валют щодня о 10:00 (за київським часом).")
     try:
         scheduler.start()
     except (KeyboardInterrupt, SystemExit):
