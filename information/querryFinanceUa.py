@@ -1,4 +1,3 @@
-import chromedriver_autoinstaller
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
@@ -8,27 +7,25 @@ from pytz import timezone
 from datetime import datetime
 from db import add_exchange_rate  # Імпортуємо функцію для запису в БД
 import logging
+import os
 import time
-
-""" d """
 
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Автоматичне встановлення ChromeDriver
-chromedriver_autoinstaller.install()
-
 # Налаштування Selenium
+CHROME_PATH = "/app/.apt/usr/bin/google-chrome"
+CHROMEDRIVER_PATH = "/app/.apt/usr/bin/chromedriver"
+
 options = webdriver.ChromeOptions()
 options.add_argument('--headless')  # Без графічного інтерфейсу
 options.add_argument('--disable-gpu')  # Вимикаємо GPU
 options.add_argument('--no-sandbox')  # Вимикаємо ізоляцію (потрібно для Heroku)
 options.add_argument('--disable-dev-shm-usage')  # Вимикаємо загальний доступ до пам'яті
+options.binary_location = CHROME_PATH
 
 def parse_currency_table(currency_name, driver):
-    """
-    Парсинг таблиці для валюти та отримання максимального курсу.
-    """
+    """Парсинг таблиці для валюти та отримання максимального курсу."""
     html = driver.page_source
     soup = BeautifulSoup(html, 'html.parser')
     table = soup.find('table', {'class': 'proposal-table'})
@@ -54,10 +51,8 @@ def parse_currency_table(currency_name, driver):
     return max(prices) if prices else None
 
 def store_exchange_rates():
-    """
-    Зберігає максимальні курси для кожної валюти у таблицю ExchangeRates.
-    """
-    driver = webdriver.Chrome(options=options)
+    """Зберігає максимальні курси для кожної валюти у таблицю ExchangeRates."""
+    driver = webdriver.Chrome(executable_path=CHROMEDRIVER_PATH, options=options)
     try:
         driver.get("https://miniaylo.finance.ua")
         time.sleep(5)
