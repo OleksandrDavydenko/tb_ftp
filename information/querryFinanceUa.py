@@ -1,3 +1,4 @@
+import chromedriver_autoinstaller
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
@@ -14,8 +15,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 # Налаштування Selenium
 options = webdriver.ChromeOptions()
-options.add_argument('--headless')
-options.add_argument('--disable-gpu')
+options.add_argument('--headless')  # Без графічного інтерфейсу
+options.add_argument('--disable-gpu')  # Вимикаємо GPU
+options.add_argument('--no-sandbox')  # Вимикаємо ізоляцію (потрібно для Heroku)
+options.add_argument('--disable-dev-shm-usage')  # Вимикаємо загальний доступ до пам'яті
 
 def parse_currency_table(currency_name, driver):
     """Парсинг таблиці для валюти та отримання максимального курсу."""
