@@ -195,8 +195,8 @@ def main():
     scheduler.add_job(
         store_exchange_rates,
         'cron',
-        hour=18,
-        minute=35,
+        hour=19,
+        minute=00,
         timezone=kyiv_timezone,
         id='daily_exchange_rates',
     )
