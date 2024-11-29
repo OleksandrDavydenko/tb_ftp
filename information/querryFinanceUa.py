@@ -13,6 +13,9 @@ import time
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Автоматичне встановлення ChromeDriver
+chromedriver_autoinstaller.install()
+
 # Налаштування Selenium
 options = webdriver.ChromeOptions()
 options.add_argument('--headless')  # Без графічного інтерфейсу
