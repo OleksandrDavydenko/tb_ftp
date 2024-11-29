@@ -14,8 +14,8 @@ import time
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Налаштування Selenium
-CHROME_PATH = "/usr/bin/google-chrome"
-CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
+CHROME_PATH = "/app/.chrome-for-testing/chrome-linux64/chrome"
+CHROMEDRIVER_PATH = "/app/.chrome-for-testing/chromedriver-linux64/chromedriver"
 
 options = webdriver.ChromeOptions()
 options.add_argument('--headless')  # Без графічного інтерфейсу
