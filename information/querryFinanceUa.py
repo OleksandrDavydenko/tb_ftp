@@ -2,10 +2,6 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
-from apscheduler.schedulers.blocking import BlockingScheduler
-from apscheduler.jobstores.base import ConflictingIdError
-from pytz import timezone
-from datetime import datetime
 from db import add_exchange_rate  # Імпортуємо функцію для запису в БД
 import logging
 import time
@@ -25,7 +21,9 @@ options.add_argument('--disable-dev-shm-usage')  # Вимикаємо загал
 options.binary_location = CHROME_PATH  # Вказуємо шлях до Chrome
 
 def parse_currency_table(currency_name, driver):
-    """Парсинг таблиці для валюти та отримання максимального курсу."""
+    """
+    Парсинг таблиці для валюти та отримання максимального курсу.
+    """
     html = driver.page_source
     soup = BeautifulSoup(html, 'html.parser')
     table = soup.find('table', {'class': 'proposal-table'})
@@ -51,7 +49,9 @@ def parse_currency_table(currency_name, driver):
     return max(prices) if prices else None
 
 def store_exchange_rates():
-    """Зберігає максимальні курси для кожної валюти у таблицю ExchangeRates."""
+    """
+    Зберігає максимальні курси для кожної валюти у таблицю ExchangeRates.
+    """
     service = Service(CHROMEDRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=options)
     try:
@@ -73,26 +73,3 @@ def store_exchange_rates():
         logging.error(f"Виникла помилка: {e}")
     finally:
         driver.quit()
-
-# Налаштування планувальника
-scheduler = BlockingScheduler()
-kyiv_timezone = timezone('Europe/Kiev')
-
-try:
-    scheduler.add_job(
-        store_exchange_rates,
-        'cron',
-        hour=10,  # Запуск о 10:00 за Києвом
-        minute=0,
-        timezone=kyiv_timezone,
-        id='daily_exchange_rates'
-    )
-except ConflictingIdError:
-    logging.warning("Завдання з таким ID вже існує.")
-
-if __name__ == "__main__":
-    logging.info("Планувальник запущено. Завдання: запис курсів валют щодня о 10:00 за Києвом.")
-    try:
-        scheduler.start()
-    except (KeyboardInterrupt, SystemExit):
-        logging.info("Планувальник зупинено.")
