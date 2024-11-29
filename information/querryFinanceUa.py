@@ -24,7 +24,9 @@ options.add_argument('--no-sandbox')  # Вимикаємо ізоляцію (п�
 options.add_argument('--disable-dev-shm-usage')  # Вимикаємо загальний доступ до пам'яті
 
 def parse_currency_table(currency_name, driver):
-    """Парсинг таблиці для валюти та отримання максимального курсу."""
+    """
+    Парсинг таблиці для валюти та отримання максимального курсу.
+    """
     html = driver.page_source
     soup = BeautifulSoup(html, 'html.parser')
     table = soup.find('table', {'class': 'proposal-table'})
@@ -50,7 +52,9 @@ def parse_currency_table(currency_name, driver):
     return max(prices) if prices else None
 
 def store_exchange_rates():
-    """Зберігає максимальні курси для кожної валюти у таблицю ExchangeRates."""
+    """
+    Зберігає максимальні курси для кожної валюти у таблицю ExchangeRates.
+    """
     driver = webdriver.Chrome(options=options)
     try:
         driver.get("https://miniaylo.finance.ua")
@@ -63,7 +67,7 @@ def store_exchange_rates():
             tab.click()
             time.sleep(2)
 
-            max_price = parse_currency_table(currency_name)
+            max_price = parse_currency_table(currency_name, driver)
             if max_price is not None:
                 add_exchange_rate(currency_name, max_price)
                 logging.info(f"Записано курс {currency_name} - {max_price}")
@@ -80,7 +84,7 @@ try:
     scheduler.add_job(
         store_exchange_rates,
         'cron',
-        hour=10,
+        hour=10,  # Запуск о 10:00 за Києвом
         minute=0,
         timezone=kyiv_timezone,
         id='daily_exchange_rates'
