@@ -8,26 +8,17 @@ from pytz import timezone
 from datetime import datetime
 from db import add_exchange_rate  # Імпортуємо функцію для запису в БД
 import logging
-import os
 import time
 
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Шляхи до Chrome і ChromeDriver
-CHROME_PATH = "/app/.apt/usr/bin/google-chrome"
-CHROMEDRIVER_PATH = "/app/.apt/usr/bin/chromedriver"
-
 # Налаштування Selenium
 options = webdriver.ChromeOptions()
 options.add_argument('--headless')  # Без графічного інтерфейсу
 options.add_argument('--disable-gpu')  # Вимикаємо GPU
-options.add_argument('--no-sandbox')  # Вимикаємо ізоляцію (потрібно для Heroku)
+options.add_argument('--no-sandbox')  # Вимикаємо ізоляцію (Heroku)
 options.add_argument('--disable-dev-shm-usage')  # Вимикаємо загальний доступ до пам'яті
-options.binary_location = CHROME_PATH
-
-# Сервіс для ChromeDriver
-service = Service(CHROMEDRIVER_PATH)
 
 def parse_currency_table(currency_name, driver):
     """Парсинг таблиці для валюти та отримання максимального курсу."""
@@ -57,6 +48,7 @@ def parse_currency_table(currency_name, driver):
 
 def store_exchange_rates():
     """Зберігає максимальні курси для кожної валюти у таблицю ExchangeRates."""
+    service = Service("/usr/bin/chromedriver")  # Використання драйвера, встановленого новим buildpack
     driver = webdriver.Chrome(service=service, options=options)
     try:
         driver.get("https://miniaylo.finance.ua")
