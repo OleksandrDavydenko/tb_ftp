@@ -2,6 +2,8 @@ import asyncio
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from pytz import timezone
+from information.querryFinanceUa import store_exchange_rates
 import logging
 import os
 import sys
@@ -187,6 +189,19 @@ def main():
     scheduler.add_job(check_new_devaluation_records, 'interval', seconds=10800)
     scheduler.add_job(sync_devaluation_data, 'interval', seconds=10800)  # Додаємо нову синхронізацію девальваційних даних
     schedule_monthly_reminder(scheduler)
+
+
+    kyiv_timezone = timezone('Europe/Kiev')
+    scheduler.add_job(
+        store_exchange_rates,
+        'cron',
+        hour=10,
+        minute=0,
+        timezone=kyiv_timezone,
+        id='daily_exchange_rates',
+    )
+
+
     scheduler.start()
 
     app.add_handler(CommandHandler("start", start))
