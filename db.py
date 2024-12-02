@@ -176,3 +176,26 @@ def get_all_users():
     conn.close()
 
     return [{'telegram_id': user[0], 'telegram_name': user[1]} for user in users]
+
+
+def get_latest_currency_rates(currencies):
+    """
+    Отримує останні курси для заданих валют із бази даних.
+    """
+    try:
+        conn = get_db_connection()  # Заміна на вашу базу даних
+        cursor = conn.cursor()
+        placeholders = ','.join('?' for _ in currencies)
+        query = f"""
+            SELECT currency, rate, timestamp
+            FROM exchange_rates
+            WHERE currency IN ({placeholders})
+            ORDER BY timestamp DESC
+        """
+        cursor.execute(query, currencies)
+        rows = cursor.fetchall()
+        conn.close()
+        return [{"currency": row[0], "rate": row[1], "timestamp": row[2]} for row in rows]
+    except Exception as e:
+        print(f"Помилка отримання курсів: {e}")
+        raise e
