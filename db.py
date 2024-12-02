@@ -177,7 +177,6 @@ def get_all_users():
 
     return [{'telegram_id': user[0], 'telegram_name': user[1]} for user in users]
 
-
 def get_latest_currency_rates(currencies):
     """
     Отримує останні курси для заданих валют із бази даних.
@@ -185,7 +184,7 @@ def get_latest_currency_rates(currencies):
     try:
         conn = get_db_connection()  # Заміна на вашу базу даних
         cursor = conn.cursor()
-        placeholders = ','.join('?' for _ in currencies)
+        placeholders = ','.join(['%s'] * len(currencies))  # Використання %s замість ?
         query = f"""
             SELECT currency, rate, timestamp
             FROM exchange_rates
