@@ -6,6 +6,8 @@ async def show_help_menu(update: Update, context: CallbackContext) -> None:
     """
     Відображає меню "Довідкова інформація" з кнопками "Курс Валют" і "Головне меню".
     """
+    context.user_data['current_menu'] = 'help_menu'  # Зберігаємо стан
+
     currency_button = KeyboardButton(text="Курс Валют")
     main_menu_button = KeyboardButton(text="Головне меню")
     reply_markup = ReplyKeyboardMarkup([[currency_button], [main_menu_button]], one_time_keyboard=True)
@@ -26,6 +28,7 @@ async def show_currency_rates(update: Update, context: CallbackContext) -> None:
         reply_markup = ReplyKeyboardMarkup([[back_button], [main_menu_button]], one_time_keyboard=True)
 
         await update.message.reply_text(message, reply_markup=reply_markup)
+        context.user_data['current_menu'] = 'currency_rates'
     except Exception as e:
         await update.message.reply_text("Не вдалося отримати курси валют. Спробуйте пізніше.")
         raise e

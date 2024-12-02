@@ -130,6 +130,8 @@ async def handle_back_navigation(update: Update, context: CallbackContext) -> No
 
     if menu == 'salary_months':
         await show_salary_years(update, context)
+    elif menu == 'help_menu':
+        await show_help_menu(update, context)
     elif menu == 'salary_years':
         await show_main_menu(update, context)
     elif menu == 'analytics_years':
