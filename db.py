@@ -189,7 +189,7 @@ def get_latest_currency_rates(currencies):
 
         query = """
             SELECT DISTINCT ON (currency) currency, rate
-            FROM exchange_rates
+            FROM exchangerates
             WHERE currency = ANY(%s)
             ORDER BY currency, timestamp DESC;
         """
