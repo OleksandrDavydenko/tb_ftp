@@ -187,7 +187,7 @@ def get_latest_currency_rates(currencies):
         placeholders = ','.join(['%s'] * len(currencies))  # Використання %s замість ?
         query = f"""
             SELECT currency, rate, timestamp
-            FROM exchange_rates
+            FROM exchangerates
             WHERE currency IN ({placeholders})
             ORDER BY timestamp DESC
         """
