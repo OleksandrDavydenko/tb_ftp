@@ -19,8 +19,9 @@ async def show_currency_rates(update: Update, context: CallbackContext) -> None:
         rates = get_latest_currency_rates(["USD", "EUR"])  # Отримати з БД
         message = "Курси валют:\n"
         for rate in rates:
-            message += f"{rate['currency']}: {rate['rate']} (оновлено: {rate['timestamp']})\n"
+            message += f"{rate['currency']}: {rate['rate']}\n"
         await update.message.reply_text(message)
     except Exception as e:
         await update.message.reply_text("Не вдалося отримати курси валют. Спробуйте пізніше.")
         raise e
+
