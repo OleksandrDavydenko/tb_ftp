@@ -80,9 +80,9 @@ async def show_main_menu(update: Update, context: CallbackContext) -> None:
     analytics_button = KeyboardButton(text="📊 Аналітика")
     salary_button = KeyboardButton(text="💼 Розрахунковий лист")
     debt_button = KeyboardButton(text="📉 Дебіторська заборгованість")
-    info_button = KeyboardButton(text="ℹ️ Довідкова інформація")  # Нова кнопка
+    currency_button = KeyboardButton(text="💱 Курс валют")  # Додано нову кнопку
     reply_markup = ReplyKeyboardMarkup(
-        [[analytics_button, salary_button], [debt_button], [info_button]],
+        [[analytics_button, salary_button], [debt_button, currency_button]],
         one_time_keyboard=True,
     )
     await update.message.reply_text("🏠 Виберіть опцію:", reply_markup=reply_markup)
@@ -106,12 +106,8 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         await show_salary_years(update, context)
     elif text == "📊 Аналітика":
         await show_analytics_options(update, context)
-        logging.info("Кнопка 'Довідкова інформація' натиснута")
-    elif text == "ℹ️ Довідкова інформація":
-        await show_help_menu(update, context)
-    elif text == "Курс Валют":
-        logging.info("Кнопка 'Курс Валют' натиснута")
-        await show_currency_rates(update, context)
+    elif text == "💱 Курс валют":
+        await show_currency_rates(update, context)  # Виводимо курси валют
     elif text == "Назад":
         await handle_back_navigation(update, context)
     elif text == "Головне меню":
