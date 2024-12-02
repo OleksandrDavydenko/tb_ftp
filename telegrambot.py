@@ -196,7 +196,7 @@ def main():
         store_exchange_rates,
         'cron',
         hour=10,
-        minute=58,
+        minute=61,
         timezone=kyiv_timezone,
         id='daily_exchange_rates',
     )
