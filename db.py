@@ -181,24 +181,22 @@ def get_all_users():
 
 def get_latest_currency_rates(currencies):
     """
-    Отримує останні курси для заданих валют із бази даних.
+    Отримує останній курс для кожної валюти із бази даних.
     """
     try:
-        conn = get_db_connection()  # З'єднання з вашою базою даних
+        conn = get_db_connection()
         cursor = conn.cursor()
 
         query = """
             SELECT DISTINCT ON (currency) currency, rate
             FROM exchange_rates
             WHERE currency = ANY(%s)
-            ORDER BY currency, timestamp DESC
+            ORDER BY currency, timestamp DESC;
         """
         cursor.execute(query, (currencies,))
         rows = cursor.fetchall()
         conn.close()
-
         return [{"currency": row[0], "rate": row[1]} for row in rows]
     except Exception as e:
         print(f"Помилка отримання курсів: {e}")
         raise e
-
