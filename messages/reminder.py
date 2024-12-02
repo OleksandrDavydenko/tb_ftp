@@ -21,14 +21,25 @@ def get_previous_month():
     ]
     return months_ua[previous_month - 1]
 
+# Функція для перевірки, чи є день вихідним
+def is_weekend(date):
+    return date.weekday() >= 5  # 5 - субота, 6 - неділя
+
+# Отримуємо дату наступного робочого дня
+def get_next_workday(date):
+    while is_weekend(date):
+        date += timedelta(days=1)
+    return date
+
 # Асинхронна функція для відправки нагадування всім користувачам
 async def send_reminder_to_all_users():
     users = get_all_users()
     
     # Визначаємо попередній місяць та дату для повідомлення
     previous_month_name = get_previous_month()
-    reminder_date = f"07.{datetime.now().strftime('%m')}"
-
+    now = datetime.now()
+    reminder_date = f"07.{now.strftime('%m')}"
+    
     # Формуємо повідомлення
     message = (
         f"Нагадування!\n"
@@ -46,17 +57,21 @@ async def send_reminder_to_all_users():
             logging.error(f"Помилка при відправці повідомлення користувачу {user['telegram_name']}: {e}")
 
 # Функція для налаштування щомісячного нагадування
-
 def schedule_monthly_reminder(scheduler):
+    # Перевіряємо, чи 1 число місяця є вихідним, і налаштовуємо запуск на найближчий робочий день
+    now = datetime.now(timezone('Europe/Kiev'))
+    first_day_of_month = datetime(now.year, now.month, 1, 10, 0, tzinfo=timezone('Europe/Kiev'))
+    next_workday = get_next_workday(first_day_of_month)
+
+    # Додаємо задачу в планувальник
     scheduler.add_job(
         send_reminder_to_all_users,
-        'cron',
-        day=1,
-        hour=10,
-        minute=00,
+        'date',
+        run_date=next_workday,  # Наступного понеділка має прийти повідомлення, якщо зараз вихідний
         misfire_grace_time=60,  # Дозволяє завданню пропустити запуск, якщо є затримка
         timezone='Europe/Kiev'  # Вказуємо часовий пояс
     )
-    logging.info("Планувальник щомісячного нагадування на 31 число о 15:00 за київським часом запущено.")
 
-    logging.info("Планувальник щомісячного нагадування на 5 число об 11:00 запущено.")
+    logging.info(
+        f"Планувальник щомісячного нагадування налаштовано на {next_workday.strftime('%Y-%m-%d %H:%M')} за київським часом."
+    )
