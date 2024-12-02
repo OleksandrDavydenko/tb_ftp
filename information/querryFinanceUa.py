@@ -1,6 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
 from bs4 import BeautifulSoup
 from db import add_exchange_rate  # Імпортуємо функцію для запису в БД
 import logging
@@ -20,37 +21,48 @@ options.add_argument('--no-sandbox')  # Вимикаємо ізоляцію (Her
 options.add_argument('--disable-dev-shm-usage')  # Вимикаємо загальний доступ до пам'яті
 options.binary_location = CHROME_PATH  # Вказуємо шлях до Chrome
 
+def close_overlay(driver):
+    """
+    Закриває overlay або банери, які можуть перекривати елементи на сторінці.
+    """
+    try:
+        # Перевіряємо наявність overlay
+        overlay = driver.find_element(By.CLASS_NAME, "fc-dialog-overlay")
+        if overlay.is_displayed():
+            logging.info("Overlay знайдено. Закриваємо...")
+            close_button = driver.find_element(By.CLASS_NAME, "fc-close")
+            close_button.click()
+            time.sleep(1)  # Чекаємо, поки overlay зникне
+    except Exception:
+        logging.info("Overlay не знайдено або вже закрито.")
+
 def parse_currency_table(currency_name, driver):
     """
     Парсинг таблиці для валюти та отримання максимального курсу.
     """
-    try:
-        html = driver.page_source
-        soup = BeautifulSoup(html, 'html.parser')
-        table = soup.find('table', {'class': 'proposal-table'})
-        if not table:
-            logging.warning(f"Таблиця для {currency_name} не знайдена!")
-            return None
-
-        rows = table.find('tbody').find_all('tr')
-        prices = []
-
-        for row in rows:
-            cells = row.find_all('td')
-            if len(cells) > 3:
-                price_cell = cells[3].find('b')
-                price = price_cell.text.strip() if price_cell else None
-
-                try:
-                    if price:
-                        prices.append(float(price.replace(',', '.')))
-                except ValueError:
-                    logging.error(f"Помилка обробки ціни для {currency_name}: {price}")
-
-        return max(prices) if prices else None
-    except Exception as e:
-        logging.error(f"Помилка парсингу таблиці для {currency_name}: {e}")
+    html = driver.page_source
+    soup = BeautifulSoup(html, 'html.parser')
+    table = soup.find('table', {'class': 'proposal-table'})
+    if not table:
+        logging.warning(f"Таблиця для {currency_name} не знайдена!")
         return None
+
+    rows = table.find('tbody').find_all('tr')
+    prices = []
+
+    for row in rows:
+        cells = row.find_all('td')
+        if len(cells) > 3:
+            price_cell = cells[3].find('b')
+            price = price_cell.text.strip() if price_cell else None
+
+            try:
+                if price:
+                    prices.append(float(price.replace(',', '.')))
+            except ValueError:
+                logging.error(f"Помилка обробки ціни для {currency_name}: {price}")
+
+    return max(prices) if prices else None
 
 def store_exchange_rates():
     """
@@ -62,6 +74,9 @@ def store_exchange_rates():
         driver.get("https://miniaylo.finance.ua")
         time.sleep(5)
 
+        # Закриваємо overlay, якщо є
+        close_overlay(driver)
+
         # Знаходимо вкладки валют
         currency_tabs = driver.find_elements(By.CSS_SELECTOR, "ul.currency-tab li[data-currency]")
 
@@ -69,7 +84,12 @@ def store_exchange_rates():
             currency_name = tab.get_attribute("data-currency")
             if currency_name in ["USD", "EUR", "PLN"]:  # Обробляємо лише ці валюти
                 try:
-                    tab.click()  # Клікаємо на вкладку валюти
+                    # Закриваємо overlay перед кліком
+                    close_overlay(driver)
+
+                    # Скролимо до елемента, щоб уникнути помилок click intercepted
+                    ActionChains(driver).move_to_element(tab).perform()
+                    tab.click()
                     time.sleep(2)
 
                     # Парсимо курс для поточної валюти
