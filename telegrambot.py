@@ -23,6 +23,7 @@ from employee_analytics.analytics_handler import (
     show_analytics_options, show_analytics_years, show_analytics_months, 
     show_monthly_analytics, show_yearly_chart_for_parameter
 )
+from information.help_menu import show_help_menu, show_currency_rates
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -75,10 +76,15 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
             await prompt_for_phone_number(update, context)
 
 async def show_main_menu(update: Update, context: CallbackContext) -> None:
+
     analytics_button = KeyboardButton(text="📊 Аналітика")
     salary_button = KeyboardButton(text="💼 Розрахунковий лист")
     debt_button = KeyboardButton(text="📉 Дебіторська заборгованість")
-    reply_markup = ReplyKeyboardMarkup([[analytics_button, salary_button], [debt_button]], one_time_keyboard=True)
+    info_button = KeyboardButton(text="ℹ️ Довідкова інформація")  # Нова кнопка
+    reply_markup = ReplyKeyboardMarkup(
+        [[analytics_button, salary_button], [debt_button], [info_button]],
+        one_time_keyboard=True,
+    )
     await update.message.reply_text("🏠 Виберіть опцію:", reply_markup=reply_markup)
 
 async def handle_main_menu(update: Update, context: CallbackContext) -> None:
@@ -100,6 +106,10 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         await show_salary_years(update, context)
     elif text == "📊 Аналітика":
         await show_analytics_options(update, context)
+    elif text == "ℹ️ Довідкова інформація":
+        await show_help_menu(update, context)
+    elif text == "Курс Валют":
+        await show_currency_rates(update, context)
     elif text == "Назад":
         await handle_back_navigation(update, context)
     elif text == "Головне меню":
