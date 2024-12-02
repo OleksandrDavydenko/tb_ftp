@@ -28,7 +28,8 @@ def close_overlay(driver):
     Закриває overlay або банери, які можуть перекривати елементи на сторінці.
     """
     try:
-        WebDriverWait(driver, 2).until(EC.presence_of_element_located((By.CLASS_NAME, "fc-dialog-overlay")))
+        # Очікуємо, поки overlay з'явиться
+        overlay = WebDriverWait(driver, 2).until(EC.presence_of_element_located((By.CLASS_NAME, "fc-dialog-overlay")))
         close_button = driver.find_element(By.CLASS_NAME, "fc-close")
         close_button.click()
         logging.info("Overlay знайдено і закрито.")
@@ -64,7 +65,7 @@ def parse_currency_table(currency_name, driver):
 
     return max(prices) if prices else None
 
-def click_with_retry(tab, driver, currency_name):
+def click_tab_with_retry(tab, driver, currency_name):
     """
     Клікає по вкладці з кількома спробами.
     """
@@ -72,13 +73,13 @@ def click_with_retry(tab, driver, currency_name):
         try:
             # Скролимо до елемента, щоб уникнути помилок click intercepted
             ActionChains(driver).move_to_element(tab).perform()
-            WebDriverWait(driver, 2).until(EC.element_to_be_clickable(tab)).click()
+            WebDriverWait(driver, 5).until(EC.element_to_be_clickable(tab)).click()
             logging.info(f"Успішно переключилися на вкладку {currency_name}.")
             return True
         except Exception as e:
             logging.warning(f"Спроба {attempt + 1} для {currency_name} не вдалася: {e}")
             close_overlay(driver)  # Закриваємо overlay, якщо він знову з'явився
-            time.sleep(1)
+            time.sleep(2)
     logging.error(f"Не вдалося переключитися на вкладку {currency_name} після кількох спроб.")
     return False
 
@@ -101,7 +102,7 @@ def store_exchange_rates():
         for tab in currency_tabs:
             currency_name = tab.get_attribute("data-currency")
             if currency_name in ["USD", "EUR", "PLN"]:  # Обробляємо лише ці валюти
-                if click_with_retry(tab, driver, currency_name):
+                if click_tab_with_retry(tab, driver, currency_name):
                     time.sleep(2)  # Чекаємо завантаження даних
                     max_price = parse_currency_table(currency_name, driver)
                     if max_price is not None:
