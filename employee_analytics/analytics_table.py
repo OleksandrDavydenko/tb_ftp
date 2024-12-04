@@ -80,7 +80,7 @@ def format_analytics_table(income_data, employee_name, month, year):
     deal_count = income_data.get("[Deal Count]", 0) if income_data else 0
 
     # Розрахунок валового прибутку з урахуванням бонусів
-    total_gross_profit = gross_profit + bonuses
+    total_gross_profit = gross_profit #+ bonuses
     # Розрахунок маржинальності
     margin = (total_gross_profit / total_income * 100) if total_income else 0
 
