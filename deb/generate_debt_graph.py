@@ -24,11 +24,17 @@ def generate_debt_graph(debt_data, user_name, temp_dir):
 
     # Побудова графіка
     plt.figure(figsize=(10, 6))
-    plt.bar(user_debts['[Client]'], user_debts['[Sum_$]'], color='skyblue')
+    bars = plt.bar(user_debts['[Client]'], user_debts['[Sum_$]'], color='skyblue')
     plt.xlabel('Контрагент')
     plt.ylabel('Сума (USD)')
     plt.title(f'Дебіторська заборгованість для {user_name}')
     plt.xticks(rotation=45, ha='right')
+
+    # Додавання значень над стовпцями
+    for bar in bars:
+        height = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width() / 2, height, f'{height:.2f}', ha='center', va='bottom')
+
     plt.tight_layout()
 
     # Збереження графіка в тимчасовій папці
