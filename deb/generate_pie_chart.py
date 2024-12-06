@@ -22,9 +22,19 @@ def generate_pie_chart(debt_data, user_name, temp_dir):
         print(f"Немає даних для побудови діаграми для {user_name}.")
         return None
 
+    # Функція для форматування підписів
+    def autopct_format(pct, all_values):
+        absolute = int(round(pct / 100. * sum(all_values)))
+        return f'{pct:.1f}%\n(${absolute})'
+
     # Побудова секторної діаграми
     plt.figure(figsize=(8, 8))
-    plt.pie(user_debts['[Sum_$]'], labels=user_debts['[Client]'], autopct='%1.1f%%', startangle=140)
+    plt.pie(
+        user_debts['[Sum_$]'],
+        labels=user_debts['[Client]'],
+        autopct=lambda pct: autopct_format(pct, user_debts['[Sum_$]']),
+        startangle=140
+    )
     plt.title(f'Дебіторська заборгованість для {user_name}')
     plt.tight_layout()
 
