@@ -11,7 +11,7 @@ BOT_TOKEN = "YOUR_BOT_TOKEN"
 bot = Bot(token=BOT_TOKEN)
 
 # Telegram ID Давиденко Олександра
-USER_TELEGRAM_ID = 123456789  # Замініть на реальний ID
+USER_TELEGRAM_ID = 203148640  # Замініть на реальний ID
 
 def get_overdue_debts(manager_name):
     """
