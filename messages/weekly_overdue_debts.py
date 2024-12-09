@@ -40,6 +40,9 @@ def check_overdue_debts():
                     logging.error(f"Некоректна дата платежу: {plan_date_pay_str} для боргу: {debt}")
                     continue
 
+                # Логування для діагностики
+                logging.debug(f"Дата платежу: {plan_date_pay}, Поточна дата: {current_date}")
+
                 # Додаємо в список лише прострочені борги
                 if plan_date_pay < current_date:
                     overdue_debts.append({
