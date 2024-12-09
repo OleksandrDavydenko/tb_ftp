@@ -213,7 +213,7 @@ def main():
         id='daily_exchange_rates',
     )
 
-    scheduler.add_job(check_overdue_debts, 'interval', seconds=60)
+    """ scheduler.add_job(check_overdue_debts, 'interval', seconds=60) """
 
 
     scheduler.start()
