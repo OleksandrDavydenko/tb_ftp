@@ -166,7 +166,7 @@ def get_user_joined_at(phone_number):
         return result[0]
     return None
 
-def get_all_users():
+""" def get_all_users():
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -175,7 +175,22 @@ def get_all_users():
 
     conn.close()
 
-    return [{'telegram_id': user[0], 'telegram_name': user[1]} for user in users]
+    return [{'telegram_id': user[0], 'telegram_name': user[1]} for user in users] """
+
+
+
+
+def get_all_users():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT telegram_id, telegram_name, employee_name FROM users")
+    users = cursor.fetchall()
+
+    conn.close()
+
+    return [{'telegram_id': user[0], 'telegram_name': user[1], 'employee_name': user[2]} for user in users]
+
 
 
 
