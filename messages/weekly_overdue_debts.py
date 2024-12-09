@@ -29,13 +29,14 @@ def check_overdue_debts():
             for debt in debts:
                 plan_date_pay_str = debt.get('PlanDatePay', '')
                 
+                # Пропускаємо записи без дати платежу
                 if not plan_date_pay_str:
-                    logging.warning(f"Пропущена або порожня дата платежу для боргу: {debt}")
                     continue
                 
                 try:
                     plan_date_pay = datetime.datetime.strptime(plan_date_pay_str, '%Y-%m-%d').date()
                 except ValueError:
+                    # Якщо дата некоректна, пропускаємо запис
                     logging.error(f"Некоректна дата платежу: {plan_date_pay_str} для боргу: {debt}")
                     continue
 
@@ -46,5 +47,6 @@ def check_overdue_debts():
                     logging.info(f"Менеджер: {manager_name}, Клієнт: {client}, Сума: {amount}, Планова дата платежу: {plan_date_pay}")
         else:
             logging.info(f"У менеджера {manager_name} немає боргів.")
+
 
 
