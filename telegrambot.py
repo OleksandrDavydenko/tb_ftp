@@ -24,6 +24,7 @@ from employee_analytics.analytics_handler import (
     show_monthly_analytics, show_yearly_chart_for_parameter
 )
 from information.help_menu import show_help_menu, show_currency_rates
+from messages.weekly_overdue_debts import check_and_notify_overdue_debts
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -211,6 +212,8 @@ def main():
         timezone=kyiv_timezone,
         id='daily_exchange_rates',
     )
+
+    check_and_notify_overdue_debts()
 
 
     scheduler.start()
