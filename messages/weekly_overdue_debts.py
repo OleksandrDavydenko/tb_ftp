@@ -15,7 +15,7 @@ def check_overdue_debts():
     users = get_all_users()
 
     for user in users:
-        manager_name = user['employee_name']
+        manager_name = user['Employee_name']
         
         # Отримуємо дані про дебіторську заборгованість для менеджера
         debts = get_user_debt_data(manager_name)
