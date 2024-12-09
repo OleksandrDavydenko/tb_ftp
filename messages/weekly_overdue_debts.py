@@ -4,46 +4,49 @@ from db import get_all_users
 from auth import get_user_debt_data
 
 # Налаштування логування
-logging.basicConfig(filename='debts_log.log', level=logging.INFO, format='%(asctime)s - %(message)s')
+logging.basicConfig(filename='debts_log.log', level=logging.DEBUG, format='%(asctime)s - %(message)s')
 
-# Отримуємо поточну дату
+# Поточна дата
 current_date = datetime.datetime.now().date()
 
-# Функція для перевірки прострочених боргів
+# Перевірка прострочених боргів
 def check_overdue_debts():
-    # Отримуємо всіх користувачів з бази даних
     users = get_all_users()
 
     for user in users:
         manager_name = user.get('employee_name')
-        
+
         if not manager_name:
             logging.warning(f"Менеджер не знайдений у записі: {user}")
             continue
 
-        # Отримуємо дані про дебіторську заборгованість для менеджера
         debts = get_user_debt_data(manager_name)
-        
+        logging.info(f"Борги менеджера {manager_name}: {debts}")
+
         if debts:
             overdue_debts = []
             for debt in debts:
                 plan_date_pay_str = debt.get('PlanDatePay', '')
-                
+
                 if not plan_date_pay_str:
                     logging.warning(f"Пропущена або порожня дата платежу для боргу: {debt}")
                     continue
-                
+
                 try:
-                    # Видаляємо час, якщо є, і перетворюємо у формат дати
                     plan_date_pay = datetime.datetime.fromisoformat(plan_date_pay_str.split('T')[0]).date()
                 except ValueError:
                     logging.error(f"Некоректна дата платежу: {plan_date_pay_str} для боргу: {debt}")
                     continue
 
-                # Логування для діагностики
-                logging.debug(f"Дата платежу: {plan_date_pay}, Поточна дата: {current_date}")
+                # Ігноруємо дати до 1900 року
+                if plan_date_pay.year < 1900:
+                    logging.warning(f"Технічна дата платежу для боргу: {debt}")
+                    continue
 
-                # Додаємо в список лише прострочені борги
+                # Діагностичне логування
+                logging.debug(f"Дата платежу: {plan_date_pay}, Поточна дата: {current_date}, Прострочено: {plan_date_pay < current_date}")
+
+                # Перевірка на простроченість
                 if plan_date_pay < current_date:
                     overdue_debts.append({
                         'Client': debt.get('Client', 'Не вказано'),
@@ -51,7 +54,6 @@ def check_overdue_debts():
                         'PlanDatePay': plan_date_pay
                     })
 
-            # Якщо є прострочені борги, логуємо їх
             if overdue_debts:
                 logging.info(f"Менеджер: {manager_name} має прострочені борги:")
                 for overdue in overdue_debts:
@@ -60,3 +62,4 @@ def check_overdue_debts():
                 logging.info(f"У менеджера {manager_name} немає прострочених боргів.")
         else:
             logging.info(f"У менеджера {manager_name} немає боргів.")
+
