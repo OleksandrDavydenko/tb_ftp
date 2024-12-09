@@ -26,10 +26,10 @@ def check_overdue_debts():
         if debts:
             overdue_debts = []
             for debt in debts:
-                plan_date_pay_str = debt.get('PlanDatePay', '')
+                plan_date_pay_str = debt.get('[PlanDatePay]', '')
 
-                if not plan_date_pay_str:
-                    logging.warning(f"Пропущена або порожня дата платежу для боргу: {debt}")
+                if not plan_date_pay_str or plan_date_pay_str == '1899-12-30T00:00:00':
+                    logging.warning(f"Ігноруємо некоректну дату платежу для боргу: {debt}")
                     continue
 
                 try:
@@ -45,8 +45,8 @@ def check_overdue_debts():
                 # Перевірка на простроченість
                 if plan_date_pay < current_date:
                     overdue_debts.append({
-                        'Client': debt.get('Client', 'Не вказано'),
-                        'Sum_$': debt.get('Sum_$', 'Не вказано'),
+                        'Client': debt.get('[Client]', 'Не вказано'),
+                        'Sum_$': debt.get('[Sum_$]', 'Не вказано'),
                         'PlanDatePay': plan_date_pay
                     })
 
@@ -58,4 +58,3 @@ def check_overdue_debts():
                 logging.info(f"У менеджера {manager_name} немає прострочених боргів.")
         else:
             logging.info(f"У менеджера {manager_name} немає боргів.")
-
