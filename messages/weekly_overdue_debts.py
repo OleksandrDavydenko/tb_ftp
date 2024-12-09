@@ -1,5 +1,5 @@
 from datetime import datetime
-from db import get_connection  # Функція для підключення до бази даних
+from db import get_db_connection  # Функція для підключення до бази даних
 from telegram import Bot
 import logging
 
@@ -18,7 +18,7 @@ def get_overdue_debts(manager_name):
     Отримує прострочену дебіторську заборгованість для вказаного менеджера.
     """
     try:
-        connection = get_connection()
+        connection = get_db_connection()
         cursor = connection.cursor()
 
         query = """
