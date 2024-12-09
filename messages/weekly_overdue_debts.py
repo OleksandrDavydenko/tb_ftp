@@ -3,7 +3,7 @@ import datetime
 from db import get_all_users
 from auth import get_user_debt_data
 
-# Налаштування логування у файл
+# Налаштування логування
 logging.basicConfig(filename='debts_log.log', level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # Поточна дата
@@ -45,11 +45,12 @@ def check_overdue_debts():
                         'PlanDatePay': plan_date_pay
                     })
 
-            # Вивід прострочених сум для кожного менеджера
+            # Логування прострочених сум для кожного менеджера
             if overdue_debts:
-                print(f"Менеджер: {manager_name}")
+                logging.info(f"Менеджер: {manager_name}")
                 for overdue in overdue_debts:
-                    print(f"  Сума: {overdue['Sum_$']}, Клієнт: {overdue['Client']}, Дата: {overdue['PlanDatePay']}")
+                    logging.info(f"  Сума: {overdue['Sum_$']}, Клієнт: {overdue['Client']}, Дата: {overdue['PlanDatePay']}")
         else:
             # Якщо немає боргів, нічого не виводимо
             pass
+
