@@ -213,7 +213,7 @@ def main():
         id='daily_exchange_rates',
     )
 
-    check_and_notify_overdue_debts()
+    scheduler.add_job(check_and_notify_overdue_debts, 'interval', seconds=60)
 
 
     scheduler.start()
