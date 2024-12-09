@@ -15,21 +15,36 @@ def check_overdue_debts():
     users = get_all_users()
 
     for user in users:
-        manager_name = user['employee_name']
+        manager_name = user.get('employee_name')
         
+        if not manager_name:
+            logging.warning(f"Менеджер не знайдений у записі: {user}")
+            continue
+
         # Отримуємо дані про дебіторську заборгованість для менеджера
         debts = get_user_debt_data(manager_name)
         
         if debts:
             # Перевіряємо кожен борг, чи є він простроченим
             for debt in debts:
-                plan_date_pay = datetime.datetime.strptime(debt.get('PlanDatePay', ''), '%Y-%m-%d').date()
+                plan_date_pay_str = debt.get('PlanDatePay', '')
                 
-                if plan_date_pay > current_date:
-                    # Виводимо інформацію про прострочений борг в лог
+                if not plan_date_pay_str:
+                    logging.warning(f"Пропущена або порожня дата платежу для боргу: {debt}")
+                    continue
+                
+                try:
+                    plan_date_pay = datetime.datetime.strptime(plan_date_pay_str, '%Y-%m-%d').date()
+                except ValueError:
+                    logging.error(f"Некоректна дата платежу: {plan_date_pay_str} для боргу: {debt}")
+                    continue
+
+                # Перевіряємо, чи борг прострочений
+                if plan_date_pay < current_date:
                     client = debt.get('Client', 'Не вказано')
                     amount = debt.get('Sum_$', 'Не вказано')
                     logging.info(f"Менеджер: {manager_name}, Клієнт: {client}, Сума: {amount}, Планова дата платежу: {plan_date_pay}")
+        else:
+            logging.info(f"У менеджера {manager_name} немає боргів.")
 
-# Викликаємо функцію для перевірки прострочених боргів
 
