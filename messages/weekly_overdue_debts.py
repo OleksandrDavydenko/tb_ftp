@@ -33,14 +33,10 @@ def check_overdue_debts():
                     continue
 
                 try:
-                    plan_date_pay = datetime.datetime.fromisoformat(plan_date_pay_str.split('T')[0]).date()
+                    # Видаляємо час із дати
+                    plan_date_pay = datetime.datetime.strptime(plan_date_pay_str.split('T')[0], '%Y-%m-%d').date()
                 except ValueError:
                     logging.error(f"Некоректна дата платежу: {plan_date_pay_str} для боргу: {debt}")
-                    continue
-
-                # Ігноруємо дати до 1900 року
-                if plan_date_pay.year < 1900:
-                    logging.warning(f"Технічна дата платежу для боргу: {debt}")
                     continue
 
                 # Діагностичне логування
