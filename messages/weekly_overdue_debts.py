@@ -25,7 +25,6 @@ def check_overdue_debts():
         debts = get_user_debt_data(manager_name)
         
         if debts:
-            # Фільтруємо лише прострочені борги
             overdue_debts = []
             for debt in debts:
                 plan_date_pay_str = debt.get('PlanDatePay', '')
@@ -35,7 +34,8 @@ def check_overdue_debts():
                     continue
                 
                 try:
-                    plan_date_pay = datetime.datetime.strptime(plan_date_pay_str, '%Y-%m-%d').date()
+                    # Видаляємо час, якщо є, і перетворюємо у формат дати
+                    plan_date_pay = datetime.datetime.fromisoformat(plan_date_pay_str.split('T')[0]).date()
                 except ValueError:
                     logging.error(f"Некоректна дата платежу: {plan_date_pay_str} для боргу: {debt}")
                     continue
