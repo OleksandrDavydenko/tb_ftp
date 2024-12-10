@@ -3,9 +3,10 @@ import logging
 import datetime
 from db import get_all_users
 from auth import get_user_debt_data
+import os
 
 # Налаштування Telegram Bot Token
-TELEGRAM_BOT_TOKEN = "Ваш_Telegram_Bot_Token"
+TELEGRAM_BOT_TOKEN = KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
 # Налаштування логування
