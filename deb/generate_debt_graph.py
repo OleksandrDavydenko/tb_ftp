@@ -15,16 +15,16 @@ def generate_debt_graph(debt_data, user_name, temp_dir):
         print(f"Відсутні необхідні стовпці у даних для {user_name}.")
         return None
 
-    # Отримання даних для конкретного менеджера
-    user_debts = debtors_df[['[Client]', '[Sum_$]']]
+    # Групування даних за клієнтами та підсумовування сум
+    aggregated_data = debtors_df.groupby('[Client]', as_index=False)['[Sum_$]'].sum()
 
-    if user_debts.empty:
+    if aggregated_data.empty:
         print(f"Немає даних для побудови графіка для {user_name}.")
         return None
 
     # Побудова графіка
     plt.figure(figsize=(10, 6))
-    bars = plt.bar(user_debts['[Client]'], user_debts['[Sum_$]'], color='skyblue')
+    bars = plt.bar(aggregated_data['[Client]'], aggregated_data['[Sum_$]'], color='skyblue')
     plt.xlabel('Контрагент')
     plt.ylabel('Сума (USD)')
     plt.title(f'Дебіторська заборгованість для {user_name}')
@@ -33,7 +33,7 @@ def generate_debt_graph(debt_data, user_name, temp_dir):
     # Додавання значень над стовпцями
     for bar in bars:
         height = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width() / 2, height, f'{height:.2f}', ha='center', va='bottom')
+        plt.text(bar.get_x() + bar.get_width() / 2, f'{height:.2f}', ha='center', va='bottom')
 
     plt.tight_layout()
 
