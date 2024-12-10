@@ -10,7 +10,7 @@ bot = Bot(token=TELEGRAM_BOT_TOKEN)
 # Налаштування логування
 logging.basicConfig(filename='debts_log.log', level=logging.INFO, format='%(asctime)s - %(message)s')
 
-def send_test_message():
+async def send_test_message():
     if not TELEGRAM_BOT_TOKEN:
         logging.error("Telegram Bot Token не знайдено!")
         return
@@ -27,7 +27,7 @@ def send_test_message():
             try:
                 # Формуємо тестове повідомлення
                 message = f"Привіт, {manager_name}! Це тестове повідомлення від бота."
-                bot.send_message(chat_id=telegram_id, text=message)
+                await bot.send_message(chat_id=telegram_id, text=message)  # Використовуємо await
                 logging.info(f"Тестове повідомлення успішно відправлено менеджеру {manager_name} (Telegram ID: {telegram_id})")
             except Exception as e:
                 logging.error(f"Не вдалося відправити тестове повідомлення менеджеру {manager_name}. Помилка: {e}")
