@@ -39,21 +39,26 @@ async def show_debt_details(update: Update, context: CallbackContext) -> None:
     debt_data = get_user_debt_data(employee_name)
 
     if debt_data:
-        response = f"Дебіторка для {employee_name}:\n\n"
-        response += f"{'Клієнт':<20}{'Рахунок':<15}{'Сума (USD)':<12}\n"
-        response += "-" * 50 + "\n"
+        # Перетворюємо список словників у DataFrame для групування
+        debtors_df = pd.DataFrame(debt_data)
+        grouped = debtors_df.groupby('[Client]')
+
+        response = f"📋 *Дебіторська заборгованість для {employee_name}:*\n\n"
+
         total_debt = 0
-        for row in debt_data:
-            client = row.get('[Client]', 'Unknown Client')
-            account = row.get('[Account]', 'Unknown Account')  # Додаємо номер рахунку
-            sum_debt = row.get('[Sum_$]', '0')
-            response += f"{client:<20}{account:<15}{sum_debt:<12}\n"
-            total_debt += float(sum_debt)
+        for client, group in grouped:
+            response += f"▫️ *Клієнт:* {client}\n"
+            for _, row in group.iterrows():
+                account = row.get('[Account]', 'Unknown Account')
+                sum_debt = float(row.get('[Sum_$]', 0))
+                response += f"   • *Рахунок:* {account}, *Сума:* {sum_debt:.2f} USD\n"
+                total_debt += sum_debt
+            response += "\n"
 
-        response += "-" * 50 + "\n"
-        response += f"{'Загальна сума':<35}{total_debt:<12}\n"
+        response += f"🔗 *Загальна сума дебіторської заборгованості:* {total_debt:.2f} USD"
 
-        await update.message.reply_text(f"```\n{response}```", parse_mode="Markdown")
+        # Відправляємо повідомлення
+        await update.message.reply_text(response, parse_mode="Markdown")
     else:
         await update.message.reply_text(f"Немає даних для {employee_name}.")
 
