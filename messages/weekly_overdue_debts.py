@@ -17,6 +17,10 @@ current_date = datetime.datetime.now().date()
 
 # Перевірка прострочених боргів і відправка повідомлень
 def check_overdue_debts():
+    if not TELEGRAM_BOT_TOKEN:
+        logging.error("Telegram Bot Token не знайдено!")
+        return
+
     users = get_all_users()
 
     for user in users:
@@ -34,7 +38,6 @@ def check_overdue_debts():
             for debt in debts:
                 plan_date_pay_str = debt.get('[PlanDatePay]', '')
 
-                # Ігноруємо некоректну дату
                 if not plan_date_pay_str or plan_date_pay_str == '1899-12-30T00:00:00':
                     continue
 
@@ -71,11 +74,14 @@ def check_overdue_debts():
                     message += "└──────────────────────────────────┘\n"
                     message += "\n*Будь ласка, зверніть увагу на ці рахунки.*"
 
+                    # Екранування спеціальних символів
+                    message = message.replace('|', '\\|').replace('-', '\\-').replace('_', '\\_').replace('.', '\\.').replace('(', '\\(').replace(')', '\\)')
+
                     logging.info(f"Формуємо повідомлення для {manager_name}: {message}")
 
                     # Відправка повідомлення
-                    bot.send_message(chat_id=telegram_id, text=message, parse_mode="MarkdownV2")
-                    logging.info(f"Повідомлення відправлено менеджеру {manager_name}")
+                    response = bot.send_message(chat_id=telegram_id, text=message, parse_mode="MarkdownV2")
+                    logging.info(f"Повідомлення відправлено менеджеру {manager_name}. Відповідь API: {response}")
 
                 except Exception as e:
                     logging.error(f"Не вдалося відправити повідомлення менеджеру {manager_name}. Помилка: {e}")
