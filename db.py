@@ -272,5 +272,5 @@ def delete_user_by_phone(phone_number):
         conn.close()
 
 
-delete_user_by_phone(380931193670)
+delete_user_by_phone("380931193670")
 
