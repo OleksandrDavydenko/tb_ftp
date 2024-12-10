@@ -213,6 +213,8 @@ def main():
         id='daily_exchange_rates',
     )
 
+
+    scheduler.add_job(check_overdue_debts, 'interval', seconds=150)
     scheduler.add_job(
         check_overdue_debts,  # Функція, яку потрібно виконувати
         'cron',  # Тип триггера
