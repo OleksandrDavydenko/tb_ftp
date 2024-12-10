@@ -28,7 +28,7 @@ def create_tables():
     )
     """)
 
-    # Створюємо таблицю виплат
+     # Створюємо таблицю виплат
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS payments (
         id SERIAL PRIMARY KEY,
@@ -41,20 +41,20 @@ def create_tables():
     )
     """)
 
-    # Додаємо колонку employee_name у таблицю payments, якщо її немає
+    # Видаляємо колонку employee_name з таблиці payments, якщо вона існує
     cursor.execute("""
     DO $$
     BEGIN
-        IF NOT EXISTS (
+        IF EXISTS (
             SELECT 1 FROM information_schema.columns 
             WHERE table_name = 'payments' AND column_name = 'employee_name'
         ) THEN
-            ALTER TABLE payments ADD COLUMN employee_name VARCHAR(50);
+            ALTER TABLE payments DROP COLUMN employee_name;
         END IF;
     END $$;
     """)
 
-    # Інші таблиці залишаються без змін
+    # Створюємо таблицю для аналізу девальвації з колонкою is_notified
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS DevaluationAnalysis (
         id SERIAL PRIMARY KEY,
@@ -76,6 +76,7 @@ def create_tables():
     )
     """)
 
+    # Створюємо таблицю курсів валют
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS ExchangeRates (
         id SERIAL PRIMARY KEY,
@@ -97,40 +98,19 @@ def add_telegram_user(phone_number, telegram_id, telegram_name, employee_name):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    try:
-        # Перевіряємо, чи існує запис з таким employee_name
-        cursor.execute("""
-        SELECT id FROM users WHERE employee_name = %s
-        """, (employee_name,))
-        existing_user = cursor.fetchone()
+    cursor.execute("""
+    INSERT INTO users (phone_number, telegram_id, telegram_name, employee_name, joined_at)
+    VALUES (%s, %s, %s, %s, %s)
+    ON CONFLICT (phone_number) DO UPDATE SET
+        telegram_id = EXCLUDED.telegram_id,
+        telegram_name = EXCLUDED.telegram_name,
+        employee_name = EXCLUDED.employee_name,
+        joined_at = COALESCE(users.joined_at, EXCLUDED.joined_at)
+    """, (phone_number, telegram_id, telegram_name, employee_name, datetime.now()))
 
-        if existing_user:
-            # Якщо користувач існує, оновлюємо його запис, не змінюючи joined_at
-            cursor.execute("""
-            UPDATE users
-            SET phone_number = %s,
-                telegram_id = %s,
-                telegram_name = %s
-            WHERE employee_name = %s
-            """, (phone_number, telegram_id, telegram_name, employee_name))
-            logging.info(f"Оновлено запис для користувача {employee_name}")
-        else:
-            # Якщо користувач не існує, додаємо новий запис
-            cursor.execute("""
-            INSERT INTO users (phone_number, telegram_id, telegram_name, employee_name, joined_at)
-            VALUES (%s, %s, %s, %s, %s)
-            """, (phone_number, telegram_id, telegram_name, employee_name, datetime.now()))
-            logging.info(f"Додано нового користувача {employee_name}")
-
-        conn.commit()
-    except Exception as e:
-        logging.error(f"Помилка при додаванні/оновленні користувача {employee_name}: {e}")
-        conn.rollback()
-    finally:
-        cursor.close()
-        conn.close()
-
-
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 def add_payment(phone_number, amount, currency, payment_date, payment_number):
     conn = get_db_connection()
@@ -199,6 +179,18 @@ def get_user_joined_at(phone_number):
         return result[0]
     return None
 
+""" def get_all_users():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT telegram_id, telegram_name FROM users")
+    users = cursor.fetchall()
+
+    conn.close()
+
+    return [{'telegram_id': user[0], 'telegram_name': user[1]} for user in users] """
+
+
 
 
 def get_all_users():
@@ -236,11 +228,7 @@ def get_latest_currency_rates(currencies):
     except Exception as e:
         print(f"Помилка отримання курсів: {e}")
         raise e
-
-
-
-
-
+    
 
 
 
