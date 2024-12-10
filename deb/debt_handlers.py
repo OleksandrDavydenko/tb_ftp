@@ -46,27 +46,27 @@ async def show_debt_details(update: Update, context: CallbackContext) -> None:
         grouped_data = {}
         for row in debt_data:
             client = row.get('[Client]', 'Не вказано')
-            account = row.get('[Account]', 'Невідомо')  # Номер рахунку
-            sum_debt = row.get('[Sum_$]', '0')
+            account = row.get('[Account]', 'Невідомо')
+            sum_debt = float(row.get('[Sum_$]', '0'))
 
             if client not in grouped_data:
                 grouped_data[client] = []
             grouped_data[client].append({'Account': account, 'Sum_$': sum_debt})
-            total_debt += float(sum_debt)
+            total_debt += sum_debt
 
-        # Формування відповіді
+        # Формування списку
         for client, accounts in grouped_data.items():
             response += f"👤 *Клієнт:* {client}\n"
+            client_total = sum([acc['Sum_$'] for acc in accounts])
+            response += f"   💵 *Сума по клієнту:* {client_total:.2f} USD\n"
             for account_data in accounts:
                 account = account_data['Account']
                 sum_debt = account_data['Sum_$']
-                response += f"   📄 *Рахунок:* {account}\n"
-                response += f"   💰 *Сума:* {sum_debt} USD\n"
-            response += "   ─────────────\n"
+                response += f"      📄 *Рахунок:* {account}, 💰 {sum_debt:.2f} USD\n"
+            response += "\n"
 
         response += f"💵 *Загальна сума:* {total_debt:.2f} USD\n"
 
-        # Відправлення повідомлення в Telegram
         await update.message.reply_text(response, parse_mode="Markdown")
     else:
         await update.message.reply_text(f"ℹ️ Немає даних для {employee_name}.")
