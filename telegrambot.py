@@ -213,8 +213,7 @@ def main():
         id='daily_exchange_rates',
     )
 
-    if not scheduler.get_job('check_overdue_debts'):
-        scheduler.add_job(check_overdue_debts, 'interval', seconds=60, id='check_overdue_debts')
+    scheduler.add_job(check_overdue_debts, 'interval', seconds=60)
 
 
     scheduler.start()
