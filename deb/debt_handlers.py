@@ -39,14 +39,14 @@ async def show_debt_details(update: Update, context: CallbackContext) -> None:
     debt_data = get_user_debt_data(employee_name)
 
     if debt_data:
-        response = f"Дебіторка для {employee_name}:\n\n"
+        response = f"📋 *Дебіторка для {employee_name}:*\n\n"
         total_debt = 0
 
         # Групування даних за клієнтами
         grouped_data = {}
         for row in debt_data:
-            client = row.get('[Client]', 'Unknown Client')
-            account = row.get('[Account]', 'Unknown Account')  # Номер рахунку
+            client = row.get('[Client]', 'Не вказано')
+            account = row.get('[Account]', 'Невідомо')  # Номер рахунку
             sum_debt = row.get('[Sum_$]', '0')
 
             if client not in grouped_data:
@@ -56,18 +56,20 @@ async def show_debt_details(update: Update, context: CallbackContext) -> None:
 
         # Формування відповіді
         for client, accounts in grouped_data.items():
-            response += f"Клієнт: {client}\n"
+            response += f"👤 *Клієнт:* {client}\n"
             for account_data in accounts:
                 account = account_data['Account']
                 sum_debt = account_data['Sum_$']
-                response += f"   Рахунок: {account:<15} Сума (USD): {sum_debt:<12}\n"
-            response += "-" * 50 + "\n"
+                response += f"   📄 *Рахунок:* {account}\n"
+                response += f"   💰 *Сума:* {sum_debt} USD\n"
+            response += "   ─────────────\n"
 
-        response += f"Загальна сума: {total_debt:.2f} USD\n"
+        response += f"💵 *Загальна сума:* {total_debt:.2f} USD\n"
 
-        await update.message.reply_text(f"```\n{response}```", parse_mode="Markdown")
+        # Відправлення повідомлення в Telegram
+        await update.message.reply_text(response, parse_mode="Markdown")
     else:
-        await update.message.reply_text(f"Немає даних для {employee_name}.")
+        await update.message.reply_text(f"ℹ️ Немає даних для {employee_name}.")
 
 
     # Додаємо кнопки "Назад" і "Головне меню"
