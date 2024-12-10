@@ -40,17 +40,18 @@ async def show_debt_details(update: Update, context: CallbackContext) -> None:
 
     if debt_data:
         response = f"Дебіторка для {employee_name}:\n\n"
-        response += f"{'Клієнт':<30}{'Сума (USD)':<12}\n"
-        response += "-" * 40 + "\n"
+        response += f"{'Клієнт':<20}{'Рахунок':<15}{'Сума (USD)':<12}\n"
+        response += "-" * 50 + "\n"
         total_debt = 0
         for row in debt_data:
             client = row.get('[Client]', 'Unknown Client')
+            account = row.get('[Account]', 'Unknown Account')  # Додаємо номер рахунку
             sum_debt = row.get('[Sum_$]', '0')
-            response += f"{client:<30}{sum_debt:<12}\n"
+            response += f"{client:<20}{account:<15}{sum_debt:<12}\n"
             total_debt += float(sum_debt)
 
-        response += "-" * 40 + "\n"
-        response += f"{'Загальна сума':<30}{total_debt:<12}\n"
+        response += "-" * 50 + "\n"
+        response += f"{'Загальна сума':<35}{total_debt:<12}\n"
 
         await update.message.reply_text(f"```\n{response}```", parse_mode="Markdown")
     else:
