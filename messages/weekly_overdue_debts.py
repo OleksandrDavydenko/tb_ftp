@@ -1,7 +1,12 @@
+from telegram import Bot
 import logging
 import datetime
 from db import get_all_users
 from auth import get_user_debt_data
+
+# Налаштування Telegram Bot Token
+TELEGRAM_BOT_TOKEN = "Ваш_Telegram_Bot_Token"
+bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
 # Налаштування логування
 logging.basicConfig(filename='debts_log.log', level=logging.INFO, format='%(asctime)s - %(message)s')
@@ -9,15 +14,16 @@ logging.basicConfig(filename='debts_log.log', level=logging.INFO, format='%(asct
 # Поточна дата
 current_date = datetime.datetime.now().date()
 
-# Перевірка прострочених боргів
-def check_overdue_debts():
+# Перевірка прострочених боргів і відправка повідомлень
+def check_and_notify_overdue_debts():
     users = get_all_users()
 
     for user in users:
         manager_name = user.get('employee_name')
+        telegram_id = user.get('telegram_id')
 
-        if not manager_name:
-            logging.warning(f"Менеджер не знайдений у записі: {user}")
+        if not manager_name or not telegram_id:
+            logging.warning(f"Менеджер або Telegram ID не знайдено у записі: {user}")
             continue
 
         debts = get_user_debt_data(manager_name)
@@ -47,11 +53,31 @@ def check_overdue_debts():
                         'OverdueDays': overdue_days
                     })
 
-            # Логування прострочених сум для кожного менеджера
+            # Якщо є протерміновані борги, формуємо повідомлення
             if overdue_debts:
-                logging.info(f"Менеджер: {manager_name}")
+                message = f"📋 *Звіт про протерміновані рахунки*\n\n*Менеджер*: {manager_name}\n\n"
+                message += "Ваші протерміновані рахунки:\n\n"
+                message += "┌──────────────────────────────────┐\n"
+                message += "│ Клієнт       │ Рахунок   │ Днів   │ Сума ($) │\n"
+                message += "├──────────────┼───────────┼────────┼──────────┤\n"
+
                 for overdue in overdue_debts:
-                    logging.info(f"  Сума: {overdue['Sum_$']}, Клієнт: {overdue['Client']}, Рахунок: {overdue['Account']}, Протерміновано: {overdue['OverdueDays']} днів")
+                    client = overdue['Client'][:12]  # Обмежуємо довжину клієнта
+                    account = overdue['Account'][:10]
+                    days = str(overdue['OverdueDays'])
+                    sum_usd = str(overdue['Sum_$'])
+
+                    message += f"│ {client:<12} │ {account:<9} │ {days:<6} │ {sum_usd:<8} │\n"
+
+                message += "└──────────────────────────────────┘\n"
+                message += "\n*Будь ласка, зверніть увагу на ці рахунки.*"
+
+                # Відправка повідомлення менеджеру
+                try:
+                    bot.send_message(chat_id=telegram_id, text=message, parse_mode="Markdown")
+                    logging.info(f"Повідомлення відправлено менеджеру {manager_name}")
+                except Exception as e:
+                    logging.error(f"Не вдалося відправити повідомлення менеджеру {manager_name}: {e}")
         else:
-            # Якщо немає боргів, нічого не виводимо
-            pass
+            # Якщо немає боргів, нічого не відправляємо
+            logging.info(f"У менеджера {manager_name} немає протермінованих боргів.")
