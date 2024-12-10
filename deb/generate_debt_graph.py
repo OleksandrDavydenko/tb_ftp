@@ -33,7 +33,7 @@ def generate_debt_graph(debt_data, user_name, temp_dir):
     # Додавання значень над стовпцями
     for bar in bars:
         height = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width() / 2, f'{height:.2f}', ha='center', va='bottom')
+        plt.text(bar.get_x() + bar.get_width() / 2, height, f'{height:.2f}', ha='center', va='bottom')
 
     plt.tight_layout()
 
