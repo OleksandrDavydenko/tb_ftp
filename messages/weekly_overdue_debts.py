@@ -19,6 +19,14 @@ logging.basicConfig(filename='debts_log.log', level=logging.INFO, format='%(asct
 # Поточна дата
 current_date = datetime.datetime.now().date()
 
+# Функція для форматування дати у ДД.ММ.РР
+def format_date(date_str):
+    try:
+        date = datetime.datetime.strptime(date_str.split('T')[0], '%Y-%m-%d').date()
+        return date.strftime('%d.%m.%y')
+    except ValueError:
+        return 'Не вказано'
+
 # Асинхронна перевірка прострочених боргів і відправка повідомлень
 async def check_overdue_debts():
     users = get_all_users()
@@ -50,11 +58,11 @@ async def check_overdue_debts():
                     overdue_days = (current_date - plan_date_pay).days
                     overdue_debts.append({
                         'Client': debt.get('[Client]', 'Не вказано'),
-                        'Deal':  debt.get('[Deal]', 'Не вказано'),
+                        'Deal': debt.get('[Deal]', 'Не вказано'),
                         'Account': debt.get('[Account]', 'Не вказано'),
                         'Sum_$': debt.get('[Sum_$]', 'Не вказано'),
-                        'PlanDatePay': debt.get('[PlanDatePay]', 'Не вказано'),
-                        'AccountDate': debt.get('[AccountDate]', 'Не вказано'),
+                        'PlanDatePay': format_date(plan_date_pay_str),
+                        'AccountDate': format_date(debt.get('[AccountDate]', 'Не вказано')),
                         'OverdueDays': overdue_days
                     })
 
@@ -70,15 +78,15 @@ async def check_overdue_debts():
                         account = overdue['Account']
                         days = overdue['OverdueDays']
                         sum_usd = overdue['Sum_$']
-                        accountDate = overdue['AccountDate']
-                        planDatePay = overdue['PlanDatePay']
+                        account_date = overdue['AccountDate']
+                        plan_date_pay = overdue['PlanDatePay']
 
                         message += (
                             f"▫️ *Клієнт:* {client}\n"
                             f"   *Угода:* {deal}\n"
                             f"   *Рахунок:* {account}\n"
-                            f"   *Дата рахунку:* {accountDate}\n"
-                            f"   *Планова дата оплати:* {planDatePay}\n"
+                            f"   *Дата рахунку:* {account_date}\n"
+                            f"   *Планова дата оплати:* {plan_date_pay}\n"
                             f"   *Днів протерміновано:* {days}\n"
                             f"   *Сума ($):* {sum_usd}\n\n"
                         )
@@ -105,4 +113,3 @@ async def check_overdue_debts():
                     logging.error(f"Не вдалося відправити повідомлення менеджеру {manager_name}. Помилка: {e}")
         else:
             logging.info(f"У менеджера {manager_name} немає протермінованих боргів.")
-
