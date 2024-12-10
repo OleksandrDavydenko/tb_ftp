@@ -15,10 +15,10 @@ def generate_pie_chart(debt_data, user_name, temp_dir):
         print(f"Відсутні необхідні стовпці у даних для {user_name}.")
         return None
 
-    # Отримання даних для конкретного менеджера
-    user_debts = debtors_df[['[Client]', '[Sum_$]']]
+    # Групування даних за клієнтами та підсумовування сум
+    aggregated_data = debtors_df.groupby('[Client]', as_index=False)['[Sum_$]'].sum()
 
-    if user_debts.empty:
+    if aggregated_data.empty:
         print(f"Немає даних для побудови діаграми для {user_name}.")
         return None
 
@@ -30,9 +30,9 @@ def generate_pie_chart(debt_data, user_name, temp_dir):
     # Побудова секторної діаграми
     plt.figure(figsize=(8, 8))
     plt.pie(
-        user_debts['[Sum_$]'],
-        labels=user_debts['[Client]'],
-        autopct=lambda pct: autopct_format(pct, user_debts['[Sum_$]']),
+        aggregated_data['[Sum_$]'],
+        labels=aggregated_data['[Client]'],
+        autopct=lambda pct: autopct_format(pct, aggregated_data['[Sum_$]']),
         startangle=140
     )
     plt.title(f'Дебіторська заборгованість для {user_name}')
