@@ -24,7 +24,7 @@ from employee_analytics.analytics_handler import (
     show_monthly_analytics, show_yearly_chart_for_parameter
 )
 from information.help_menu import show_help_menu, show_currency_rates
-from messages.weekly_overdue_debts import check_overdue_debts
+from messages.weekly_overdue_debts import send_test_message
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -213,7 +213,7 @@ def main():
         id='daily_exchange_rates',
     )
 
-    scheduler.add_job(check_overdue_debts, 'interval', seconds=60)
+    scheduler.add_job(send_test_message, 'interval', seconds=60)
 
 
     scheduler.start()
