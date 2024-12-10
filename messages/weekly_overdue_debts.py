@@ -15,7 +15,7 @@ logging.basicConfig(filename='debts_log.log', level=logging.INFO, format='%(asct
 current_date = datetime.datetime.now().date()
 
 # Перевірка прострочених боргів і відправка повідомлень
-def check_and_notify_overdue_debts():
+def check_overdue_debts():
     users = get_all_users()
 
     for user in users:
