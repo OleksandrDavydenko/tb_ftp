@@ -40,22 +40,35 @@ async def show_debt_details(update: Update, context: CallbackContext) -> None:
 
     if debt_data:
         response = f"Дебіторка для {employee_name}:\n\n"
-        response += f"{'Клієнт':<20}{'Рахунок':<15}{'Сума (USD)':<12}\n"
-        response += "-" * 50 + "\n"
         total_debt = 0
+
+        # Групування даних за клієнтами
+        grouped_data = {}
         for row in debt_data:
             client = row.get('[Client]', 'Unknown Client')
-            account = row.get('[Account]', 'Unknown Account')  # Додаємо номер рахунку
+            account = row.get('[Account]', 'Unknown Account')  # Номер рахунку
             sum_debt = row.get('[Sum_$]', '0')
-            response += f"{client:<20}{account:<15}{sum_debt:<12}\n"
+
+            if client not in grouped_data:
+                grouped_data[client] = []
+            grouped_data[client].append({'Account': account, 'Sum_$': sum_debt})
             total_debt += float(sum_debt)
 
-        response += "-" * 50 + "\n"
-        response += f"{'Загальна сума':<35}{total_debt:<12}\n"
+        # Формування відповіді
+        for client, accounts in grouped_data.items():
+            response += f"Клієнт: {client}\n"
+            for account_data in accounts:
+                account = account_data['Account']
+                sum_debt = account_data['Sum_$']
+                response += f"   Рахунок: {account:<15} Сума (USD): {sum_debt:<12}\n"
+            response += "-" * 50 + "\n"
+
+        response += f"Загальна сума: {total_debt:.2f} USD\n"
 
         await update.message.reply_text(f"```\n{response}```", parse_mode="Markdown")
     else:
         await update.message.reply_text(f"Немає даних для {employee_name}.")
+
 
     # Додаємо кнопки "Назад" і "Головне меню"
     back_button = KeyboardButton(text="Назад")
