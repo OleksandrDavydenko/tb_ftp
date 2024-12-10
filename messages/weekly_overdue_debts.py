@@ -27,6 +27,18 @@ def format_date(date_str):
     except ValueError:
         return 'Не вказано'
 
+# Функція для поділу довгого тексту
+def split_message(text, max_length=4096):
+    parts = []
+    while len(text) > max_length:
+        split_point = text.rfind('\n', 0, max_length)
+        if split_point == -1:
+            split_point = max_length
+        parts.append(text[:split_point])
+        text = text[split_point:].strip()
+    parts.append(text)
+    return parts
+
 # Асинхронна перевірка прострочених боргів і відправка повідомлень
 async def check_overdue_debts():
     users = get_all_users()
@@ -103,10 +115,11 @@ async def check_overdue_debts():
                         .replace(')', '\\)')
                     )
 
-                    logging.info(f"Формуємо повідомлення для {manager_name}: {message}")
+                    # Поділ повідомлення на частини, якщо потрібно
+                    messages = split_message(message)
+                    for part in messages:
+                        await bot.send_message(chat_id=telegram_id, text=part, parse_mode="MarkdownV2")
 
-                    # Відправка повідомлення
-                    await bot.send_message(chat_id=telegram_id, text=message, parse_mode="MarkdownV2")
                     logging.info(f"Повідомлення відправлено менеджеру {manager_name} (Telegram ID: {telegram_id})")
 
                 except Exception as e:
