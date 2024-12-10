@@ -39,19 +39,19 @@ def check_overdue_debts():
 
                 # Перевірка на простроченість
                 if plan_date_pay < current_date:
+                    overdue_days = (current_date - plan_date_pay).days
                     overdue_debts.append({
                         'Client': debt.get('[Client]', 'Не вказано'),
                         'Account': debt.get('[Account]', 'Не вказано'),
                         'Sum_$': debt.get('[Sum_$]', 'Не вказано'),
-                        'PlanDatePay': plan_date_pay
+                        'OverdueDays': overdue_days
                     })
 
             # Логування прострочених сум для кожного менеджера
             if overdue_debts:
                 logging.info(f"Менеджер: {manager_name}")
                 for overdue in overdue_debts:
-                    logging.info(f"  Сума: {overdue['Sum_$']}, Клієнт: {overdue['Client']}, Рахунок: {overdue['Account']}, Дата: {overdue['PlanDatePay']}")
+                    logging.info(f"  Сума: {overdue['Sum_$']}, Клієнт: {overdue['Client']}, Рахунок: {overdue['Account']}, Протерміновано: {overdue['OverdueDays']} днів")
         else:
             # Якщо немає боргів, нічого не виводимо
             pass
-
