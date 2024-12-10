@@ -50,8 +50,11 @@ async def check_overdue_debts():
                     overdue_days = (current_date - plan_date_pay).days
                     overdue_debts.append({
                         'Client': debt.get('[Client]', 'Не вказано'),
+                        'Deal':  debt.get('[Deal]', 'Не вказано'),
                         'Account': debt.get('[Account]', 'Не вказано'),
                         'Sum_$': debt.get('[Sum_$]', 'Не вказано'),
+                        'PlanDatePay': debt.get('[PlanDatePay]', 'Не вказано'),
+                        'AccountDate': debt.get('[AccountDate]', 'Не вказано'),
                         'OverdueDays': overdue_days
                     })
 
@@ -63,13 +66,19 @@ async def check_overdue_debts():
 
                     for overdue in overdue_debts:
                         client = overdue['Client']
+                        deal = overdue['Deal']
                         account = overdue['Account']
                         days = overdue['OverdueDays']
                         sum_usd = overdue['Sum_$']
+                        accountDate = overdue['AccountDate']
+                        planDatePay = overdue['PlanDatePay']
 
                         message += (
                             f"▫️ *Клієнт:* {client}\n"
+                            f"   *Угода:* {deal}\n"
                             f"   *Рахунок:* {account}\n"
+                            f"   *Дата рахунку:* {accountDate}\n"
+                            f"   *Планова дата оплати:* {planDatePay}\n"
                             f"   *Днів протерміновано:* {days}\n"
                             f"   *Сума ($):* {sum_usd}\n\n"
                         )

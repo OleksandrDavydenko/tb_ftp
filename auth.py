@@ -116,7 +116,9 @@ def get_user_debt_data(manager_name):
                         "Sum_$", Deb[Sum_$],
                         "Manager", Deb[Manager],
                         "PlanDatePay", Deb[PlanDatePay],
-                        "Account", Deb[Account]
+                        "Account", Deb[Account],
+                        "Deal", Deb[Deal],
+                        "AccountDate",  Deb[AccountDate]
                     )
                 """
             }
