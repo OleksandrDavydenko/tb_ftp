@@ -41,19 +41,6 @@ def create_tables():
     )
     """)
 
-    # Видаляємо колонку employee_name з таблиці payments, якщо вона існує
-    cursor.execute("""
-    DO $$
-    BEGIN
-        IF EXISTS (
-            SELECT 1 FROM information_schema.columns 
-            WHERE table_name = 'payments' AND column_name = 'employee_name'
-        ) THEN
-            ALTER TABLE payments DROP COLUMN employee_name;
-        END IF;
-    END $$;
-    """)
-
     # Створюємо таблицю для аналізу девальвації з колонкою is_notified
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS DevaluationAnalysis (
