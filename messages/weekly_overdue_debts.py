@@ -41,6 +41,7 @@ def check_overdue_debts():
                 if plan_date_pay < current_date:
                     overdue_debts.append({
                         'Client': debt.get('[Client]', 'Не вказано'),
+                        'Account': debt.get('[Account]', 'Не вказано'),
                         'Sum_$': debt.get('[Sum_$]', 'Не вказано'),
                         'PlanDatePay': plan_date_pay
                     })
@@ -49,7 +50,7 @@ def check_overdue_debts():
             if overdue_debts:
                 logging.info(f"Менеджер: {manager_name}")
                 for overdue in overdue_debts:
-                    logging.info(f"  Сума: {overdue['Sum_$']}, Клієнт: {overdue['Client']}, Дата: {overdue['PlanDatePay']}")
+                    logging.info(f"  Сума: {overdue['Sum_$']}, Клієнт: {overdue['Client']}, Рахунок: {overdue['Account']}, Дата: {overdue['PlanDatePay']}")
         else:
             # Якщо немає боргів, нічого не виводимо
             pass
