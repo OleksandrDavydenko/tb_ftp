@@ -41,7 +41,20 @@ def create_tables():
     )
     """)
 
-    # Створюємо таблицю для аналізу девальвації з колонкою is_notified
+    # Додаємо колонку employee_name у таблицю payments, якщо її немає
+    cursor.execute("""
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'payments' AND column_name = 'employee_name'
+        ) THEN
+            ALTER TABLE payments ADD COLUMN employee_name VARCHAR(50);
+        END IF;
+    END $$;
+    """)
+
+    # Інші таблиці залишаються без змін
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS DevaluationAnalysis (
         id SERIAL PRIMARY KEY,
@@ -63,7 +76,6 @@ def create_tables():
     )
     """)
 
-    # Створюємо таблицю курсів валют
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS ExchangeRates (
         id SERIAL PRIMARY KEY,
@@ -93,15 +105,14 @@ def add_telegram_user(phone_number, telegram_id, telegram_name, employee_name):
         existing_user = cursor.fetchone()
 
         if existing_user:
-            # Якщо користувач існує, оновлюємо його запис
+            # Якщо користувач існує, оновлюємо його запис, не змінюючи joined_at
             cursor.execute("""
             UPDATE users
             SET phone_number = %s,
                 telegram_id = %s,
-                telegram_name = %s,
-                joined_at = %s
+                telegram_name = %s
             WHERE employee_name = %s
-            """, (phone_number, telegram_id, telegram_name, datetime.now(), employee_name))
+            """, (phone_number, telegram_id, telegram_name, employee_name))
             logging.info(f"Оновлено запис для користувача {employee_name}")
         else:
             # Якщо користувач не існує, додаємо новий запис
@@ -118,6 +129,7 @@ def add_telegram_user(phone_number, telegram_id, telegram_name, employee_name):
     finally:
         cursor.close()
         conn.close()
+
 
 
 def add_payment(phone_number, amount, currency, payment_date, payment_number):
@@ -187,18 +199,6 @@ def get_user_joined_at(phone_number):
         return result[0]
     return None
 
-""" def get_all_users():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT telegram_id, telegram_name FROM users")
-    users = cursor.fetchall()
-
-    conn.close()
-
-    return [{'telegram_id': user[0], 'telegram_name': user[1]} for user in users] """
-
-
 
 
 def get_all_users():
@@ -242,35 +242,5 @@ def get_latest_currency_rates(currencies):
 
 
 
-def delete_user_by_phone(phone_number):
-    """
-    Видаляє запис користувача з таблиць users та payments за номером телефону.
-    """
-    conn = get_db_connection()
-    cursor = conn.cursor()
 
-    try:
-        # Видалення записів із таблиці payments
-        cursor.execute("""
-        DELETE FROM payments WHERE phone_number = %s
-        """, (phone_number,))
-        logging.info(f"Записи з таблиці payments для телефону {phone_number} успішно видалено.")
-
-        # Видалення записів із таблиці users
-        cursor.execute("""
-        DELETE FROM users WHERE phone_number = %s
-        """, (phone_number,))
-        logging.info(f"Записи з таблиці users для телефону {phone_number} успішно видалено.")
-
-        # Застосування змін
-        conn.commit()
-    except Exception as e:
-        logging.error(f"Помилка при видаленні користувача з телефоном {phone_number}: {e}")
-        conn.rollback()
-    finally:
-        cursor.close()
-        conn.close()
-
-
-delete_user_by_phone("380931193670")
 
