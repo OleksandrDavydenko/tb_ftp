@@ -6,6 +6,11 @@ from .generate_debt_graph import generate_debt_graph
 from .generate_pie_chart import generate_pie_chart
 from messages.weekly_overdue_debts import send_overdue_debts_by_request  # Імпорт функції для конкретного користувача
 
+import datetime
+from db import get_all_users
+from auth import get_user_debt_data
+
+
 TEMP_DIR = 'temp'
 if not os.path.exists(TEMP_DIR):
     os.makedirs(TEMP_DIR)
@@ -39,6 +44,16 @@ async def show_debt_options(update: Update, context: CallbackContext) -> None:
 # Обробка натискання кнопки "Протермінована дебіторська заборгованість"
 async def handle_overdue_debt(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'overdue_debt'  # Встановлюємо стан меню
+
+
+
+    # Функція для форматування дати у ДД.ММ.РР
+    def format_date(date_str):
+        try:
+            date = datetime.datetime.strptime(date_str.split('T')[0], '%Y-%m-%d').date()
+            return date.strftime('%d.%m.%y')
+        except ValueError:
+            return 'Не вказано'
 
     # Виклик функції для формування звіту
     telegram_id = update.message.chat_id
