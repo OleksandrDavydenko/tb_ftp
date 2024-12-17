@@ -44,12 +44,13 @@ async def handle_overdue_debt(update: Update, context: CallbackContext) -> None:
     reply_markup = ReplyKeyboardMarkup([[back_button, main_menu_button]], one_time_keyboard=True)
     await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
 
-# Функція для повернення до головного меню
-async def show_main_menu(update: Update, context: CallbackContext) -> None:
-    context.user_data['menu'] = 'main_menu'
-    debt_button = KeyboardButton("Дебіторка")
-    reply_markup = ReplyKeyboardMarkup([[debt_button]], one_time_keyboard=True)
-    await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
+
+
+    # Додаємо кнопки "Назад" і "Головне меню"
+    back_button = KeyboardButton(text="Назад")
+    main_menu_button = KeyboardButton(text="Головне меню")
+    reply_markup = ReplyKeyboardMarkup([[back_button, main_menu_button]], one_time_keyboard=True)
+    await update.message.reply_text("Натисніть 'Назад' або 'Головне меню'.", reply_markup=reply_markup)
 
 
 
