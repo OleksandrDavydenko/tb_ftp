@@ -103,8 +103,8 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     elif text == "Діаграма":
         await show_debt_pie_chart(update, context)
     elif text == "Протермінована дебіторська заборгованість":
-        from messages.weekly_overdue_debts import send_overdue_debts_by_request
-        await send_overdue_debts_by_request(update, context)
+    #    from messages.weekly_overdue_debts import send_overdue_debts_by_request
+        await handle_overdue_debt(update, context)
     elif text == "💼 Розрахунковий лист":
         context.user_data['menu'] = 'salary_years'
         await show_salary_years(update, context)
