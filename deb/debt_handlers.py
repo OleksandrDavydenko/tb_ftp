@@ -59,10 +59,10 @@ async def handle_overdue_debt(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("❗ Вас не знайдено в базі користувачів.")
         return
 
-
     manager_name = user_data['employee_name']
     debts = get_user_debt_data(manager_name)
 
+    # Формуємо звіт
     if debts:
         overdue_debts = []
         for debt in debts:
@@ -83,7 +83,6 @@ async def handle_overdue_debt(update: Update, context: CallbackContext) -> None:
                     'OverdueDays': overdue_days
                 })
 
-        # Формуємо звіт
         if overdue_debts:
             message = f"📋 *Протермінована дебіторська заборгованість для {manager_name}:*\n\n"
             for overdue in overdue_debts:
@@ -102,13 +101,14 @@ async def handle_overdue_debt(update: Update, context: CallbackContext) -> None:
     else:
         message = "ℹ️ Дані для вас відсутні."
 
-    # Додаємо кнопки "Назад" і "Головне меню"
+    # Клавіатура з кнопками "Назад" і "Головне меню"
     back_button = KeyboardButton("Назад")
     main_menu_button = KeyboardButton("Головне меню")
-    reply_markup = ReplyKeyboardMarkup([[back_button, main_menu_button]], one_time_keyboard=True)
+    reply_markup = ReplyKeyboardMarkup([[back_button, main_menu_button]], resize_keyboard=True, one_time_keyboard=True)
 
-    # Відправляємо звіт разом з кнопками
+    # Відправляємо текст звіту разом із кнопками в одному виклику
     await update.message.reply_text(message, parse_mode="Markdown", reply_markup=reply_markup)
+
 
 
 
