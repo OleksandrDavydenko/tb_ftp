@@ -217,7 +217,7 @@ def main():
         check_overdue_debts,  # Функція, яку потрібно виконувати
         'cron',  # Тип триггера
         day_of_week='tue',  # Запуск щовівторка
-        hour=10,  # О 10:00
+        hour=11,  # О 11:00
         timezone='Europe/Kiev'  # Часовий пояс
     )
 
