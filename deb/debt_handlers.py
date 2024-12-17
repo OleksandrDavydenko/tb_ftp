@@ -41,15 +41,63 @@ async def handle_overdue_debt(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'overdue_debt'  # Встановлюємо стан меню
 
     # Виклик функції для формування звіту
-    await send_overdue_debts_by_request(update, context)
+    telegram_id = update.message.chat_id
+    user_data = next((u for u in get_all_users() if u['telegram_id'] == telegram_id), None)
+
+    if not user_data:
+        await update.message.reply_text("❗ Вас не знайдено в базі користувачів.")
+        return
+
+    manager_name = user_data['employee_name']
+    debts = get_user_debt_data(manager_name)
+
+    if debts:
+        overdue_debts = []
+        for debt in debts:
+            plan_date_pay_str = debt.get('[PlanDatePay]', '')
+            if not plan_date_pay_str or plan_date_pay_str == '1899-12-30T00:00:00':
+                continue
+
+            plan_date_pay = datetime.datetime.strptime(plan_date_pay_str.split('T')[0], '%Y-%m-%d').date()
+            if plan_date_pay < datetime.datetime.now().date():
+                overdue_days = (datetime.datetime.now().date() - plan_date_pay).days
+                overdue_debts.append({
+                    'Client': debt.get('[Client]', 'Не вказано'),
+                    'Deal': debt.get('[Deal]', 'Не вказано'),
+                    'Account': debt.get('[Account]', 'Не вказано'),
+                    'Sum_$': debt.get('[Sum_$]', 'Не вказано'),
+                    'PlanDatePay': format_date(plan_date_pay_str),
+                    'AccountDate': format_date(debt.get('[AccountDate]', 'Не вказано')),
+                    'OverdueDays': overdue_days
+                })
+
+        # Формуємо звіт
+        if overdue_debts:
+            message = f"📋 *Протермінована дебіторська заборгованість для {manager_name}:*\n\n"
+            for overdue in overdue_debts:
+                message += (
+                    f"▫️ *Клієнт:* {overdue['Client']}\n"
+                    f"   *Угода:* {overdue['Deal']}\n"
+                    f"   *Рахунок:* {overdue['Account']}\n"
+                    f"   *Дата рахунку:* {overdue['AccountDate']}\n"
+                    f"   *Планова дата оплати:* {overdue['PlanDatePay']}\n"
+                    f"   *Днів протерміновано:* {overdue['OverdueDays']}\n"
+                    f"   *Сума ($):* {overdue['Sum_$']}\n\n"
+                )
+            message += "🚨 *Будь ласка, зверніть увагу на ці рахунки.*"
+
+        else:
+            message = "✅ У вас немає протермінованої дебіторської заборгованості."
+    else:
+        message = "ℹ️ Дані для вас відсутні."
 
     # Додаємо кнопки "Назад" і "Головне меню"
     back_button = KeyboardButton("Назад")
     main_menu_button = KeyboardButton("Головне меню")
     reply_markup = ReplyKeyboardMarkup([[back_button, main_menu_button]], one_time_keyboard=True)
 
-    # Відправляємо кнопки
-    await update.message.reply_text("Натисніть 'Назад' або 'Головне меню':", reply_markup=reply_markup)
+    # Відправляємо звіт разом з кнопками
+    await update.message.reply_text(message, parse_mode="Markdown", reply_markup=reply_markup)
 
 
 
