@@ -39,14 +39,17 @@ async def show_debt_options(update: Update, context: CallbackContext) -> None:
 async def handle_overdue_debt(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'overdue_debt'  # Встановлюємо стан меню
 
-    # Виклик функції для формування та відправки звіту
+    # Виклик функції для формування звіту
     await send_overdue_debts_by_request(update, context)
 
     # Додаємо кнопки "Назад" і "Головне меню"
     back_button = KeyboardButton("Назад")
     main_menu_button = KeyboardButton("Головне меню")
     reply_markup = ReplyKeyboardMarkup([[back_button, main_menu_button]], one_time_keyboard=True)
+
+    # Відправляємо кнопки
     await update.message.reply_text("Натисніть 'Назад' або 'Головне меню':", reply_markup=reply_markup)
+
 
 
 
