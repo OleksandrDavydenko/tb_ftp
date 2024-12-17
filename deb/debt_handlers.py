@@ -59,6 +59,7 @@ async def handle_overdue_debt(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("❗ Вас не знайдено в базі користувачів.")
         return
 
+
     manager_name = user_data['employee_name']
     debts = get_user_debt_data(manager_name)
 
