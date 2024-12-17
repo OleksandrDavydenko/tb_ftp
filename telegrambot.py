@@ -140,9 +140,7 @@ async def handle_back_navigation(update: Update, context: CallbackContext) -> No
         await show_analytics_years(update, context)
     elif menu == 'analytics_months':
         await show_analytics_years(update, context)
-    elif menu in ['debt_details', 'debt_histogram', 'debt_pie_chart']:
-        await show_debt_options(update, context)
-    elif menu == 'overdue_debt':  # Повертаємося до меню дебіторської заборгованості
+    elif menu in ['debt_details', 'debt_histogram', 'debt_pie_chart', 'overdue_debt']:
         await show_debt_options(update, context)
     else:
         await show_main_menu(update, context)
