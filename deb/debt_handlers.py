@@ -35,6 +35,7 @@ async def show_debt_options(update: Update, context: CallbackContext) -> None:
 
 
 
+
 # Обробка натискання кнопки "Протермінована дебіторська заборгованість"
 async def handle_overdue_debt(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'overdue_debt'  # Встановлюємо стан меню
