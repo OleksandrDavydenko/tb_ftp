@@ -139,13 +139,12 @@ async def check_overdue_debts():
             
 
 async def send_overdue_debts_by_request(update, context):
-    """Відправка протермінованої дебіторської заборгованості по натисканню кнопки."""
+    """Формує і повертає протерміновану дебіторську заборгованість для поточного користувача."""
     telegram_id = update.message.chat_id
     user_data = next((u for u in get_all_users() if u['telegram_id'] == telegram_id), None)
 
     if not user_data:
-        await update.message.reply_text("❗ Вас не знайдено в базі користувачів.")
-        return
+        return "❗ Вас не знайдено в базі користувачів."
 
     manager_name = user_data['employee_name']
     debts = get_user_debt_data(manager_name)
@@ -182,8 +181,8 @@ async def send_overdue_debts_by_request(update, context):
                     f"   *Днів протерміновано:* {overdue['OverdueDays']}\n"
                     f"   *Сума ($):* {overdue['Sum_$']}\n\n"
                 )
-            await update.message.reply_text(message, parse_mode="Markdown")
+            return message
         else:
-            await update.message.reply_text("✅ У вас немає протермінованої дебіторської заборгованості.")
+            return "✅ У вас немає протермінованої дебіторської заборгованості."
     else:
-        await update.message.reply_text("ℹ️ Дані для вас відсутні.")
+        return "ℹ️ Дані для вас відсутні."
