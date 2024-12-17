@@ -4,6 +4,7 @@ from telegram.ext import CallbackContext
 from auth import is_phone_number_in_power_bi, get_user_debt_data
 from .generate_debt_graph import generate_debt_graph
 from .generate_pie_chart import generate_pie_chart
+from messages.weekly_overdue_debts import check_overdue_debts
 
 TEMP_DIR = 'temp'
 if not os.path.exists(TEMP_DIR):
@@ -38,7 +39,7 @@ async def show_debt_options(update: Update, context: CallbackContext) -> None:
 async def handle_overdue_debt(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'overdue_debt'  # Встановлюємо стан меню
 
-    await update.message.reply_text("🔔 Кнопка 'Протермінована дебіторська заборгованість' натиснута.")
+    await check_overdue_debts
 
     # Додаємо кнопки "Назад" і "Головне меню"
     back_button = KeyboardButton("Назад")
