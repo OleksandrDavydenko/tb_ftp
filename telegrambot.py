@@ -17,7 +17,7 @@ from messages.check_devaluation import check_new_devaluation_records
 from messages.sync_devaluation import sync_devaluation_data  # Імпорт функції з нового файлу
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart
+from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart, handle_overdue_debt
 from salary.salary_handlers import show_salary_years, show_salary_months, show_salary_details
 from employee_analytics.analytics_handler import (
     show_analytics_options, show_analytics_years, show_analytics_months, 
@@ -102,6 +102,8 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         await show_debt_histogram(update, context)
     elif text == "Діаграма":
         await show_debt_pie_chart(update, context)
+    elif text == "Протермінована дебіторська заборгованість":
+        await handle_overdue_debt(update, context)
     elif text == "💼 Розрахунковий лист":
         context.user_data['menu'] = 'salary_years'
         await show_salary_years(update, context)
@@ -226,7 +228,7 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-    app.add_handler(MessageHandler(filters.Regex("^(📉 Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|💼 Розрахунковий лист|💱 Курс валют|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод)$"), handle_main_menu))
+    app.add_handler(MessageHandler(filters.Regex("^(📉 Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|💼 Розрахунковий лист|💱 Курс валют|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод|Протермінована дебіторська заборгованість)$"), handle_main_menu))
 
     try:
         app.run_polling()
