@@ -154,17 +154,12 @@ async def send_overdue_debts_by_request(update, context):
         overdue_debts = []
         for debt in debts:
             plan_date_pay_str = debt.get('[PlanDatePay]', '')
-
             if not plan_date_pay_str or plan_date_pay_str == '1899-12-30T00:00:00':
                 continue
 
-            try:
-                plan_date_pay = datetime.datetime.strptime(plan_date_pay_str.split('T')[0], '%Y-%m-%d').date()
-            except ValueError:
-                continue
-
-            if plan_date_pay < current_date:
-                overdue_days = (current_date - plan_date_pay).days
+            plan_date_pay = datetime.datetime.strptime(plan_date_pay_str.split('T')[0], '%Y-%m-%d').date()
+            if plan_date_pay < datetime.datetime.now().date():
+                overdue_days = (datetime.datetime.now().date() - plan_date_pay).days
                 overdue_debts.append({
                     'Client': debt.get('[Client]', 'Не вказано'),
                     'Deal': debt.get('[Deal]', 'Не вказано'),
@@ -177,7 +172,6 @@ async def send_overdue_debts_by_request(update, context):
 
         if overdue_debts:
             message = f"📋 *Протермінована дебіторська заборгованість для {manager_name}:*\n\n"
-
             for overdue in overdue_debts:
                 message += (
                     f"▫️ *Клієнт:* {overdue['Client']}\n"
@@ -188,11 +182,8 @@ async def send_overdue_debts_by_request(update, context):
                     f"   *Днів протерміновано:* {overdue['OverdueDays']}\n"
                     f"   *Сума ($):* {overdue['Sum_$']}\n\n"
                 )
-
-            message += "🚨 *Зверніть увагу на ці рахунки!*"
             await update.message.reply_text(message, parse_mode="Markdown")
         else:
             await update.message.reply_text("✅ У вас немає протермінованої дебіторської заборгованості.")
     else:
         await update.message.reply_text("ℹ️ Дані для вас відсутні.")
-
