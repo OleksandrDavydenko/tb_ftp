@@ -36,6 +36,8 @@ async def show_debt_options(update: Update, context: CallbackContext) -> None:
 
     # Обробка натискання кнопки "Протермінована дебіторська заборгованість"
 async def handle_overdue_debt(update: Update, context: CallbackContext) -> None:
+    context.user_data['menu'] = 'overdue_debt'  # Встановлюємо стан меню
+
     await update.message.reply_text("🔔 Кнопка 'Протермінована дебіторська заборгованість' натиснута.")
 
     # Додаємо кнопки "Назад" і "Головне меню"
@@ -43,15 +45,6 @@ async def handle_overdue_debt(update: Update, context: CallbackContext) -> None:
     main_menu_button = KeyboardButton("Головне меню")
     reply_markup = ReplyKeyboardMarkup([[back_button, main_menu_button]], one_time_keyboard=True)
     await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
-
-
-
-    # Додаємо кнопки "Назад" і "Головне меню"
-    back_button = KeyboardButton(text="Назад")
-    main_menu_button = KeyboardButton(text="Головне меню")
-    reply_markup = ReplyKeyboardMarkup([[back_button, main_menu_button]], one_time_keyboard=True)
-    await update.message.reply_text("Натисніть 'Назад' або 'Головне меню'.", reply_markup=reply_markup)
-
 
 
 
