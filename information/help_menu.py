@@ -56,7 +56,7 @@ async def show_devaluation_data(update, context):
         return
 
     # Виконуємо запит
-    devaluation_data = fetch_devaluation_data("Окулова Дар'я")
+    devaluation_data = fetch_devaluation_data(employee_name)
 
     # Формуємо повідомлення для даних з девальвацією, наближеною до +5%
     if devaluation_data:
