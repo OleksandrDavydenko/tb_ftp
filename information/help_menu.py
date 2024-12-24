@@ -31,5 +31,5 @@ async def show_currency_rates(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
     except Exception as e:
         await update.message.reply_text("Не вдалося отримати курси валют. Спробуйте пізніше.")
-        logging.error(f"Помилка отримання курсів валют: {e}")
+
 

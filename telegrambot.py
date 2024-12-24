@@ -81,9 +81,9 @@ async def show_main_menu(update: Update, context: CallbackContext) -> None:
     analytics_button = KeyboardButton(text="📊 Аналітика")
     salary_button = KeyboardButton(text="💼 Розрахунковий лист")
     debt_button = KeyboardButton(text="📉 Дебіторська заборгованість")
-    currency_button = KeyboardButton(text="💱 Курс валют")  # Додано нову кнопку
+    info_button = KeyboardButton(text="ℹ️ Інформація")  # Замість "Курс валют"
     reply_markup = ReplyKeyboardMarkup(
-        [[analytics_button, salary_button], [debt_button, currency_button]],
+        [[analytics_button, salary_button], [debt_button, info_button]],
         one_time_keyboard=True,
     )
     await update.message.reply_text("🏠 Виберіть опцію:", reply_markup=reply_markup)
@@ -110,8 +110,12 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         await show_salary_years(update, context)
     elif text == "📊 Аналітика":
         await show_analytics_options(update, context)
+    elif text == "ℹ️ Інформація":
+        await show_help_menu(update, context)  # Додана функція для підменю
     elif text == "💱 Курс валют":
-        await show_currency_rates(update, context)  # Виводимо курси валют
+        await show_currency_rates(update, context)
+    elif text == "Перевірка девальвації":
+        await update.message.reply_text("Натиснута кнопка")  # Тимчасова відповідь
     elif text == "Назад":
         await handle_back_navigation(update, context)
     elif text == "Головне меню":
@@ -229,7 +233,7 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-    app.add_handler(MessageHandler(filters.Regex("^(📉 Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|💼 Розрахунковий лист|💱 Курс валют|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод|Протермінована дебіторська заборгованість)$"), handle_main_menu))
+    app.add_handler(MessageHandler(filters.Regex("^(📉 Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|💼 Розрахунковий лист|ℹ️ Інформація|💱 Курс валют|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод|Протермінована дебіторська заборгованість)$"), handle_main_menu))
 
     try:
         app.run_polling()
