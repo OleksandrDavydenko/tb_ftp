@@ -9,7 +9,7 @@ async def show_help_menu(update: Update, context: CallbackContext) -> None:
     context.user_data['current_menu'] = 'help_menu'  # Зберігаємо стан
 
 
-    currency_button = KeyboardButton(text="💱 Курси валют")
+    currency_button = KeyboardButton(text="💱 Курс валют")
     devaluation_button = KeyboardButton(text="Перевірка девальвації")
     main_menu_button = KeyboardButton(text="Головне меню")
     reply_markup = ReplyKeyboardMarkup(
