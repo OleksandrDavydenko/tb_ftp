@@ -23,7 +23,7 @@ from employee_analytics.analytics_handler import (
     show_analytics_options, show_analytics_years, show_analytics_months, 
     show_monthly_analytics, show_yearly_chart_for_parameter
 )
-from information.help_menu import show_help_menu, show_currency_rates
+from information.help_menu import show_help_menu, show_currency_rates, show_devaluation_data
 from messages.weekly_overdue_debts import check_overdue_debts
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -115,7 +115,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     elif text == "💱 Курс валют":
         await show_currency_rates(update, context)
     elif text == "Перевірка девальвації":
-        await update.message.reply_text("Натиснута кнопка")  # Тимчасова відповідь
+        await show_devaluation_data(update, context)
     elif text == "Назад":
         await handle_back_navigation(update, context)
     elif text == "Головне меню":

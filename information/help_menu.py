@@ -1,6 +1,7 @@
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 from db import get_latest_currency_rates
+from devaluation_query import fetch_devaluation_data
 
 async def show_help_menu(update: Update, context: CallbackContext) -> None:
     """
@@ -38,3 +39,36 @@ async def show_currency_rates(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("Не вдалося отримати курси валют. Спробуйте пізніше.")
 
 
+
+
+
+async def show_devaluation_data(update, context):
+    """
+    Відображає дані девальвації для конкретного менеджера.
+    """
+    employee_name = context.user_data.get('employee_name')  # Отримуємо ім'я менеджера
+    if not employee_name:
+        await update.message.reply_text("Помилка: Не знайдено ім'я менеджера.")
+        return
+
+    # Виконуємо запит
+    devaluation_data = fetch_devaluation_data(employee_name)
+
+    # Формуємо відповідь для користувача
+    if devaluation_data:
+        response = "📉 Дані девальвації:\n\n"
+        for record in devaluation_data:
+            response += (
+                f"👤 *Клієнт:* {record.get('[Client]', 'Невідомо')}\n"
+                f"📄 *Номер рахунку:* {record.get('[AccNumber]', 'Невідомо')}\n"
+                f"📅 *Дата рахунку:* {record.get('[DateFromAcc]', 'Невідомо')}\n"
+                f"📜 *Номер угоди:* {record.get('[ContractNumber]', 'Невідомо')}\n"
+                f"💱 *Валюта:* {record.get('[CurrencyFromInformAcc]', 'Невідомо')}\n"
+                f"📈 *Курс НБУ на дату рахунку:* {record.get('[NBURateOnAccountDate]', 'Невідомо')}\n"
+                f"📉 *Курс НБУ на сьогодні:* {record.get('[NBURateToday]', 'Невідомо')}\n"
+                f"⚖️ *Відсоток девальвації:* {record.get('[Devalvation%]', 'Невідомо')}%\n"
+                f"👔 *Менеджер:* {record.get('[Manager]', 'Невідомо')}\n\n"
+            )
+        await update.message.reply_text(response, parse_mode="Markdown")
+    else:
+        await update.message.reply_text("ℹ️ Немає даних про девальвацію для цього менеджера.")
