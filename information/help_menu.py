@@ -51,8 +51,10 @@ async def show_devaluation_data(update, context):
         await update.message.reply_text("Помилка: Не знайдено ім'я менеджера.")
         return
 
+    """ employee_name """
+
     # Виконуємо запит
-    devaluation_data = fetch_devaluation_data(employee_name)
+    devaluation_data = fetch_devaluation_data("Окулова Дар'я")
 
     # Формуємо відповідь для користувача
     if devaluation_data:
