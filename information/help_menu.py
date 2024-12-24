@@ -42,6 +42,8 @@ async def show_currency_rates(update: Update, context: CallbackContext) -> None:
 
 
 
+
+
 async def show_devaluation_data(update, context):
     """
     Відображає дані девальвації для конкретного менеджера.
@@ -51,13 +53,27 @@ async def show_devaluation_data(update, context):
         await update.message.reply_text("Помилка: Не знайдено ім'я менеджера.")
         return
 
-    """ employee_name """
-
     # Виконуємо запит
     devaluation_data = fetch_devaluation_data("Окулова Дар'я")
 
-    # Формуємо відповідь для користувача
+    # Формуємо повідомлення для даних з девальвацією, наближеною до +5%
     if devaluation_data:
+        near_5_percent = [
+            record for record in devaluation_data
+            if abs(float(record.get('[Devalvation%]', 0))) >= 4.5 and abs(float(record.get('[Devalvation%]', 0))) <= 5.5
+        ]
+
+        if near_5_percent:
+            highlight_message = "❗ *Зверніть увагу на рахунки з девальвацією, наближеною до +5%:*\n\n"
+            for record in near_5_percent:
+                highlight_message += (
+                    f"👤 *Клієнт:* {record.get('[Client]', 'Невідомо')}\n"
+                    f"📄 *Номер рахунку:* {record.get('[AccNumber]', 'Невідомо')}\n"
+                    f"⚖️ *Відсоток девальвації:* {record.get('[Devalvation%]', 'Невідомо')}%\n\n"
+                )
+            await update.message.reply_text(highlight_message, parse_mode="Markdown")
+
+        # Формуємо повний список даних
         response = "📉 Дані девальвації:\n\n"
         for record in devaluation_data:
             response += (
