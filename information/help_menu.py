@@ -60,7 +60,7 @@ async def show_devaluation_data(update, context):
     if devaluation_data:
         near_5_percent = [
             record for record in devaluation_data
-            if abs(float(record.get('[Devalvation%]', 0))) >= 4.5 and abs(float(record.get('[Devalvation%]', 0))) <= 5.5
+            if abs(float(record.get('[Devalvation%]', 0))) >= 4.5 
         ]
 
         if near_5_percent:
