@@ -45,6 +45,8 @@ async def show_currency_rates(update: Update, context: CallbackContext) -> None:
 
 
 async def show_devaluation_data(update, context):
+
+    context.user_data['menu'] = 'devaluation_data'  # Зберігаємо стан меню
     """
     Відображає дані девальвації для конкретного менеджера.
     """
