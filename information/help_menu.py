@@ -1,7 +1,7 @@
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 from db import get_latest_currency_rates
-from devaluation_query import fetch_devaluation_data
+from information.devaluation_query import fetch_devaluation_data
 
 async def show_help_menu(update: Update, context: CallbackContext) -> None:
     """
