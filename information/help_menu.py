@@ -8,9 +8,14 @@ async def show_help_menu(update: Update, context: CallbackContext) -> None:
     """
     context.user_data['current_menu'] = 'help_menu'  # Зберігаємо стан
 
-    currency_button = KeyboardButton(text="Курс Валют")
+
+    currency_button = KeyboardButton(text="💱 Курси валют")
+    devaluation_button = KeyboardButton(text="Перевірка девальвації")
     main_menu_button = KeyboardButton(text="Головне меню")
-    reply_markup = ReplyKeyboardMarkup([[currency_button], [main_menu_button]], one_time_keyboard=True)
+    reply_markup = ReplyKeyboardMarkup(
+        [[currency_button], [devaluation_button], [main_menu_button]],
+        one_time_keyboard=True,
+    )
     await update.message.reply_text("ℹ️ Довідкова інформація:", reply_markup=reply_markup)
 
 async def show_currency_rates(update: Update, context: CallbackContext) -> None:
