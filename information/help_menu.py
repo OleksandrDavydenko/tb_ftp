@@ -74,7 +74,7 @@ async def show_devaluation_data(update, context):
             await update.message.reply_text(highlight_message, parse_mode="Markdown")
 
         # Формуємо повний список даних
-        response = "📉 Дані девальвації:\n\n"
+        response = "📉 Всі дані девальвації рахунків:\n\n"
         for record in devaluation_data:
             response += (
                 f"👤 *Клієнт:* {record.get('[Client]', 'Невідомо')}\n"
@@ -89,4 +89,10 @@ async def show_devaluation_data(update, context):
             )
         await update.message.reply_text(response, parse_mode="Markdown")
     else:
-        await update.message.reply_text("ℹ️ Немає даних про девальвацію для цього менеджера.")
+        await update.message.reply_text("ℹ️ Немає даних про девальвацію для Вас.")
+
+     # Додаємо кнопки "Назад" і "Головне меню"
+    back_button = KeyboardButton(text="Назад")
+    main_menu_button = KeyboardButton(text="Головне меню")
+    reply_markup = ReplyKeyboardMarkup([[back_button, main_menu_button]], one_time_keyboard=True)
+    await update.message.reply_text("Виберіть наступну дію:", reply_markup=reply_markup)
