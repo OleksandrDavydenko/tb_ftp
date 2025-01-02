@@ -206,8 +206,8 @@ async def shutdown(app, scheduler):
 
 def main():
     app = ApplicationBuilder().token(KEY).build()
-    scheduler.add_job(check_new_payments, 'interval', seconds=300)
-    scheduler.add_job(sync_payments, 'interval', seconds=270)
+    scheduler.add_job(check_new_payments, 'interval', seconds=400)
+    scheduler.add_job(sync_payments, 'interval', seconds=350)
     scheduler.add_job(check_new_devaluation_records, 'interval', seconds=10800)
     scheduler.add_job(sync_devaluation_data, 'interval', seconds=10800)  # Додаємо нову синхронізацію девальваційних даних
     schedule_monthly_reminder(scheduler)
