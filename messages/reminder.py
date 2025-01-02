@@ -5,6 +5,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram import Bot
 from db import get_all_users
 from pytz import timezone
+from apscheduler.events import EVENT_JOB_EXECUTED  # Імпортуємо подію
 
 # Ініціалізація бота
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -96,6 +97,7 @@ def reschedule_next_month(scheduler):
     )
 
 # Функція для налаштування щомісячного нагадування
+
 def schedule_monthly_reminder(scheduler):
     # Перевіряємо, чи 1 число місяця є вихідним, і налаштовуємо запуск на найближчий робочий день
     now = datetime.now(timezone('Europe/Kiev'))
@@ -119,5 +121,5 @@ def schedule_monthly_reminder(scheduler):
     # Після виконання задачі, автоматично переналаштовуємо її на наступний місяць
     scheduler.add_listener(
         lambda event: reschedule_next_month(scheduler) if event.job_id.startswith("monthly_reminder_") else None,
-        events=['JOB_EXECUTED']
+        EVENT_JOB_EXECUTED  # Вказуємо подію
     )
