@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # Список державних свят в Україні (формат: MM-DD)
 HOLIDAYS = [
     "01-01",  # Новий рік
-    "07-01",  # Різдво Христове
+    "25-12",  # Різдво Христове
     "08-03",  # Міжнародний жіночий день
     "01-05",  # День праці
     "09-05",  # День перемоги
@@ -101,7 +101,7 @@ def reschedule_next_month(scheduler):
 def schedule_monthly_reminder(scheduler):
     # Перевіряємо, чи 1 число місяця є вихідним, і налаштовуємо запуск на найближчий робочий день
     now = datetime.now(timezone('Europe/Kiev'))
-    first_day_of_month = datetime(now.year, now.month, 1, 10, 0, tzinfo=timezone('Europe/Kiev'))
+    first_day_of_month = datetime(now.year, now.month, 1, 16, 0, tzinfo=timezone('Europe/Kiev'))
     next_workday = get_next_workday(first_day_of_month)
 
     # Додаємо задачу в планувальник
