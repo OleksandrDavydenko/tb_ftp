@@ -252,14 +252,18 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
     else:
         table += "Немає даних про нарахування.\n"
 
+    # Ініціалізація змінних
+        
+    total_payment_uah = 0
+    total_payment_usd = 0
+
     # Виплати
     if payments:
         table += "\nВиплата ЗП:\n"
         table += f"{'Дата':<10}{'Документ':<10} {'UAH':<8}  {'USD':<8}\n"
         table += "-" * 41 + "\n"
 
-        total_payment_uah = 0
-        total_payment_usd = 0
+
 
         for payment in payments:
             дата = datetime.strptime(payment.get("[Дата платежу]", ""), "%Y-%m-%d").strftime("%d.%m.%y")
