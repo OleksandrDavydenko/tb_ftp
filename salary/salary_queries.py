@@ -123,7 +123,9 @@ def get_salary_payments(employee_name, year, month):
                         "Документ", SalaryPayment[DocNumber],
                         "Сума UAH", SalaryPayment[SUM_UAH],
                         "Сума USD", SalaryPayment[SUM_USD],
-                        "Разом в USD", SalaryPayment[SUMINUSD]
+                        "Разом в USD", SalaryPayment[SUMINUSD],
+                        "PaymentType", SalaryPayment[payment_type],
+                        "Character", SalaryPayment[character]
                     )
                 """
             }
@@ -268,8 +270,16 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
         for payment in payments:
             дата = datetime.strptime(payment.get("[Дата платежу]", ""), "%Y-%m-%d").strftime("%d.%m.%y")
             doc_number = payment.get("[Документ]", "")
-            сума_uah = float(payment.get("[Сума UAH]", 0))
-            сума_usd = float(payment.get("[Сума USD]", 0))
+            character = payment.get("[Character]", "").strip().lower()
+
+        # Визначаємо суму залежно від характеру виплати
+            if character == 'prize':
+                сума_uah = 0  # Не враховуємо UAH для премій
+                сума_usd = float(payment.get("[Разом в USD]", 0))  # Використовуємо суму в USD
+            else:
+                сума_uah = float(payment.get("[Сума UAH]", 0))
+                сума_usd = float(payment.get("[Сума USD]", 0))
+
 
             total_payment_uah += сума_uah
             total_payment_usd += сума_usd
