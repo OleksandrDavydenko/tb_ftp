@@ -265,34 +265,49 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
         table += f"{'Дата':<10}{'Документ':<10} {'UAH':<8}  {'USD':<8}\n"
         table += "-" * 41 + "\n"
 
+        total_payment_uah = 0
+        total_payment_usd = 0
 
-
+        # Обробка та сортування платежів за датою
+        formatted_payments = []
         for payment in payments:
-            дата = datetime.strptime(payment.get("[Дата платежу]", ""), "%Y-%m-%d").strftime("%d.%m.%y")
+            дата_платежу = payment.get("[Дата платежу]", "")
+            try:
+                дата = datetime.strptime(дата_платежу, "%Y-%m-%d")
+                formatted_date = дата.strftime("%d.%m.%y")  # Формат для відображення
+            except ValueError:
+                continue  # Пропускаємо некоректні дані
+
             doc_number = payment.get("[Документ]", "")
             character = payment.get("[Character]", "").strip().lower()
 
-        # Визначаємо суму залежно від характеру виплати
+            # Визначаємо суму залежно від характеру виплати
             if character == 'prize':
-                сума_uah = 0  # Не враховуємо UAH для премій
-                сума_usd = float(payment.get("[Разом в USD]", 0))  # Використовуємо суму в USD
+                сума_uah = 0
+                сума_usd = float(payment.get("[Разом в USD]", 0))
             else:
                 сума_uah = float(payment.get("[Сума UAH]", 0))
                 сума_usd = float(payment.get("[Сума USD]", 0))
 
-
             total_payment_uah += сума_uah
             total_payment_usd += сума_usd
 
-            table += f"{дата:<10}{doc_number:<10} {сума_uah:<8.2f}  {сума_usd:<8.2f}\n"
+            formatted_payments.append((дата, formatted_date, doc_number, сума_uah, сума_usd))
+
+        # **Сортування за датою (від найдавнішої до найновішої)**
+        formatted_payments.sort(key=lambda x: x[0])
+
+        # Друк відсортованих платежів у таблиці
+        for _, formatted_date, doc_number, сума_uah, сума_usd in formatted_payments:
+            table += f"{formatted_date:<10}{doc_number:<10} {сума_uah:<8.2f}  {сума_usd:<8.2f}\n"
 
         table += "-" * 41 + "\n"
         table += f"{'Всього виплачено:':<18}{total_payment_uah:<8.2f}  {total_payment_usd:<8.2f}\n\n"
 
-    # Невиплачений залишок
-    remaining_uah = total_uah - total_payment_uah
-    remaining_usd = total_usd - total_payment_usd
-    table += f"{'Невиплачений залишок: ':<18}{remaining_uah:<8.2f}  {remaining_usd:<8.2f}\n"
+        # Невиплачений залишок
+        remaining_uah = total_uah - total_payment_uah
+        remaining_usd = total_usd - total_payment_usd
+        table += f"{'Невиплачений залишок: ':<18}{remaining_uah:<8.2f}  {remaining_usd:<8.2f}\n"
 
     # Бонуси
     if bonuses:
