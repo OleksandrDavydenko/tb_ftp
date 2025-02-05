@@ -309,11 +309,11 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
     # **Розрахунок залишку лише один раз**
     remaining_uah = total_uah - total_payment_uah
     remaining_usd = total_usd - total_payment_usd
-    table += f"{'Невиплачений залишок: ':<18}{remaining_uah:<8.2f}  {remaining_usd:<8.2f}\n"
+    table += f"{'Невиплачений залишок: ':<18}{remaining_uah:<8.2f}  {remaining_usd:<8.2f}\n\n\n"
 
     # Бонуси
     if bonuses:
-            table += "\nБонуси:\n"
+            table += "\n*Бонуси:*\n"
             table += "-" * 41 + "\n"
             table += f"{'Нарахування Бонусів':<26}{'USD':<8}\n"
             table += "-" * 41 + "\n"
@@ -342,7 +342,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
                 total_bonuses += amount
 
             table += f"{'Бонуси Сейлс':<26}{bonuses_summary['Сейлс']:<8.2f}\n"
-            table += f"{'Бонуси Опер Менеджера':<26}{bonuses_summary['Оперативний менеджер']:<8.2f}\n"
+            table += f"{'Бонуси ОМ':<26}{bonuses_summary['Оперативний менеджер']:<8.2f}\n"
             table += f"{'Відсоток ОМ':<26}{bonuses_summary['Відсоток ОМ']:<8.2f}\n"
 
             table += "-" * 41 + "\n"
@@ -382,7 +382,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
             table += f"{formatted_date:<10}{doc_number:<10} {сума_usd:<8.2f}\n"
 
         table += "-" * 41 + "\n"
-        table += f"{'Всього виплачено бонусів:':<18}{total_bonus_usd:<8.2f}\n"
+        table += f"{'Всього виплачено бонусів: ':<18}{total_bonus_usd:<8.2f}\n"
 
 
 
