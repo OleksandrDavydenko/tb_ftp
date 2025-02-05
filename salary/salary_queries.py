@@ -333,6 +333,8 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
                     bonuses_summary["Сейлс"] += amount
                 elif role == "Оперативний менеджер":
                     bonuses_summary["Оперативний менеджер"] += amount
+                elif role == "Відсоток ОМ":
+                    bonuses_summary["Відсоток ОМ"] += amount
 
                 total_bonuses += amount
 
