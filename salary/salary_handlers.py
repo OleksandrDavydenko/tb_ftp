@@ -46,22 +46,24 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
     bonuses_data = get_bonuses(employee_name, year, month)  # Додаємо отримання бонусів
 
     if salary_data or payments_data or bonuses_data:
-        # Формуємо таблицю з урахуванням бонусів
+        # Формуємо таблицю
         formatted_table = format_salary_table(salary_data, employee_name, year, month, payments_data, bonuses_data)
-        
-        # Заголовок без кавичок
-        await update.message.reply_text(f"Розрахунковий лист:\n{employee_name} за {month} {year}:")
 
-        # Таблиця з нарахуваннями та виплатами у форматі коду
-        main_table = formatted_table.split("\nБонуси:")[0].strip()  # Виділяємо частину до "Бонуси"
-        await update.message.reply_text(f"```\n{main_table}\n```", parse_mode="Markdown")
-
-        # Текст "Бонуси" без кавичок
-        await update.message.reply_text("Бонуси:")
-
-        # Таблиця з бонусами та виплатами у форматі коду
+        # Розділення таблиці на частини
+        main_table = formatted_table.split("\nБонуси:")[0].strip()  # Частина без бонусів
         bonuses_table = formatted_table.split("\nБонуси:")[1].strip() if "\nБонуси:" in formatted_table else "Немає даних про бонуси."
-        await update.message.reply_text(f"```\n{bonuses_table}\n```", parse_mode="Markdown")
+
+        # Формуємо фінальний текст у форматі Markdown
+        final_message = (
+            f"Розрахунковий лист:\n"
+            f"{employee_name} за {month} {year}:\n\n"
+            f"```\n{main_table}\n```\n"
+            f"Бонуси:\n\n"
+            f"```\n{bonuses_table}\n```"
+        )
+
+        # Відправляємо все одним повідомленням
+        await update.message.reply_text(final_message, parse_mode="Markdown")
     else:
         await update.message.reply_text("Немає даних для вибраного періоду.")
 
