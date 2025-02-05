@@ -47,7 +47,8 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
 
     if salary_data or payments_data or bonuses_data:
         # Формуємо таблицю
-        formatted_table = format_salary_table(salary_data, employee_name, year, month, payments_data, bonuses_data)
+        #formatted_table = format_salary_table(salary_data, employee_name, year, month, payments_data, bonuses_data)
+        formatted_table = format_salary_table(salary_data, payments_data, bonuses_data)
 
         # Розділення таблиці на частини
         main_table = formatted_table.split("\nБонуси:")[0].strip()  # Частина без бонусів
