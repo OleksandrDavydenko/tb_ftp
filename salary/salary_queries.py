@@ -219,7 +219,8 @@ def get_bonuses(employee_name, year, month):
 
 
 
-def format_salary_table(rows, employee_name, year, month, payments, bonuses):
+# def format_salary_table(rows, employee_name, year, month, payments, bonuses):
+def format_salary_table(rows, payments, bonuses):
     """
     Форматування таблиці зарплати з урахуванням бонусів.
     """
