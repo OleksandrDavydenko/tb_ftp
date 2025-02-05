@@ -319,7 +319,8 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
             total_bonuses = 0
             bonuses_summary = {
                 "Сейлс": 0,
-                "Оперативний менеджер": 0
+                "Оперативний менеджер": 0,
+                "Відсоток ОМ": 0
             }
 
             # Очищення ключів бонусів
@@ -340,6 +341,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
 
             table += f"{'Бонуси Сейлс':<26}{bonuses_summary['Сейлс']:<8.2f}\n"
             table += f"{'Бонуси Опер Менеджера':<26}{bonuses_summary['Оперативний менеджер']:<8.2f}\n"
+            table += f"{'Бонуси Опер Менеджера':<26}{bonuses_summary['Відсоток ОМ']:<8.2f}\n"
 
             table += "-" * 41 + "\n"
             table += f"{'Всього нараховано бонусів: ':<26}{total_bonuses:<8.2f}\n"
