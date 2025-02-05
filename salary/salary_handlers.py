@@ -51,15 +51,20 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
 
         # Розділення таблиці на частини
         main_table = formatted_table.split("\nБонуси:")[0].strip()  # Частина без бонусів
-        bonuses_table = formatted_table.split("\nБонуси:")[1].strip() if "\nБонуси:" in formatted_table else "Немає даних про бонуси."
+        bonuses_table = formatted_table.split("\nБонуси:")[1].strip() if "\nБонуси:" in formatted_table else ""
+
+        # Перевірка наявності бонусів
+        if not bonuses_table.strip() or bonuses_table.strip() == "Немає даних про бонуси.":
+            bonuses_section = ""  # Якщо немає бонусів, нічого не додаємо
+        else:
+            bonuses_section = f"\nБонуси:\n\n```\n{bonuses_table}\n```"
 
         # Формуємо фінальний текст у форматі Markdown
         final_message = (
             f"Розрахунковий лист:\n"
             f"{employee_name} за {month} {year}:\n\n"
-            f"```\n{main_table}\n```\n"
-            f"Бонуси:\n\n"
-            f"```\n{bonuses_table}\n```"
+            f"```\n{main_table}\n```"
+            f"{bonuses_section}"  # Додається тільки якщо є дані
         )
 
         # Відправляємо все одним повідомленням
