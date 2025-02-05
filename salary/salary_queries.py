@@ -224,8 +224,8 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
     """
     Форматування таблиці зарплати з урахуванням бонусів.
     """
-    table = f"Розрахунковий лист: \n{employee_name} за {month} {year}:\n"
-    table += "-" * 41 + "\n"
+
+    table = "-" * 41 + "\n"
 
     # Зарплатна частина
     if rows:
