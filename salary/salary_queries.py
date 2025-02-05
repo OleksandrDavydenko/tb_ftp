@@ -313,7 +313,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
 
     # Бонуси
     if bonuses:
-            table += "\n**Бонуси:**\n"
+            table += "\nБонуси:\n"
             table += "-" * 41 + "\n"
             table += f"{'Нарахування Бонусів':<26}{'USD':<8}\n"
             table += "-" * 41 + "\n"
