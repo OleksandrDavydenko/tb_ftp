@@ -347,6 +347,45 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
 
             table += "-" * 41 + "\n"
             table += f"{'Всього нараховано бонусів: ':<26}{total_bonuses:<8.2f}\n"
+    
+
+    # **Виплата бонусів**
+    bonus_payments = [p for p in payments if p.get("[PaymentType]", "").strip().lower() == "bonus"]
+
+    if bonus_payments:
+        table += "\nВиплата бонусів:\n"
+        table += f"{'Дата':<10}{'Документ':<10} {'USD':<8}\n"
+        table += "-" * 41 + "\n"
+
+        total_bonus_usd = 0
+        formatted_bonus_payments = []
+
+        for payment in bonus_payments:
+            дата_платежу = payment.get("[Дата платежу]", "")
+            try:
+                дата = datetime.strptime(дата_платежу, "%Y-%m-%d")
+                formatted_date = дата.strftime("%d.%m.%y")
+            except ValueError:
+                continue
+
+            doc_number = payment.get("[Документ]", "")
+            сума_usd = float(payment.get("[Разом в USD]", 0))
+
+            total_bonus_usd += сума_usd
+            formatted_bonus_payments.append((дата, formatted_date, doc_number, сума_usd))
+
+        # **Сортування виплат бонусів**
+        formatted_bonus_payments.sort(key=lambda x: x[0])
+
+        # **Додаємо в таблицю виплати бонусів**
+        for _, formatted_date, doc_number, сума_usd in formatted_bonus_payments:
+            table += f"{formatted_date:<10}{doc_number:<10} {сума_usd:<8.2f}\n"
+
+        table += "-" * 41 + "\n"
+        table += f"{'Всього виплачено бонусів:':<18}{total_bonus_usd:<8.2f}\n"
+
+
+
 
     logging.info("Формування таблиці завершено.")
     return table
