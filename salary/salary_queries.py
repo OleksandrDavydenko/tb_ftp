@@ -269,30 +269,35 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
         total_payment_usd = 0
 
         # Обробка та сортування платежів за датою
-        formatted_payments = []
-        for payment in payments:
-            дата_платежу = payment.get("[Дата платежу]", "")
-            try:
-                дата = datetime.strptime(дата_платежу, "%Y-%m-%d")
-                formatted_date = дата.strftime("%d.%m.%y")  # Формат для відображення
-            except ValueError:
-                continue  # Пропускаємо некоректні дані
+    formatted_payments = []
+    for payment in payments:
+        # Фільтруємо лише платежі з `payment_type == 'zp'`
+        if payment.get("[PaymentType]", "").strip().lower() != "zp":
+            continue  # Пропускаємо платежі, які не є зарплатою
 
-            doc_number = payment.get("[Документ]", "")
-            character = payment.get("[Character]", "").strip().lower()
+        дата_платежу = payment.get("[Дата платежу]", "")
+        try:
+            дата = datetime.strptime(дата_платежу, "%Y-%m-%d")
+            formatted_date = дата.strftime("%d.%m.%y")  # Формат дати
+        except ValueError:
+            continue  # Пропускаємо некоректні дати
 
-            # Визначаємо суму залежно від характеру виплати
-            if character == 'prize':
-                сума_uah = 0
-                сума_usd = float(payment.get("[Разом в USD]", 0))
-            else:
-                сума_uah = float(payment.get("[Сума UAH]", 0))
-                сума_usd = float(payment.get("[Сума USD]", 0))
+        doc_number = payment.get("[Документ]", "")
+        character = payment.get("[Character]", "").strip().lower()
 
-            total_payment_uah += сума_uah
-            total_payment_usd += сума_usd
+        # Визначаємо суму залежно від характеру виплати
+        if character == 'prize':
+            сума_uah = 0
+            сума_usd = float(payment.get("[Разом в USD]", 0))
+        else:
+            сума_uah = float(payment.get("[Сума UAH]", 0))
+            сума_usd = float(payment.get("[Сума USD]", 0))
 
-            formatted_payments.append((дата, formatted_date, doc_number, сума_uah, сума_usd))
+        total_payment_uah += сума_uah
+        total_payment_usd += сума_usd
+
+        formatted_payments.append((дата, formatted_date, doc_number, сума_uah, сума_usd))
+
 
         # **Сортування за датою (від найдавнішої до найновішої)**
         formatted_payments.sort(key=lambda x: x[0])
@@ -341,7 +346,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
 
             table += f"{'Бонуси Сейлс':<26}{bonuses_summary['Сейлс']:<8.2f}\n"
             table += f"{'Бонуси Опер Менеджера':<26}{bonuses_summary['Оперативний менеджер']:<8.2f}\n"
-            table += f"{'Бонуси Опер Менеджера':<26}{bonuses_summary['Відсоток ОМ']:<8.2f}\n"
+            table += f"{'Відсоток ОМ':<26}{bonuses_summary['Відсоток ОМ']:<8.2f}\n"
 
             table += "-" * 41 + "\n"
             table += f"{'Всього нараховано бонусів: ':<26}{total_bonuses:<8.2f}\n"
