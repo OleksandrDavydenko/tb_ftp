@@ -10,13 +10,16 @@ def normalize_phone_number(phone_number):
     """
     Нормалізує телефонний номер:
     - Видаляє всі нецифрові символи.
-    - Зберігає останні 9 цифр для порівняння.
+    - Додає код країни, якщо його немає.
     """
     digits = re.sub(r'\D', '', phone_number)
-    if len(digits) >= 9:
-        return digits[-9:]  # Повертає останні 9 цифр
+    if len(digits) == 9:  # Якщо номер без коду країни
+        return f"380{digits}"
+    elif len(digits) == 12 and digits.startswith("380"):  # Якщо номер із кодом країни
+        return digits
     else:
-        return digits  # Повертає те, що залишилося, якщо менше 9 цифр
+        return digits  # Повертає те, що залишилось
+
 
 
 # Отримання токену Power BI
@@ -82,9 +85,9 @@ def is_phone_number_in_power_bi(phone_number):
         rows = data['results'][0]['tables'][0].get('rows', [])
         logging.info(f"📊 Дані з Power BI: {rows}")
 
-        # Створення мапи телефонів із нормалізацією
+        # Нормалізуємо всі номери з Power BI
         phone_map = {
-            normalize_phone_number(row.get('[PhoneNumberTelegram]', '')): (row.get('[Employee]', ''), row.get('[Status]', ''))
+            normalize_phone_number(row.get('[PhoneNumber]', '')): (row.get('[Employee]', ''), row.get('[Status]', ''))
             for row in rows
         }
 
@@ -101,8 +104,6 @@ def is_phone_number_in_power_bi(phone_number):
     else:
         logging.error(f"❌ Помилка запиту до Power BI: {response.status_code}, {response.text}")
         return False, None, None
-
-
 
 
 # Функція для перевірки користувача і запису в базу
