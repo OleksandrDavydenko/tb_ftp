@@ -1,7 +1,7 @@
 import re
 import requests
 import os
-from db import add_telegram_user, get_user_status  # Імпортуємо функцію перевірки статусу
+from db import add_telegram_user, get_user_status, get_employee_name  # Імпортуємо функцію перевірки статусу
 
 
 # Функція для нормалізації номера телефону (залишає лише останні 9 цифр)
@@ -90,24 +90,30 @@ def is_phone_number_in_power_bi(phone_number):
 # Функція для перевірки користувача і запису в базу
 def verify_and_add_user(phone_number, telegram_id, telegram_name):
     """
-    1. Перевіряє статус користувача у Power BI (незалежно від активності).
-    2. Якщо запис знайдено – зберігає його в БД зі статусом `active` або `deleted`.
-    3. Якщо користувач не знайдений взагалі – статус `deleted`.
+    1. Перевіряє статус користувача у Power BI.
+    2. Якщо запис знайдено → оновлює статус в БД.
+    3. Якщо запис не знайдено → записує `deleted`.
+    4. Якщо статус у БД відрізняється від Power BI → оновлює його.
     """
 
     is_active, employee_name, status_from_power_bi = is_phone_number_in_power_bi(phone_number)
 
-    # Якщо ім'я не знайдено, беремо його з БД
+    # Якщо ім'я не знайдено в Power BI, пробуємо отримати його з БД
     if not employee_name:
-        from db import get_employee_name
         employee_name = get_employee_name(phone_number)
 
-    # Визначаємо статус: якщо Power BI повернув статус - зберігаємо його, якщо ні - ставимо 'deleted'
-    status = "active" if status_from_power_bi == "Активний" else "deleted"
+    # Визначаємо новий статус
+    new_status = "active" if status_from_power_bi == "Активний" else "deleted"
 
-    add_telegram_user(phone_number, telegram_id, telegram_name, employee_name, status)
+    # Отримуємо поточний статус у БД
+    current_status = get_user_status(phone_number)
 
-    print(f"Користувач {phone_number} оновлений зі статусом {status}.")
+    # Якщо статус у БД не відповідає Power BI, оновлюємо його
+    if current_status != new_status:
+        add_telegram_user(phone_number, telegram_id, telegram_name, employee_name, new_status)
+        print(f"🔄 Статус оновлено: {phone_number} → {new_status}")
+    else:
+        print(f"✅ Статус без змін: {phone_number} → {current_status}")
 
 
 # Функція для отримання даних про дебіторку для менеджера
