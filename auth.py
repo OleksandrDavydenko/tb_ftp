@@ -7,8 +7,17 @@ import logging
 
 # Функція для нормалізації номера телефону (залишає лише останні 9 цифр)
 def normalize_phone_number(phone_number):
+    """
+    Нормалізує телефонний номер:
+    - Видаляє всі нецифрові символи.
+    - Зберігає останні 9 цифр для порівняння.
+    """
     digits = re.sub(r'\D', '', phone_number)
-    return digits[-9:]
+    if len(digits) >= 9:
+        return digits[-9:]  # Повертає останні 9 цифр
+    else:
+        return digits  # Повертає те, що залишилося, якщо менше 9 цифр
+
 
 # Отримання токену Power BI
 def get_power_bi_token():
@@ -47,7 +56,6 @@ def is_phone_number_in_power_bi(phone_number):
         'Content-Type': 'application/json'
     }
 
-    # Запит до Power BI
     query_data = {
         "queries": [
             {
@@ -74,7 +82,11 @@ def is_phone_number_in_power_bi(phone_number):
         rows = data['results'][0]['tables'][0].get('rows', [])
         logging.info(f"📊 Дані з Power BI: {rows}")
 
-        phone_map = {normalize_phone_number(row.get('[PhoneNumberTelegram]', '')): (row.get('[Employee]', ''), row.get('[Status]', '')) for row in rows}
+        # Створення мапи телефонів із нормалізацією
+        phone_map = {
+            normalize_phone_number(row.get('[PhoneNumberTelegram]', '')): (row.get('[Employee]', ''), row.get('[Status]', ''))
+            for row in rows
+        }
 
         normalized_phone_number = normalize_phone_number(phone_number)
         logging.info(f"📞 Нормалізований номер телефону: {normalized_phone_number}")
@@ -89,6 +101,7 @@ def is_phone_number_in_power_bi(phone_number):
     else:
         logging.error(f"❌ Помилка запиту до Power BI: {response.status_code}, {response.text}")
         return False, None, None
+
 
 
 
