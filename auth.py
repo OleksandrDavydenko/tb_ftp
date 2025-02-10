@@ -12,14 +12,12 @@ def normalize_phone_number(phone_number):
     - Видаляє всі нецифрові символи.
     - Додає код країни, якщо його немає.
     """
-    digits = re.sub(r'\D', '', phone_number)
+    digits = re.sub(r'\D', '', phone_number)  # Видаляємо всі нецифрові символи
     if len(digits) == 9:  # Якщо номер без коду країни
         return f"380{digits}"
-    elif len(digits) == 12 and digits.startswith("380"):  # Якщо номер із кодом країни
+    elif len(digits) == 12 and digits.startswith("380"):  # Якщо номер з кодом країни
         return digits
-    else:
-        return digits  # Повертає те, що залишилось
-
+    return digits  # Повертає те, що залишилось
 
 
 # Отримання токену Power BI
@@ -47,6 +45,9 @@ def get_power_bi_token():
 
 # Перевірка номера телефону в Power BI
 def is_phone_number_in_power_bi(phone_number):
+    """
+    Перевіряє, чи є телефонний номер у Power BI
+    """
     token = get_power_bi_token()
     if not token:
         logging.error("❌ Не вдалося отримати токен Power BI.")
@@ -104,7 +105,6 @@ def is_phone_number_in_power_bi(phone_number):
     else:
         logging.error(f"❌ Помилка запиту до Power BI: {response.status_code}, {response.text}")
         return False, None, None
-
 
 
 # Функція для перевірки користувача і запису в базу
