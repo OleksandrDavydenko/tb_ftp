@@ -91,6 +91,8 @@ def is_phone_number_in_power_bi(phone_number):
             normalize_phone_number(row.get('[PhoneNumber]', '')): (row.get('[Employee]', ''), row.get('[Status]', ''))
             for row in rows
         }
+        logging.info(f"📞 phone_map: {phone_map}")
+
 
         normalized_phone_number = normalize_phone_number(phone_number)
         logging.info(f"📞 Нормалізований номер телефону: {normalized_phone_number}")
