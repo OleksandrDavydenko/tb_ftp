@@ -49,7 +49,7 @@ def get_power_bi_token():
 # Перевірка номера телефону в Power BI
 def is_phone_number_in_power_bi(phone_number):
     """
-    Перевіряє, чи є телефонний номер у Power BI, використовуючи нормалізацію та запит по конкретному номеру.
+    Перевіряє, чи є телефонний номер у Power BI
     """
     token = get_power_bi_token()
     if not token:
@@ -63,27 +63,16 @@ def is_phone_number_in_power_bi(phone_number):
         'Content-Type': 'application/json'
     }
 
-    # Нормалізуємо телефон перед запитом
-    normalized_phone_number = normalize_phone_number(phone_number)
-    logging.info(f"📞 Нормалізований номер телефону для запиту: {normalized_phone_number}")
-
     query_data = {
         "queries": [
             {
                 "query": f"""
-                    EVALUATE
-                    FILTER(
-                        SELECTCOLUMNS(
-                            ADDCOLUMNS(
-                                Employees,
-                                "NormalizedPhone", SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(Employees[PhoneNumberTelegram], "-", ""), " ", ""), "(", ""), ")")
-                            ),
-                            "Employee", Employees[Employee],
-                            "PhoneNumber", Employees[PhoneNumberTelegram],
-                            "Status", Employees[Status],
-                            "NormalizedPhone", [NormalizedPhone]
-                        ),
-                        [NormalizedPhone] = "{normalized_phone_number}"
+                    EVALUATE 
+                    SELECTCOLUMNS(
+                        Employees,
+                        "Employee", Employees[Employee],
+                        "PhoneNumber", Employees[PhoneNumberTelegram],
+                        "Status", Employees[Status]
                     )
                 """
             }
@@ -98,14 +87,22 @@ def is_phone_number_in_power_bi(phone_number):
     if response.status_code == 200:
         data = response.json()
         rows = data['results'][0]['tables'][0].get('rows', [])
-        logging.info(f"📊 Результат запиту з Power BI: {rows}")
+        logging.info(f"📊 Дані з Power BI: {rows}")
 
-        if rows:
-            # Отримуємо перший збіг
-            row = rows[0]
-            employee_name = row.get('[Employee]', None)
-            status = row.get('[Status]', None)
-            logging.info(f"✅ Знайдено користувача: {employee_name}, Статус: {status}")
+        # Нормалізуємо всі номери з Power BI
+        phone_map = {
+            normalize_phone_number(row.get('[PhoneNumber]', '')): (row.get('[Employee]', ''), row.get('[Status]', ''))
+            for row in rows
+        }
+        logging.info(f"📞 phone_map: {phone_map}")
+
+
+        normalized_phone_number = normalize_phone_number(phone_number)
+        logging.info(f"📞 Нормалізований номер телефону: {normalized_phone_number}")
+
+        if normalized_phone_number in phone_map:
+            employee_name, status = phone_map[normalized_phone_number]
+            logging.info(f"✅ Знайдено в Power BI: {employee_name}, Статус: {status}")
             return status == "Активний", employee_name, status
         else:
             logging.warning(f"🚫 Номер телефону {normalized_phone_number} не знайдено в Power BI.")
