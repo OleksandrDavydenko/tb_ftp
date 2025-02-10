@@ -220,25 +220,7 @@ def get_latest_currency_rates(currencies):
 
 
 
-def create_tables():
-    conn = get_db_connection()
-    cursor = conn.cursor()
 
-    # Додаємо стовпець Status у таблицю users, якщо його ще немає
-
-    # Оновлюємо старі записи, щоб вони мали статус active
-    cursor.execute("""
-    UPDATE users SET status = 'active' WHERE status IS NULL;
-    """)
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-    logging.info("Оновлено структуру таблиці users: додано status зі значенням 'active'.")
-
-
-create_tables()
-    
 
 
 
