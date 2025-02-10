@@ -222,12 +222,21 @@ def get_latest_currency_rates(currencies):
         raise e
     
 
+def get_user_status(phone_number):
+    """ Отримує поточний статус користувача з бази """
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-    """ івв """
+    cursor.execute("""
+    SELECT status FROM users WHERE phone_number = %s
+    """, (phone_number,))
+    result = cursor.fetchone()
 
+    conn.close()
 
-
-
+    if result:
+        return result[0]
+    return None  # Якщо користувача немає в базі
 
 
 

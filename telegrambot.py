@@ -50,32 +50,44 @@ def normalize_phone_number(phone_number):
 async def handle_contact(update: Update, context: CallbackContext) -> None:
     if update.message.contact:
         phone_number = normalize_phone_number(update.message.contact.phone_number)
-        logging.info(f"Отримано номер телефону: {phone_number}")
-        found, employee_name = is_phone_number_in_power_bi(phone_number)
-        
-        if found:
-            logging.info(f"Користувач знайдений: {employee_name}")
-            verify_and_add_user(phone_number, update.message.from_user.id, update.message.from_user.first_name)
-            joined_at = get_user_joined_at(phone_number)
-            logging.info(f"Дата приєднання користувача: {joined_at}")
+        logging.info(f"📞 Отримано номер телефону: {phone_number}")
 
+        # Оновлюємо або додаємо користувача в БД із перевіркою статусу
+        verify_and_add_user(phone_number, update.message.from_user.id, update.message.from_user.first_name)
+
+        # Отримуємо оновлений статус користувача з бази
+        status = get_user_status(phone_number)
+
+        if status == "active":
+            employee_name = is_phone_number_in_power_bi(phone_number)[1]  # Отримуємо ім'я користувача
+            logging.info(f"✅ Користувач активний: {employee_name} ({phone_number})")
+
+            joined_at = get_user_joined_at(phone_number)
+            logging.info(f"📅 Дата приєднання користувача: {joined_at}")
+
+            # Синхронізація платежів для активних користувачів
             if joined_at:
                 try:
                     await sync_payments()
                 except Exception as e:
-                    logging.error(f"Помилка при синхронізації платежів: {e}")
+                    logging.error(f"❌ Помилка при синхронізації платежів: {e}")
 
+            # Оновлення даних користувача в контексті бота
             context.user_data.update({
                 'registered': True,
                 'phone_number': phone_number,
                 'telegram_name': update.message.from_user.first_name,
                 'employee_name': employee_name
             })
-            await update.message.reply_text(f"Вітаємо, {context.user_data['employee_name']}! Доступ надано.")
+
+            await update.message.reply_text(f"✅ Вітаємо, {context.user_data['employee_name']}! Доступ надано.")
             await show_main_menu(update, context)
+
         else:
-            await update.message.reply_text("Ваш номер не знайдено. Доступ заборонено.")
+            logging.warning(f"🚫 Доступ заборонено для {phone_number} (Статус: {status})")
+            await update.message.reply_text("🚫 Ваш номер не знайдено або ви не активний користувач. Доступ заборонено.")
             await prompt_for_phone_number(update, context)
+
 
 async def show_main_menu(update: Update, context: CallbackContext) -> None:
 
