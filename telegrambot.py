@@ -55,24 +55,24 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
         # Оновлюємо або додаємо користувача в БД
         verify_and_add_user(phone_number, update.message.from_user.id, update.message.from_user.first_name)
 
-        # Отримуємо оновлений статус користувача з бази
+        # Отримуємо оновлений статус користувача
         status = get_user_status(phone_number)
 
         if status == "active":
-            employee_name = get_employee_name(phone_number)  # Отримуємо ім'я
+            employee_name = get_employee_name(phone_number)  # Отримуємо ім'я користувача
             logging.info(f"✅ Користувач активний: {employee_name} ({phone_number})")
 
             joined_at = get_user_joined_at(phone_number)
             logging.info(f"📅 Дата приєднання користувача: {joined_at}")
 
-            # Синхронізація платежів для активних користувачів
+            # Синхронізація платежів
             if joined_at:
                 try:
                     await sync_payments()
                 except Exception as e:
                     logging.error(f"❌ Помилка при синхронізації платежів: {e}")
 
-            # Оновлення даних користувача в контексті бота
+            # Оновлюємо контекст бота
             context.user_data.update({
                 'registered': True,
                 'phone_number': phone_number,
@@ -80,7 +80,7 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
                 'employee_name': employee_name
             })
 
-            await update.message.reply_text(f"✅ Вітаємо, {context.user_data['employee_name']}! Доступ надано.")
+            await update.message.reply_text(f"✅ Вітаємо, {employee_name}! Доступ надано.")
             await show_main_menu(update, context)
 
         else:
