@@ -24,7 +24,8 @@ def create_tables():
         telegram_id BIGINT NOT NULL,
         telegram_name VARCHAR(50),
         employee_name VARCHAR(50),
-        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        status VARCHAR(20)
     )
     """)
 
@@ -215,6 +216,28 @@ def get_latest_currency_rates(currencies):
     except Exception as e:
         print(f"Помилка отримання курсів: {e}")
         raise e
+
+
+
+
+def create_tables():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Додаємо стовпець Status у таблицю users, якщо його ще немає
+
+    # Оновлюємо старі записи, щоб вони мали статус active
+    cursor.execute("""
+    UPDATE users SET status = 'active' WHERE status IS NULL;
+    """)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    logging.info("Оновлено структуру таблиці users: додано status зі значенням 'active'.")
+
+
+create_tables()
     
 
 

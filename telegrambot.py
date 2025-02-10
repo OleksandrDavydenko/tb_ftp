@@ -8,7 +8,6 @@ import logging
 import os
 import sys
 
-""" івівівівів """
 
 from messages.check_payments import check_new_payments
 from messages.sync_payments import sync_payments
