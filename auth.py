@@ -68,7 +68,7 @@ def is_phone_number_in_power_bi(phone_number):
                     SELECTCOLUMNS(
                         Employees,
                         "Employee", Employees[Employee],
-                        "PhoneNumber", Employees[PhoneNumberTelegram],
+                        "PhoneNumber", Employees[PhoneNumber],
                         "Status", Employees[Status]
                     )
                 """
