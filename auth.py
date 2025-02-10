@@ -12,12 +12,15 @@ def normalize_phone_number(phone_number):
     - Видаляє всі нецифрові символи.
     - Додає код країни, якщо його немає.
     """
-    digits = re.sub(r'\D', '', phone_number)  # Видаляємо всі нецифрові символи
+    digits = re.sub(r'\D', '', phone_number)  # Залишаємо лише цифри
     if len(digits) == 9:  # Якщо номер без коду країни
         return f"380{digits}"
-    elif len(digits) == 12 and digits.startswith("380"):  # Якщо номер з кодом країни
+    elif len(digits) == 12 and digits.startswith("380"):  # Якщо номер із кодом країни
         return digits
-    return digits  # Повертає те, що залишилось
+    elif len(digits) == 10 and digits.startswith("0"):  # Якщо номер починається з "0"
+        return f"380{digits[1:]}"
+    else:
+        return digits
 
 
 # Отримання токену Power BI
