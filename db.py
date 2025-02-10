@@ -24,9 +24,11 @@ def create_tables():
         telegram_id BIGINT NOT NULL,
         telegram_name VARCHAR(50),
         employee_name VARCHAR(50),
-        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        status VARCHAR(20)
+        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
+    """)
+    cursor.execute("""
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active';
     """)
 
      # Створюємо таблицю виплат
@@ -219,7 +221,22 @@ def get_latest_currency_rates(currencies):
 
 
 
+def update_user_status():
+    """ Тимчасова функція для оновлення всіх існуючих користувачів до статусу 'active' """
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
+    cursor.execute("""
+    UPDATE users SET status = 'active' WHERE status IS NULL;
+    """)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    logging.info("Усім користувачам встановлено статус 'active'.")
+
+# Викликаємо оновлення статусу
+update_user_status()
 
 
 
