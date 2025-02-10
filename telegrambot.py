@@ -13,6 +13,7 @@ from messages.check_payments import check_new_payments
 from messages.sync_payments import sync_payments
 from auth import is_phone_number_in_power_bi
 from db import add_telegram_user, get_user_joined_at
+from auth import verify_and_add_user 
 from messages.reminder import schedule_monthly_reminder
 from messages.check_devaluation import check_new_devaluation_records
 from messages.sync_devaluation import sync_devaluation_data  # Імпорт функції з нового файлу
@@ -54,8 +55,7 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
         
         if found:
             logging.info(f"Користувач знайдений: {employee_name}")
-            add_telegram_user(phone_number=phone_number, telegram_id=update.message.from_user.id,
-                              telegram_name=update.message.from_user.first_name, employee_name=employee_name)
+            verify_and_add_user(phone_number, update.message.from_user.id, update.message.from_user.first_name)
             joined_at = get_user_joined_at(phone_number)
             logging.info(f"Дата приєднання користувача: {joined_at}")
 
