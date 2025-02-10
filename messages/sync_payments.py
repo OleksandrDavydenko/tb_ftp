@@ -56,7 +56,7 @@ async def sync_payments():
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT phone_number, employee_name, joined_at FROM users")
+    cursor.execute("SELECT phone_number, employee_name, joined_at FROM users WHERE status = 'active'")
     users = cursor.fetchall()
 
     for user in users:
