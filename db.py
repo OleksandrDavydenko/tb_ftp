@@ -239,5 +239,23 @@ def get_user_status(phone_number):
     return None  # Якщо користувача немає в базі
 
 
+def get_employee_name(phone_number):
+    """ Отримує ім'я співробітника з бази даних, якщо воно є """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT employee_name FROM users WHERE phone_number = %s
+    """, (phone_number,))
+    result = cursor.fetchone()
+
+    conn.close()
+
+    if result:
+        return result[0]  # Повертаємо ім'я користувача
+    return None  # Якщо імені немає в БД
+
+
+
 
 
