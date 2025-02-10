@@ -115,7 +115,6 @@ def is_phone_number_in_power_bi(phone_number):
         return False, None, None
 
 
-
 # Функція для перевірки користувача і запису в базу
 def verify_and_add_user(phone_number, telegram_id, telegram_name):
     is_active, employee_name, status_from_power_bi = is_phone_number_in_power_bi(phone_number)
