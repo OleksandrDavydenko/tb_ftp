@@ -84,23 +84,37 @@ def create_tables():
 # Викликаємо функцію для створення таблиць при запуску
 create_tables()
 
-def add_telegram_user(phone_number, telegram_id, telegram_name, employee_name):
+
+
+def add_telegram_user(phone_number, telegram_id, telegram_name, employee_name, status):
+    """
+    Додає нового користувача або оновлює його дані в таблиці users.
+    Статус передається з auth.py ("active" або "deleted").
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
-    INSERT INTO users (phone_number, telegram_id, telegram_name, employee_name, joined_at)
-    VALUES (%s, %s, %s, %s, %s)
+    INSERT INTO users (phone_number, telegram_id, telegram_name, employee_name, status, joined_at)
+    VALUES (%s, %s, %s, %s, %s, %s)
     ON CONFLICT (phone_number) DO UPDATE SET
         telegram_id = EXCLUDED.telegram_id,
         telegram_name = EXCLUDED.telegram_name,
         employee_name = EXCLUDED.employee_name,
+        status = EXCLUDED.status,
         joined_at = COALESCE(users.joined_at, EXCLUDED.joined_at)
-    """, (phone_number, telegram_id, telegram_name, employee_name, datetime.now()))
+    """, (phone_number, telegram_id, telegram_name, employee_name, status, datetime.now()))
 
     conn.commit()
     cursor.close()
     conn.close()
+
+    logging.info(f"Користувач {phone_number} доданий/оновлений зі статусом {status}.")
+
+
+
+
+
 
 def add_payment(phone_number, amount, currency, payment_date, payment_number):
     conn = get_db_connection()
@@ -169,25 +183,13 @@ def get_user_joined_at(phone_number):
         return result[0]
     return None
 
-""" def get_all_users():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT telegram_id, telegram_name FROM users")
-    users = cursor.fetchall()
-
-    conn.close()
-
-    return [{'telegram_id': user[0], 'telegram_name': user[1]} for user in users] """
-
-
 
 
 def get_all_users():
     conn = get_db_connection()
     cursor = conn.cursor()
-
-    cursor.execute("SELECT telegram_id, telegram_name, employee_name FROM users")
+    #тільки активні користувачі
+    cursor.execute("SELECT telegram_id, telegram_name, employee_name FROM users WHERE status = 'active'")
     users = cursor.fetchall()
 
     conn.close()
@@ -221,22 +223,7 @@ def get_latest_currency_rates(currencies):
 
 
 
-def update_user_status():
-    """ Тимчасова функція для оновлення всіх існуючих користувачів до статусу 'active' """
-    conn = get_db_connection()
-    cursor = conn.cursor()
 
-    cursor.execute("""
-    UPDATE users SET status = 'active' WHERE status IS NULL;
-    """)
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-    logging.info("Усім користувачам встановлено статус 'active'.")
-
-# Викликаємо оновлення статусу
-update_user_status()
 
 
 

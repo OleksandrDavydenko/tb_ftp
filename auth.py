@@ -1,8 +1,9 @@
 import re
 import requests
 import os
+from db import add_telegram_user  # Імпортуємо функцію додавання користувачів
 
-# Функція для нормалізації номеру телефону (залишає лише останні 9 цифр)
+# Функція для нормалізації номера телефону (залишає лише останні 9 цифр)
 def normalize_phone_number(phone_number):
     digits = re.sub(r'\D', '', phone_number)
     return digits[-9:]
@@ -68,7 +69,6 @@ def is_phone_number_in_power_bi(phone_number):
     
     if response.status_code == 200:
         data = response.json()
-        # Перевіряємо, чи є результати
         if 'results' in data and len(data['results']) > 0 and 'tables' in data['results'][0] and len(data['results'][0]['tables']) > 0:
             rows = data['results'][0]['tables'][0].get('rows', [])
             if rows:
@@ -88,6 +88,21 @@ def is_phone_number_in_power_bi(phone_number):
     else:
         print(f"Error executing query: {response.status_code}, {response.text}")
         return False, None
+
+# Функція для перевірки користувача і запису в базу
+def verify_and_add_user(phone_number, telegram_id, telegram_name):
+    """
+    1. Перевіряє, чи користувач активний у таблиці Employees Power BI.
+    2. Якщо активний – записує в users зі статусом 'active'.
+    3. Якщо не активний – записує в users зі статусом 'deleted'.
+    """
+    is_active, employee_name = is_phone_number_in_power_bi(phone_number)
+
+    status = 'active' if is_active else 'deleted'
+
+    add_telegram_user(phone_number, telegram_id, telegram_name, employee_name, status)
+
+    print(f"Користувач {phone_number} доданий/оновлений зі статусом {status}.")
 
 # Функція для отримання даних про дебіторку для менеджера
 def get_user_debt_data(manager_name):
