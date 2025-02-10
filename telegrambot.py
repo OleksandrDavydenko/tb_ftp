@@ -12,7 +12,7 @@ import sys
 from messages.check_payments import check_new_payments
 from messages.sync_payments import sync_payments
 from auth import is_phone_number_in_power_bi
-from db import add_telegram_user, get_user_joined_at, get_user_status
+from db import add_telegram_user, get_user_joined_at, get_user_status, get_employee_name
 from auth import verify_and_add_user 
 from messages.reminder import schedule_monthly_reminder
 from messages.check_devaluation import check_new_devaluation_records
@@ -52,14 +52,14 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
         phone_number = normalize_phone_number(update.message.contact.phone_number)
         logging.info(f"📞 Отримано номер телефону: {phone_number}")
 
-        # Оновлюємо або додаємо користувача в БД із перевіркою статусу
+        # Оновлюємо або додаємо користувача в БД із правильним ім'ям та статусом
         verify_and_add_user(phone_number, update.message.from_user.id, update.message.from_user.first_name)
 
         # Отримуємо оновлений статус користувача з бази
         status = get_user_status(phone_number)
 
         if status == "active":
-            employee_name = is_phone_number_in_power_bi(phone_number)[1]  # Отримуємо ім'я користувача
+            employee_name = get_employee_name(phone_number)  # Тепер точно отримуємо ім'я
             logging.info(f"✅ Користувач активний: {employee_name} ({phone_number})")
 
             joined_at = get_user_joined_at(phone_number)
