@@ -12,7 +12,7 @@ import sys
 from messages.check_payments import check_new_payments
 from messages.sync_payments import sync_payments
 from auth import is_phone_number_in_power_bi
-from db import add_telegram_user, get_user_joined_at
+from db import add_telegram_user, get_user_joined_at, get_user_status
 from auth import verify_and_add_user 
 from messages.reminder import schedule_monthly_reminder
 from messages.check_devaluation import check_new_devaluation_records
