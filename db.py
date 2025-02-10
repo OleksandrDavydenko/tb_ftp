@@ -220,6 +220,10 @@ def get_latest_currency_rates(currencies):
     except Exception as e:
         print(f"Помилка отримання курсів: {e}")
         raise e
+    
+
+
+    """ івв """
 
 
 
