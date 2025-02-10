@@ -52,11 +52,12 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
         phone_number = normalize_phone_number(update.message.contact.phone_number)
         logging.info(f"📞 Отримано номер телефону: {phone_number}")
 
-        # Оновлюємо або додаємо користувача в БД
+        # Перевіряємо користувача в Power BI
         verify_and_add_user(phone_number, update.message.from_user.id, update.message.from_user.first_name)
 
-        # Отримуємо оновлений статус користувача
+        # Отримуємо статус із бази
         status = get_user_status(phone_number)
+        logging.info(f"📊 Статус у БД: {status}")
 
         if status == "active":
             employee_name = get_employee_name(phone_number)  # Отримуємо ім'я користувача
@@ -72,7 +73,7 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
                 except Exception as e:
                     logging.error(f"❌ Помилка при синхронізації платежів: {e}")
 
-            # Оновлюємо контекст бота
+            # Оновлення даних користувача в контексті бота
             context.user_data.update({
                 'registered': True,
                 'phone_number': phone_number,
@@ -87,6 +88,7 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
             logging.warning(f"🚫 Доступ заборонено для {phone_number} (Статус: {status})")
             await update.message.reply_text("🚫 Ваш номер не знайдено або ви не активний користувач. Доступ заборонено.")
             await prompt_for_phone_number(update, context)
+
 
 
 async def show_main_menu(update: Update, context: CallbackContext) -> None:

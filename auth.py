@@ -94,29 +94,23 @@ def is_phone_number_in_power_bi(phone_number):
 
 # Функція для перевірки користувача і запису в базу
 def verify_and_add_user(phone_number, telegram_id, telegram_name):
-    """
-    1. Перевіряє користувача в Power BI.
-    2. Якщо знайдено → оновлює статус у БД відповідно до Power BI.
-    3. Якщо не знайдено → статус `deleted`.
-    """
     is_active, employee_name, status_from_power_bi = is_phone_number_in_power_bi(phone_number)
+    logging.info(f"📊 Дані Power BI для {phone_number}: Активний={is_active}, Ім'я={employee_name}, Статус={status_from_power_bi}")
 
-    # Отримуємо ім'я з БД, якщо не знайдено в Power BI
     if not employee_name:
         employee_name = get_employee_name(phone_number)
+        logging.info(f"ℹ️ Ім'я з бази: {employee_name}")
 
-    # Новий статус: "active" або "deleted"
     new_status = "active" if status_from_power_bi == "Активний" else "deleted"
-
-    # Поточний статус у базі
     current_status = get_user_status(phone_number)
+    logging.info(f"🛠️ Поточний статус у БД: {current_status}, Новий статус: {new_status}")
 
-    # Оновлюємо статус, якщо він змінився
     if current_status != new_status:
         add_telegram_user(phone_number, telegram_id, telegram_name, employee_name, new_status)
-        logging.info(f"🔄 Статус користувача {phone_number} оновлено: {new_status}")
+        logging.info(f"🔄 Статус оновлено: {phone_number} → {new_status}")
     else:
-        logging.info(f"✅ Статус користувача {phone_number} без змін: {current_status}")
+        logging.info(f"✅ Статус без змін: {phone_number} → {current_status}")
+
 
 
 
