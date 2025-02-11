@@ -200,13 +200,14 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     elif text in ["Дохід", "Валовий прибуток", "Маржинальність", "Кількість угод"]:
         await handle_parameter_choice(update, context)
     elif text.startswith("/debt"):  
-        log_user_action(user_id, text)  # Логування команди
+        await show_debt_options(update, context)  
     elif text.startswith("/info"):  
-        log_user_action(user_id, text)  # Логування команди
+        await show_help_menu(update, context)  
     elif text.startswith("/analytics"):  
-        log_user_action(user_id, text)  # Логування команди
+        await show_analytics_options(update, context)
     elif text.startswith("/salary"):  
-        log_user_action(user_id, text)  # Логування команди
+        context.user_data['menu'] = 'salary_years'
+        await show_salary_years(update, context)
 
 async def handle_back_navigation(update: Update, context: CallbackContext) -> None:
     menu = context.user_data.get('menu')
