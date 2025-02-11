@@ -232,14 +232,15 @@ async def handle_parameter_choice(update: Update, context: CallbackContext) -> N
 
     await show_yearly_chart_for_parameter(update, context, employee_name, selected_year, selected_parameter)
 
+
 async def shutdown(application):
     """
     Коректно завершує роботу бота та планувальника.
     """
     logging.info("🛑 Завершення роботи бота...")
-    
+
     if scheduler.running:
-        scheduler.shutdown(wait=False)  # Без очікування
+        scheduler.shutdown(wait=False)
 
     await application.shutdown()
     logging.info("✅ Бот успішно зупинений.")
@@ -305,7 +306,8 @@ async def main():
 
 if __name__ == '__main__':
     try:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         loop.run_until_complete(main())
     except RuntimeError as e:
         logging.error(f"⚠️ Помилка запуску Event Loop: {e}")
