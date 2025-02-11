@@ -1,7 +1,7 @@
 import re
 import requests
 import os
-from db import add_telegram_user, get_user_status, get_employee_name  # Імпортуємо функцію перевірки статусу
+from db import add_telegram_user, get_user_status, get_employee_name, delete_user_payments  # Імпортуємо функцію перевірки статусу
 import logging
 
 
@@ -130,6 +130,10 @@ def verify_and_add_user(phone_number, telegram_id, telegram_name):
     if current_status != new_status:
         add_telegram_user(phone_number, telegram_id, telegram_name, employee_name, new_status)
         logging.info(f"🔄 Статус оновлено: {phone_number} → {new_status}")
+
+        # Видаляємо платежі, якщо користувач більше не активний
+        if new_status == "deleted":
+            delete_user_payments(phone_number)
     else:
         logging.info(f"✅ Статус без змін: {phone_number} → {current_status}")
 

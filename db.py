@@ -258,4 +258,19 @@ def get_employee_name(phone_number):
 
 
 
-
+def delete_user_payments(phone_number):
+    """
+    Видаляє всі платежі користувача з таблиці payments за номером телефону.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("DELETE FROM payments WHERE phone_number = %s", (phone_number,))
+        conn.commit()
+        logging.info(f"❌ Усі платежі для {phone_number} видалено.")
+    except Exception as e:
+        logging.error(f"⚠️ Помилка видалення платежів для {phone_number}: {e}")
+    finally:
+        cursor.close()
+        conn.close()
