@@ -1,5 +1,5 @@
 import asyncio
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, BotCommand
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, BotCommandScopeDefault, BotCommand, MenuButtonCommands
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import timezone
@@ -7,6 +7,7 @@ from information.querryFinanceUa import store_exchange_rates
 import logging
 import os
 import sys
+import signal
 
 
 from messages.check_payments import check_new_payments
@@ -35,10 +36,8 @@ scheduler = AsyncIOScheduler()
 
 
 #Додаткове меню
-async def set_bot_commands(application):
-    """
-    Встановлює глобальне меню команд для бота.
-    """
+async def set_bot_menu(application):
+    """Встановлення глобального меню для бота."""
     commands = [
         BotCommand("start", "🔄 Почати роботу"),
         BotCommand("help", "ℹ️ Допомога"),
@@ -48,7 +47,12 @@ async def set_bot_commands(application):
         BotCommand("info", "ℹ️ Інформація")
     ]
 
-    await application.bot.set_my_commands(commands)
+    await application.bot.set_my_commands(commands, scope=BotCommandScopeDefault())
+
+    # Додаємо постійне меню у вигляді кнопки "Меню"
+    await application.bot.set_chat_menu_button(
+        menu_button=MenuButtonCommands()
+    )
 
 async def start(update: Update, context: CallbackContext) -> None:
     context.user_data['registered'] = False
@@ -232,49 +236,67 @@ async def handle_parameter_choice(update: Update, context: CallbackContext) -> N
 
     await show_yearly_chart_for_parameter(update, context, employee_name, selected_year, selected_parameter)
 
-async def shutdown(application):
-    """Завершення роботи бота та планувальника."""
+# Функція завершення роботи бота
+async def shutdown(app, scheduler):
     logging.info("🛑 Завершення роботи бота...")
-    if scheduler.running:
-        scheduler.shutdown(wait=False)
-    await application.shutdown()
+    scheduler.shutdown(wait=True)
+    await app.shutdown()
     logging.info("✅ Бот успішно зупинений.")
 
+# Головна функція
 async def main():
-    """Основна функція запуску бота."""
-    application = ApplicationBuilder().token(KEY).build()
+    app = ApplicationBuilder().token(KEY).build()
 
-    # Додавання команд
-    await set_bot_commands(application)
+    await set_bot_menu(app)
 
-    # Додавання обробників команд
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", show_help_menu))
-    application.add_handler(CommandHandler("debt", show_debt_options))
-    application.add_handler(CommandHandler("salary", show_salary_years))
-    application.add_handler(CommandHandler("analytics", show_analytics_options))
-    application.add_handler(CommandHandler("info", show_help_menu))
-
-    # Додавання планувальника
     scheduler.add_job(check_new_payments, 'interval', seconds=400)
     scheduler.add_job(sync_payments, 'interval', seconds=350)
     scheduler.add_job(check_new_devaluation_records, 'interval', seconds=10800)
     scheduler.add_job(sync_devaluation_data, 'interval', seconds=10800)
+    schedule_monthly_reminder(scheduler)
+
+    kyiv_timezone = timezone('Europe/Kiev')
+    scheduler.add_job(
+        store_exchange_rates,
+        'cron',
+        hour=10,
+        minute=0,
+        timezone=kyiv_timezone,
+        id='daily_exchange_rates',
+    )
+
+    scheduler.add_job(
+        check_overdue_debts,
+        'cron',
+        day_of_week='tue',
+        hour=11,
+        timezone='Europe/Kiev'
+    )
+
     scheduler.add_job(sync_user_statuses, 'interval', minutes=5)
 
     scheduler.start()
 
-    try:
-        await application.run_polling()
-    except (KeyboardInterrupt, SystemExit):
-        logging.info("🛑 Бот зупиняється вручну...")
-    finally:
-        await shutdown(application)
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
+    app.add_handler(MessageHandler(filters.Regex(
+        "^(📉 Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|💼 Розрахунковий лист|ℹ️ Інформація|💱 Курс валют|Перевірка девальвації|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод|Протермінована дебіторська заборгованість)$"), handle_main_menu))
 
-if __name__ == "__main__":
-    loop = asyncio.new_event_loop()  # Створюємо новий event loop
-    asyncio.set_event_loop(loop)  # Встановлюємо його як поточний
-    loop.run_until_complete(main())  # Запускаємо головну функцію
+    loop = asyncio.get_running_loop()
+
+    # Додаємо обробники сигналів завершення процесу
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown(app, scheduler)))
+
+    try:
+        await app.run_polling()
+    except Exception as e:
+        logging.error(f"⚠️ Помилка виконання бота: {e}")
+    finally:
+        await shutdown(app, scheduler)
+
+if __name__ == '__main__':
+    asyncio.run(main())
 
 
 
