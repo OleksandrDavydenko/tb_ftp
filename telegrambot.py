@@ -89,12 +89,12 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
             joined_at = get_user_joined_at(phone_number)
             logging.info(f"📅 Дата приєднання користувача: {joined_at}")
 
-            # Синхронізація платежів
-            if joined_at:
-                try:
-                    await sync_payments()
-                except Exception as e:
-                    logging.error(f"❌ Помилка при синхронізації платежів: {e}")
+            # Синхронізація платежів (Немає потреби всіх синхронізувати при верифікації)
+            # if joined_at:
+            #    try:
+            #        await sync_payments()
+            #    except Exception as e:
+            #        logging.error(f"❌ Помилка при синхронізації платежів: {e}")
 
             # Оновлення даних користувача в контексті бота
             context.user_data.update({

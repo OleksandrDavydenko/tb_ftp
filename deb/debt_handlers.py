@@ -61,7 +61,7 @@ async def handle_overdue_debt(update: Update, context: CallbackContext) -> None:
 async def show_debt_details(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'debt_details'
     phone_number = context.user_data['phone_number']
-    found, employee_name = is_phone_number_in_power_bi(phone_number)
+    found, employee_name, _ = is_phone_number_in_power_bi(phone_number)
     debt_data = get_user_debt_data(employee_name)
 
     if debt_data:
@@ -108,7 +108,7 @@ async def show_debt_details(update: Update, context: CallbackContext) -> None:
 async def show_debt_histogram(update: Update, context: CallbackContext):
     context.user_data['menu'] = 'debt_histogram'
     phone_number = context.user_data['phone_number']
-    found, employee_name = is_phone_number_in_power_bi(phone_number)
+    found, employee_name, _ = is_phone_number_in_power_bi(phone_number)
     debt_data = get_user_debt_data(employee_name)
 
     if debt_data:
@@ -132,7 +132,7 @@ async def show_debt_histogram(update: Update, context: CallbackContext):
 async def show_debt_pie_chart(update: Update, context: CallbackContext):
     context.user_data['menu'] = 'debt_pie_chart'
     phone_number = context.user_data['phone_number']
-    found, employee_name = is_phone_number_in_power_bi(phone_number)
+    found, employee_name, _ = is_phone_number_in_power_bi(phone_number)
     debt_data = get_user_debt_data(employee_name)
 
     if debt_data:
