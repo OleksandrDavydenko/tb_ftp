@@ -232,6 +232,7 @@ async def handle_parameter_choice(update: Update, context: CallbackContext) -> N
 
     await show_yearly_chart_for_parameter(update, context, employee_name, selected_year, selected_parameter)
 
+import asyncio
 
 async def shutdown(application):
     """
@@ -306,9 +307,12 @@ async def main():
 
 if __name__ == '__main__':
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(main())
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            logging.warning("⚠️ Event loop уже запущений. Використовуємо `create_task()`.")
+            loop.create_task(main())
+        else:
+            loop.run_until_complete(main())
     except RuntimeError as e:
         logging.error(f"⚠️ Помилка запуску Event Loop: {e}")
 
