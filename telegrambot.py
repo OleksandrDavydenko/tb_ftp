@@ -133,6 +133,15 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     if not context.user_data.get('registered', False):
         await prompt_for_phone_number(update, context)
         return
+    
+    query = update.callback_query  # Перевіряємо, чи це callback-запит
+    if query:
+        text = query.data  # Отримуємо текст кнопки
+        user_id = query.from_user.id
+        await query.answer()  # Закриваємо query, щоб Telegram не видавав "годинник"
+    else:
+        text = update.message.text
+        user_id = update.message.from_user.id
 
     text = update.message.text
 
@@ -145,22 +154,6 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     
     if text == "📉 Дебіторська заборгованість":
         await show_debt_options(update, context)
-    elif text == "/menu":
-        log_user_action(user_id, text)
-        await show_main_menu(update, context)
-        log_user_action(user_id, text)
-    elif text == "/debt":
-        log_user_action(user_id, text)
-        await show_debt_options(update, context)
-    elif text == "/salary":
-        log_user_action(user_id, text)
-        await show_salary_years(update, context)
-    elif text == "/analytics":
-        log_user_action(user_id, text)
-        await show_analytics_options(update, context)
-    elif text == "/info":
-        log_user_action(user_id, text)
-        await show_help_menu(update, context)
     elif text == "Таблиця":
         await show_debt_details(update, context)
     elif text == "Гістограма":
@@ -193,6 +186,22 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         await handle_month_choice(update, context)
     elif text in ["Дохід", "Валовий прибуток", "Маржинальність", "Кількість угод"]:
         await handle_parameter_choice(update, context)
+    elif text == "/menu":
+        log_user_action(user_id, text)
+        await show_main_menu(update, context)
+        log_user_action(user_id, text)
+    elif text == "/debt":
+        log_user_action(user_id, text)
+        await show_debt_options(update, context)
+    elif text == "/salary":
+        log_user_action(user_id, text)
+        await show_salary_years(update, context)
+    elif text == "/analytics":
+        log_user_action(user_id, text)
+        await show_analytics_options(update, context)
+    elif text == "/info":
+        log_user_action(user_id, text)
+        await show_help_menu(update, context)
 
 async def handle_back_navigation(update: Update, context: CallbackContext) -> None:
     menu = context.user_data.get('menu')
