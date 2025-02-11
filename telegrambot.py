@@ -135,35 +135,29 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         return
     
 
-    
-    
+
     query = update.callback_query  # Перевіряємо, чи це callback-запит
     if query:
-        text = query.data  # Отримуємо текст кнопки
+        text = query.data  # Якщо це inline-кнопка
         user_id = query.from_user.id
-        await query.answer()  # Закриваємо query, щоб Telegram не показував "годинник"
+        await query.answer()
     else:
         text = update.message.text if update.message else None
         user_id = update.message.from_user.id if update.message else None
 
-    # Логування отриманого тексту перед записом в базу
+    # Логування отриманого тексту перед записом у базу
     logging.info(f"📩 Отримано повідомлення: {text} від користувача {user_id}")
 
-    if not text:
+    if not text or not user_id:
         logging.warning("⚠️ Не вдалося отримати текст кнопки або ID користувача")
-        return
+        return  # Виходимо, якщо немає тексту або ID користувача
 
-    # ✅ Запис у логи
+    # ✅ Запис у логи (один раз, без дублювання)
     try:
         log_user_action(user_id, text)
         logging.info(f"✅ Логування успішне для {user_id}: {text}")
     except Exception as e:
         logging.error(f"❌ Помилка логування для {user_id}: {e}")
-
-    # 📌 Обробка вибраної команди
-    if text.startswith("/"):  
-        log_user_action(user_id, text)
-        logging.info(f"✅ Запис у лог: команда {text} від {user_id}")
     
     if text == "📉 Дебіторська заборгованість":
         await show_debt_options(update, context)
