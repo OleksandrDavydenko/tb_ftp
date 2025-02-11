@@ -232,17 +232,15 @@ async def handle_parameter_choice(update: Update, context: CallbackContext) -> N
 
     await show_yearly_chart_for_parameter(update, context, employee_name, selected_year, selected_parameter)
 
-async def shutdown(app, scheduler):
-    await app.shutdown()
-    scheduler.shutdown(wait=True)
-    logging.info("Планувальник зупинено.")
-
 async def shutdown(application):
     """
     Коректно завершує роботу бота та планувальника.
     """
     logging.info("🛑 Завершення роботи бота...")
-    scheduler.shutdown(wait=False)  # Зупиняємо планувальник без очікування
+    
+    if scheduler.running:
+        scheduler.shutdown(wait=False)  # Без очікування
+
     await application.shutdown()
     logging.info("✅ Бот успішно зупинений.")
 
@@ -300,14 +298,17 @@ async def main():
 
     try:
         await application.run_polling()
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, SystemExit):
         logging.info("🛑 Бот зупиняється вручну...")
     finally:
         await shutdown(application)
 
 if __name__ == '__main__':
-    asyncio.run(main())
-
+    try:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main())
+    except RuntimeError as e:
+        logging.error(f"⚠️ Помилка запуску Event Loop: {e}")
 
 
 
