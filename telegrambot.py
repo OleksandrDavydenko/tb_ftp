@@ -13,7 +13,7 @@ import sys
 from messages.check_payments import check_new_payments
 from messages.sync_payments import sync_payments
 from auth import is_phone_number_in_power_bi
-from db import add_telegram_user, get_user_joined_at, get_user_status, get_employee_name
+from db import add_telegram_user, get_user_joined_at, get_user_status, get_employee_name, log_user_action
 from auth import verify_and_add_user 
 from messages.reminder import schedule_monthly_reminder
 from messages.check_devaluation import check_new_devaluation_records
@@ -132,6 +132,14 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         return
 
     text = update.message.text
+
+    user_id = update.message.from_user.id
+
+    # Логування дії користувача
+    log_user_action(user_id, text)  # Записуємо дію в базу
+
+    logging.info(f"Користувач {user_id} вибрав опцію: {text}")
+
     if text == "📉 Дебіторська заборгованість":
         await show_debt_options(update, context)
     elif text == "Таблиця":
@@ -272,7 +280,7 @@ def main():
         timezone='Europe/Kiev'  # Часовий пояс
     )
 
-    scheduler.add_job(sync_user_statuses, 'interval', minutes=5)
+    scheduler.add_job(sync_user_statuses, 'interval', minutes=100)
 
 
     scheduler.start()

@@ -329,3 +329,73 @@ def update_user_status(phone_number, new_status):
     finally:
         cursor.close()
         conn.close()
+
+
+
+
+
+def create_tables():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Створюємо таблицю логів
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS bot_logs (
+        id SERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        username VARCHAR(50),
+        action TEXT NOT NULL,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    logging.info("Таблиця логів створена або вже існує.")
+
+
+
+def log_user_action(user_id, username, action):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Вставляємо запис у таблицю логів
+    cursor.execute("""
+    INSERT INTO bot_logs (user_id, username, action)
+    VALUES (%s, %s, %s)
+    """, (user_id, username, action))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    logging.info(f"Записано в логи: {username} (ID: {user_id}) - {action}")
+
+
+
+def log_user_action(user_id, action):
+    # Отримуємо ім'я співробітника (employee_name) з бази даних
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT employee_name FROM users WHERE telegram_id = %s
+    """, (user_id,))
+    result = cursor.fetchone()
+
+    # Перевіряємо, чи знайдено ім'я співробітника
+    if result:
+        employee_name = result[0]
+    else:
+        employee_name = "Unknown User"  # Якщо не знайдено
+
+    # Записуємо в таблицю log
+    cursor.execute("""
+    INSERT INTO bot_logs (user_id, username, action)
+    VALUES (%s, %s, %s)
+    """, (user_id, employee_name, action))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    logging.info(f"Записано в логи: {employee_name} (ID: {user_id}) - {action}")
