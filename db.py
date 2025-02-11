@@ -274,3 +274,23 @@ def delete_user_payments(phone_number):
     finally:
         cursor.close()
         conn.close()
+
+
+
+
+def update_user_joined_at(phone_number, new_joined_at):
+    """
+    Оновлює поле joined_at для користувача.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("UPDATE users SET joined_at = %s WHERE phone_number = %s", (new_joined_at, phone_number))
+        conn.commit()
+        logging.info(f"📅 Оновлено joined_at для {phone_number}: {new_joined_at}")
+    except Exception as e:
+        logging.error(f"⚠️ Помилка оновлення joined_at для {phone_number}: {e}")
+    finally:
+        cursor.close()
+        conn.close()
