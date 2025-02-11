@@ -12,6 +12,8 @@ def normalize_phone_number(phone_number):
     - Видаляє всі нецифрові символи.
     - Додає код країни, якщо його немає.
     """
+    if not phone_number:  # Перевіряємо, чи не None
+        return ""
     digits = re.sub(r'\D', '', phone_number)  # Залишаємо лише цифри
     if len(digits) == 9:  # Якщо номер без коду країни
         return f"380{digits}"
@@ -91,8 +93,8 @@ def is_phone_number_in_power_bi(phone_number):
 
         # Нормалізуємо всі номери з Power BI
         phone_map = {
-            normalize_phone_number(row.get('[PhoneNumber]', '')): (row.get('[Employee]', ''), row.get('[Status]', ''))
-            for row in rows
+            normalize_phone_number(row.get('[PhoneNumber]', '') or ''): (row.get('[Employee]', ''), row.get('[Status]', ''))
+            for row in rows if row.get('[PhoneNumber]')  # Фільтруємо None
         }
         logging.info(f"📞 phone_map: {phone_map}")
 
