@@ -76,12 +76,27 @@ def create_tables():
     )
     """)
 
+
+
+ # Створюємо таблицю для логів бота
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS bot_logs (
+            id SERIAL PRIMARY KEY,
+            user_id BIGINT NOT NULL,
+            username VARCHAR(50),
+            action TEXT NOT NULL,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    logging.info("Таблиця 'bot_logs' створена або вже існує.")
+
     conn.commit()
     cursor.close()
     conn.close()
     logging.info("Усі таблиці створено або оновлено успішно.")
 
 # Викликаємо функцію для створення таблиць при запуску
+
 create_tables()
 
 
@@ -332,44 +347,6 @@ def update_user_status(phone_number, new_status):
 
 
 
-
-
-def create_tables():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Створюємо таблицю логів
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS bot_logs (
-        id SERIAL PRIMARY KEY,
-        user_id BIGINT NOT NULL,
-        username VARCHAR(50),
-        action TEXT NOT NULL,
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    """)
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-    logging.info("Таблиця логів створена або вже існує.")
-
-
-
-def log_user_action(user_id, username, action):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Вставляємо запис у таблицю логів
-    cursor.execute("""
-    INSERT INTO bot_logs (user_id, username, action)
-    VALUES (%s, %s, %s)
-    """, (user_id, username, action))
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-    logging.info(f"Записано в логи: {username} (ID: {user_id}) - {action}")
 
 
 
