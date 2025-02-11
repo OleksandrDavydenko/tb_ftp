@@ -14,7 +14,7 @@ if not os.path.exists(TEMP_DIR):
 async def show_debt_options(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'debt_options'
     phone_number = context.user_data.get('phone_number')
-    found, employee_name = is_phone_number_in_power_bi(phone_number)
+    found, employee_name, _ = is_phone_number_in_power_bi(phone_number)
 
     if found:
         debt_data = get_user_debt_data(employee_name)
