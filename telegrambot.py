@@ -223,10 +223,9 @@ async def shutdown(app, scheduler):
     scheduler.shutdown(wait=True)
     logging.info("Планувальник зупинено.")
 
-async def main():
+def main():
     app = ApplicationBuilder().token(KEY).build()
 
-    await set_bot_menu(app)
 
     scheduler.add_job(check_new_payments, 'interval', seconds=400)
     scheduler.add_job(sync_payments, 'interval', seconds=350)
