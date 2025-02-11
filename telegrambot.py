@@ -31,6 +31,25 @@ from messages.weekly_overdue_debts import check_overdue_debts
 from sync_status import sync_user_statuses
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
+
+def set_bot_menu_sync(app):
+    """Синхронне додавання команд у меню."""
+    commands = [
+        BotCommand("start", "🔄 Почати роботу"),
+        BotCommand("help", "ℹ️ Допомога"),
+        BotCommand("debt", "📉 Дебіторська заборгованість"),
+        BotCommand("salary", "💼 Розрахунковий лист"),
+        BotCommand("analytics", "📊 Аналітика"),
+        BotCommand("info", "ℹ️ Інформація")
+    ]
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(app.bot.set_my_commands(commands))
+    loop.run_until_complete(app.bot.set_chat_menu_button(menu_button=MenuButtonCommands()))
+
+
+
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 scheduler = AsyncIOScheduler()
 
@@ -226,6 +245,7 @@ async def shutdown(app, scheduler):
 def main():
     app = ApplicationBuilder().token(KEY).build()
 
+    set_bot_menu_sync(app)
 
     scheduler.add_job(check_new_payments, 'interval', seconds=400)
     scheduler.add_job(sync_payments, 'interval', seconds=350)
