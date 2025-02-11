@@ -6,7 +6,7 @@ from .salary_queries import get_salary_data, get_salary_payments, get_bonuses, f
 # Функція для відображення списку доступних років
 async def show_salary_years(update: Update, context: CallbackContext) -> None:
     current_year = datetime.datetime.now().year
-    years = [str(year) for year in range(2024, current_year + 1)]
+    years = [str(year) for year in range(2025, current_year + 1)]
 
     # Створюємо кнопки з роками та додаємо кнопку "Назад"
     custom_keyboard = [[KeyboardButton(year)] for year in years]
