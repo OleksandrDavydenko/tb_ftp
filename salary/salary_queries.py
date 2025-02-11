@@ -225,6 +225,13 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
     Форматування таблиці зарплати з урахуванням бонусів.
     """
 
+    # Ініціалізація змінних за замовчуванням, щоб уникнути UnboundLocalError
+    total_uah = 0.0
+    total_usd = 0.0
+    total_payment_uah = 0.0
+    total_payment_usd = 0.0
+
+
     table = "-" * 41 + "\n"
 
     # Зарплатна частина
@@ -232,8 +239,6 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
         table += f"{'Нарахування':<18}{'UAH':<8}  {'USD':<8}\n"
         table += "-" * 41 + "\n"
 
-        total_uah = 0
-        total_usd = 0
 
         for row in rows:
             оклад_uah = float(row.get("[Нараховано Оклад UAH]", 0))
@@ -255,10 +260,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
     else:
         table += "Немає даних про нарахування.\n"
 
-    # Ініціалізація змінних
-        
-    total_payment_uah = 0
-    total_payment_usd = 0
+
 
 # Виплати
     if payments:
@@ -266,9 +268,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
         table += f"{'Дата':<10}{'Документ':<10} {'UAH':<8}  {'USD':<8}\n"
         table += "-" * 41 + "\n"
 
-        total_payment_uah = 0
-        total_payment_usd = 0
-
+   
         # Обробка та сортування платежів за датою
         formatted_payments = []
         for payment in payments:
