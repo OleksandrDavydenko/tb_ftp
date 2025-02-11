@@ -36,7 +36,7 @@ def set_bot_menu_sync(app):
     """Синхронне додавання команд у меню."""
     commands = [
         BotCommand("start", "🔄 Почати роботу"),
-        BotCommand("help", "ℹ️ Допомога"),
+        BotCommand("menu", "🏠 Головне меню"),
         BotCommand("debt", "📉 Дебіторська заборгованість"),
         BotCommand("salary", "💼 Розрахунковий лист"),
         BotCommand("analytics", "📊 Аналітика"),
@@ -280,7 +280,7 @@ def main():
 
     # ✅ Додаємо обробники для всіх команд
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", show_help_menu))
+    app.add_handler(CommandHandler("menu", show_main_menu))
     app.add_handler(CommandHandler("debt", show_debt_options))
     app.add_handler(CommandHandler("salary", show_salary_years))
     app.add_handler(CommandHandler("analytics", show_analytics_options))
