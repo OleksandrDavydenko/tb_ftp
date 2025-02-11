@@ -90,7 +90,6 @@ def is_phone_number_in_power_bi(phone_number):
     if response.status_code == 200:
         data = response.json()
         rows = data['results'][0]['tables'][0].get('rows', [])
-        logging.info(f"📊 Дані з Power BI: {rows}")
 
         # Нормалізуємо всі номери з Power BI
         phone_map = {
