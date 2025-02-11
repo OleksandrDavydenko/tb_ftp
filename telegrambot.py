@@ -159,6 +159,11 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         logging.info(f"✅ Логування успішне для {user_id}: {text}")
     except Exception as e:
         logging.error(f"❌ Помилка логування для {user_id}: {e}")
+
+    # 📌 Обробка вибраної команди
+    if text.startswith("/"):  
+        log_user_action(user_id, text)
+        logging.info(f"✅ Запис у лог: команда {text} від {user_id}")
     
     if text == "📉 Дебіторська заборгованість":
         await show_debt_options(update, context)
@@ -194,25 +199,14 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         await handle_month_choice(update, context)
     elif text in ["Дохід", "Валовий прибуток", "Маржинальність", "Кількість угод"]:
         await handle_parameter_choice(update, context)
-    elif text == "/menu":
-        log_user_action(user_id, text)
-        await show_main_menu(update, context)
-        log_user_action(user_id, text)
-    elif text == "/debt":
-        log_user_action(user_id, text)
-        await show_debt_options(update, context)
-    elif text == "/salary":
-        log_user_action(user_id, text)
-        await show_salary_years(update, context)
-    elif text == "/analytics":
-        log_user_action(user_id, text)
-        await show_analytics_options(update, context)
-    elif text == "/info":
-        log_user_action(user_id, text)
-        await show_help_menu(update, context)
     elif text.startswith("/debt"):  
         log_user_action(user_id, text)  # Логування команди
-        logging.info(f"✅ Запис у лог: команда {text} від {user_id}")
+    elif text.startswith("/info"):  
+        log_user_action(user_id, text)  # Логування команди
+    elif text.startswith("/analytics"):  
+        log_user_action(user_id, text)  # Логування команди
+    elif text.startswith("/salary"):  
+        log_user_action(user_id, text)  # Логування команди
 
 async def handle_back_navigation(update: Update, context: CallbackContext) -> None:
     menu = context.user_data.get('menu')
