@@ -348,30 +348,28 @@ def update_user_status(phone_number, new_status):
 
 
 
-
 def log_user_action(user_id, action):
-    # Отримуємо ім'я співробітника (employee_name) з бази даних
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-    cursor.execute("""
-    SELECT employee_name FROM users WHERE telegram_id = %s
-    """, (user_id,))
-    result = cursor.fetchone()
+        cursor.execute("""
+        SELECT employee_name FROM users WHERE telegram_id = %s
+        """, (user_id,))
+        result = cursor.fetchone()
 
-    # Перевіряємо, чи знайдено ім'я співробітника
-    if result:
-        employee_name = result[0]
-    else:
-        employee_name = "Unknown User"  # Якщо не знайдено
+        employee_name = result[0] if result else "Unknown User"
 
-    # Записуємо в таблицю log
-    cursor.execute("""
-    INSERT INTO bot_logs (user_id, username, action)
-    VALUES (%s, %s, %s)
-    """, (user_id, employee_name, action))
+        cursor.execute("""
+        INSERT INTO bot_logs (user_id, username, action)
+        VALUES (%s, %s, %s)
+        """, (user_id, employee_name, action))
 
-    conn.commit()
-    cursor.close()
-    conn.close()
-    logging.info(f"Записано в логи: {employee_name} (ID: {user_id}) - {action}")
+        conn.commit()
+        cursor.close()
+        conn.close()
+        logging.info(f"✅ Записано в логи: {employee_name} (ID: {user_id}) - {action}")
+
+    except Exception as e:
+        logging.error(f"❌ Помилка при записі в логи: {e}")
+

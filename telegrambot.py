@@ -130,25 +130,35 @@ async def show_main_menu(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text("🏠 Виберіть опцію:", reply_markup=reply_markup)
 
 async def handle_main_menu(update: Update, context: CallbackContext) -> None:
-    if not context.user_data.get('registered', False):
-        await prompt_for_phone_number(update, context)
-        return
-    
-    query = update.callback_query  # Перевіряємо, чи це callback-запит
+    user_id = None
+    text = None
+
+    # Перевіряємо, чи це callback-кнопка (InlineKeyboardMarkup)
+    query = update.callback_query
     if query:
         text = query.data  # Отримуємо текст кнопки
         user_id = query.from_user.id
-        await query.answer()  # Закриваємо query, щоб Telegram не видавав "годинник"
-    else:
+        await query.answer()  # Закриваємо callback, щоб Telegram не показував "годинник"
+    
+    # Якщо це звичайне повідомлення (ReplyKeyboardMarkup)
+    elif update.message:
         text = update.message.text
         user_id = update.message.from_user.id
 
-    text = update.message.text
+    # Логування отриманого повідомлення або кнопки
+    logging.info(f"📩 Отримано текст: {text} від користувача {user_id}")
 
-    user_id = update.message.from_user.id
+    # Якщо текст порожній або користувач не визначений — ігноруємо обробку
+    if not text or not user_id:
+        logging.warning("⚠️ Не вдалося отримати текст кнопки або ID користувача")
+        return
 
-    # Логування дії користувача
-    log_user_action(user_id, text)  # Записуємо дію в базу
+    # ✅ Запис у логи
+    try:
+        log_user_action(user_id, text)
+        logging.info(f"✅ Логування успішне для {user_id}: {text}")
+    except Exception as e:
+        logging.error(f"❌ Помилка логування для {user_id}: {e}")
 
     logging.info(f"Користувач {user_id} вибрав опцію: {text}")
     
@@ -312,6 +322,10 @@ def main():
 
 
     scheduler.start()
+
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_main_menu))
+    
+
 
 
     # ✅ Додаємо обробники для всіх команд
