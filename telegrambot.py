@@ -75,6 +75,9 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
         phone_number = normalize_phone_number(update.message.contact.phone_number)
         logging.info(f"📞 Отримано номер телефону: {phone_number}")
 
+        user_id = update.message.from_user.id
+        log_user_action(user_id, f"Надано номер телефону: {phone_number}")
+
         # Перевіряємо користувача в Power BI
         verify_and_add_user(phone_number, update.message.from_user.id, update.message.from_user.first_name)
 
