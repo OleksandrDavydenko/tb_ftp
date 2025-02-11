@@ -35,24 +35,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 scheduler = AsyncIOScheduler()
 
 
-#Додаткове меню
-async def set_bot_menu(application):
-    """Встановлення глобального меню для бота."""
-    commands = [
-        BotCommand("start", "🔄 Почати роботу"),
-        BotCommand("help", "ℹ️ Допомога"),
-        BotCommand("debt", "📉 Дебіторська заборгованість"),
-        BotCommand("salary", "💼 Розрахунковий лист"),
-        BotCommand("analytics", "📊 Аналітика"),
-        BotCommand("info", "ℹ️ Інформація")
-    ]
-
-    await application.bot.set_my_commands(commands, scope=BotCommandScopeDefault())
-
-    # Додаємо постійне меню у вигляді кнопки "Меню"
-    await application.bot.set_chat_menu_button(
-        menu_button=MenuButtonCommands()
-    )
 
 async def start(update: Update, context: CallbackContext) -> None:
     context.user_data['registered'] = False
