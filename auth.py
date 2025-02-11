@@ -127,6 +127,11 @@ def verify_and_add_user(phone_number, telegram_id, telegram_name):
     current_status = get_user_status(phone_number)
     logging.info(f"🛠️ Поточний статус у БД: {current_status}, Новий статус: {new_status}")
 
+    # Якщо користувач вже був "deleted", видаляємо всі платежі
+    if current_status == "deleted":
+        logging.info(f"❌ Користувач {phone_number} вже був видалений. Видаляємо всі його платежі.")
+        delete_user_payments(phone_number)
+
     if current_status != new_status:
         add_telegram_user(phone_number, telegram_id, telegram_name, employee_name, new_status)
         logging.info(f"🔄 Статус оновлено: {phone_number} → {new_status}")
