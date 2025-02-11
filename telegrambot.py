@@ -142,9 +142,19 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     log_user_action(user_id, text)  # Записуємо дію в базу
 
     logging.info(f"Користувач {user_id} вибрав опцію: {text}")
-
+    
     if text == "📉 Дебіторська заборгованість":
         await show_debt_options(update, context)
+    elif text == "/menu":
+        await show_main_menu(update, context)
+    elif text == "/debt":
+        await show_debt_options(update, context)
+    elif text == "/salary":
+        await show_salary_years(update, context)
+    elif text == "/analytics":
+        await show_analytics_options(update, context)
+    elif text == "/info":
+        await show_help_menu(update, context)
     elif text == "Таблиця":
         await show_debt_details(update, context)
     elif text == "Гістограма":

@@ -88,7 +88,6 @@ def create_tables():
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
-    logging.info("Таблиця 'bot_logs' створена або вже існує.")
 
     conn.commit()
     cursor.close()
