@@ -112,8 +112,6 @@ async def sync_payments():
 
                     if not cursor.fetchone():
                         await async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу)
-                    else:
-                        logging.info(f"Платіж вже існує: {номер_платежу} для користувача {employee_name}.")
 
                 logging.info(f"Успішно синхронізовано {len(rows)} платежів для користувача {employee_name}.")
             else:
