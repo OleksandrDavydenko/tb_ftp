@@ -146,14 +146,20 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     if text == "📉 Дебіторська заборгованість":
         await show_debt_options(update, context)
     elif text == "/menu":
+        log_user_action(user_id, text)
         await show_main_menu(update, context)
+        log_user_action(user_id, text)
     elif text == "/debt":
+        log_user_action(user_id, text)
         await show_debt_options(update, context)
     elif text == "/salary":
+        log_user_action(user_id, text)
         await show_salary_years(update, context)
     elif text == "/analytics":
+        log_user_action(user_id, text)
         await show_analytics_options(update, context)
     elif text == "/info":
+        log_user_action(user_id, text)
         await show_help_menu(update, context)
     elif text == "Таблиця":
         await show_debt_details(update, context)
