@@ -27,6 +27,7 @@ from employee_analytics.analytics_handler import (
 )
 from information.help_menu import show_help_menu, show_currency_rates, show_devaluation_data
 from messages.weekly_overdue_debts import check_overdue_debts
+from sync_status import sync_user_statuses
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -246,6 +247,8 @@ def main():
         timezone='Europe/Kiev'  # Часовий пояс
     )
 
+    scheduler.add_job(sync_user_statuses, 'interval', minutes=5)
+
 
     scheduler.start()
 
@@ -262,4 +265,4 @@ if __name__ == '__main__':
     main()
 
 
-    """ іфів """
+

@@ -1,7 +1,7 @@
 from telegram import Bot
 import logging
 import datetime
-from db import get_all_users
+from db import get_active_users
 from auth import get_user_debt_data
 import os
 import asyncio
@@ -41,7 +41,7 @@ def split_message(text, max_length=4096):
 
 # Асинхронна перевірка прострочених боргів і відправка повідомлень
 async def check_overdue_debts():
-    users = get_all_users()
+    users = get_active_users()
 
     for user in users:
         manager_name = user.get('employee_name')
@@ -139,7 +139,7 @@ async def check_overdue_debts():
 async def send_overdue_debts_by_request(update, context):
     """Формує і надсилає протерміновану дебіторську заборгованість для поточного користувача."""
     telegram_id = update.message.chat_id
-    user_data = next((u for u in get_all_users() if u['telegram_id'] == telegram_id), None)
+    user_data = next((u for u in get_active_users() if u['telegram_id'] == telegram_id), None)
 
     if not user_data:
         await update.message.reply_text("❗ Вас не знайдено в базі користувачів.")

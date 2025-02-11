@@ -97,7 +97,6 @@ def is_phone_number_in_power_bi(phone_number):
             normalize_phone_number(row.get('[PhoneNumber]', '') or ''): (row.get('[Employee]', ''), row.get('[Status]', ''))
             for row in rows if row.get('[PhoneNumber]')  # Фільтруємо None
         }
-        logging.info(f"📞 phone_map: {phone_map}")
 
 
         normalized_phone_number = normalize_phone_number(phone_number)
@@ -196,3 +195,6 @@ def get_user_debt_data(manager_name):
     else:
         print(f"Error executing query: {response.status_code}, {response.text}")
         return None
+
+
+

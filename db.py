@@ -186,6 +186,23 @@ def get_user_joined_at(phone_number):
 
 
 def get_all_users():
+    """
+    Отримує всіх користувачів із БД із їх статусами.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT phone_number, status FROM users")
+    users = [{"phone_number": row[0], "status": row[1]} for row in cursor.fetchall()]
+
+    cursor.close()
+    conn.close()
+    return users
+
+
+
+
+def get_active_users():
     conn = get_db_connection()
     cursor = conn.cursor()
     #тільки активні користувачі
@@ -291,6 +308,24 @@ def update_user_joined_at(phone_number, new_joined_at):
         logging.info(f"📅 Оновлено joined_at для {phone_number}: {new_joined_at}")
     except Exception as e:
         logging.error(f"⚠️ Помилка оновлення joined_at для {phone_number}: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def update_user_status(phone_number, new_status):
+    """
+    Оновлює статус користувача у БД.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("UPDATE users SET status = %s WHERE phone_number = %s", (new_status, phone_number))
+        conn.commit()
+        logging.info(f"📌 Оновлено статус для {phone_number}: {new_status}")
+    except Exception as e:
+        logging.error(f"⚠️ Помилка оновлення статусу {phone_number}: {e}")
     finally:
         cursor.close()
         conn.close()

@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram import Bot
-from db import get_all_users
+from db import get_active_users
 from pytz import timezone
 from apscheduler.events import EVENT_JOB_EXECUTED  # Імпортуємо подію
 
@@ -47,7 +47,7 @@ def get_next_workday(date):
 
 # Асинхронна функція для відправки нагадування всім користувачам
 async def send_reminder_to_all_users():
-    users = get_all_users()
+    users = get_active_users()
     
     # Визначаємо попередній місяць та дату для повідомлення
     previous_month_name = get_previous_month()
