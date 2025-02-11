@@ -7,7 +7,7 @@ from information.querryFinanceUa import store_exchange_rates
 import logging
 import os
 import sys
-import signal
+
 
 
 from messages.check_payments import check_new_payments
@@ -236,14 +236,11 @@ async def handle_parameter_choice(update: Update, context: CallbackContext) -> N
 
     await show_yearly_chart_for_parameter(update, context, employee_name, selected_year, selected_parameter)
 
-# Функція завершення роботи бота
 async def shutdown(app, scheduler):
-    logging.info("🛑 Завершення роботи бота...")
-    scheduler.shutdown(wait=True)
     await app.shutdown()
-    logging.info("✅ Бот успішно зупинений.")
+    scheduler.shutdown(wait=True)
+    logging.info("Планувальник зупинено.")
 
-# Головна функція
 async def main():
     app = ApplicationBuilder().token(KEY).build()
 
@@ -252,51 +249,44 @@ async def main():
     scheduler.add_job(check_new_payments, 'interval', seconds=400)
     scheduler.add_job(sync_payments, 'interval', seconds=350)
     scheduler.add_job(check_new_devaluation_records, 'interval', seconds=10800)
-    scheduler.add_job(sync_devaluation_data, 'interval', seconds=10800)
+    scheduler.add_job(sync_devaluation_data, 'interval', seconds=10800)  # Додаємо нову синхронізацію девальваційних даних
     schedule_monthly_reminder(scheduler)
+
 
     kyiv_timezone = timezone('Europe/Kiev')
     scheduler.add_job(
         store_exchange_rates,
         'cron',
         hour=10,
-        minute=0,
+        minute=00,
         timezone=kyiv_timezone,
         id='daily_exchange_rates',
     )
 
     scheduler.add_job(
-        check_overdue_debts,
-        'cron',
-        day_of_week='tue',
-        hour=11,
-        timezone='Europe/Kiev'
+        check_overdue_debts,  # Функція, яку потрібно виконувати
+        'cron',  # Тип триггера
+        day_of_week='tue',  # Запуск щовівторка
+        hour=11,  # О 11:00
+        timezone='Europe/Kiev'  # Часовий пояс
     )
 
     scheduler.add_job(sync_user_statuses, 'interval', minutes=5)
+
 
     scheduler.start()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-    app.add_handler(MessageHandler(filters.Regex(
-        "^(📉 Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|💼 Розрахунковий лист|ℹ️ Інформація|💱 Курс валют|Перевірка девальвації|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод|Протермінована дебіторська заборгованість)$"), handle_main_menu))
-
-    loop = asyncio.get_running_loop()
-
-    # Додаємо обробники сигналів завершення процесу
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown(app, scheduler)))
+    app.add_handler(MessageHandler(filters.Regex("^(📉 Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|💼 Розрахунковий лист|ℹ️ Інформація|💱 Курс валют|Перевірка девальвації|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод|Протермінована дебіторська заборгованість)$"), handle_main_menu))
 
     try:
-        await app.run_polling()
-    except Exception as e:
-        logging.error(f"⚠️ Помилка виконання бота: {e}")
+        app.run_polling()
     finally:
-        await shutdown(app, scheduler)
+        asyncio.run(shutdown(app, scheduler))
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    main()
 
 
 
