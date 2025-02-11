@@ -277,6 +277,17 @@ def main():
 
     scheduler.start()
 
+
+    # ✅ Додаємо обробники для всіх команд
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("help", show_help_menu))
+    app.add_handler(CommandHandler("debt", show_debt_options))
+    app.add_handler(CommandHandler("salary", show_salary_years))
+    app.add_handler(CommandHandler("analytics", show_analytics_options))
+    app.add_handler(CommandHandler("info", show_help_menu))
+
+
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     app.add_handler(MessageHandler(filters.Regex("^(📉 Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|💼 Розрахунковий лист|ℹ️ Інформація|💱 Курс валют|Перевірка девальвації|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод|Протермінована дебіторська заборгованість)$"), handle_main_menu))
