@@ -134,23 +134,31 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         await prompt_for_phone_number(update, context)
         return
     
+
+    
+    
     query = update.callback_query  # Перевіряємо, чи це callback-запит
     if query:
         text = query.data  # Отримуємо текст кнопки
         user_id = query.from_user.id
-        await query.answer()  # Закриваємо query, щоб Telegram не видавав "годинник"
+        await query.answer()  # Закриваємо query, щоб Telegram не показував "годинник"
     else:
-        text = update.message.text
-        user_id = update.message.from_user.id
+        text = update.message.text if update.message else None
+        user_id = update.message.from_user.id if update.message else None
 
-    text = update.message.text
+    # Логування отриманого тексту перед записом в базу
+    logging.info(f"📩 Отримано повідомлення: {text} від користувача {user_id}")
 
-    user_id = update.message.from_user.id
+    if not text:
+        logging.warning("⚠️ Не вдалося отримати текст кнопки або ID користувача")
+        return
 
-    # Логування дії користувача
-    log_user_action(user_id, text)  # Записуємо дію в базу
-
-    logging.info(f"Користувач {user_id} вибрав опцію: {text}")
+    # ✅ Запис у логи
+    try:
+        log_user_action(user_id, text)
+        logging.info(f"✅ Логування успішне для {user_id}: {text}")
+    except Exception as e:
+        logging.error(f"❌ Помилка логування для {user_id}: {e}")
     
     if text == "📉 Дебіторська заборгованість":
         await show_debt_options(update, context)
@@ -202,6 +210,9 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     elif text == "/info":
         log_user_action(user_id, text)
         await show_help_menu(update, context)
+    elif text.startswith("/debt"):  
+        log_user_action(user_id, text)  # Логування команди
+        logging.info(f"✅ Запис у лог: команда {text} від {user_id}")
 
 async def handle_back_navigation(update: Update, context: CallbackContext) -> None:
     menu = context.user_data.get('menu')
@@ -313,6 +324,8 @@ def main():
 
     scheduler.start()
 
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_main_menu))
+    app.add_handler(MessageHandler(filters.COMMAND, handle_main_menu))
 
     # ✅ Додаємо обробники для всіх команд
     app.add_handler(CommandHandler("start", start))
