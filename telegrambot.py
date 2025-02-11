@@ -1,5 +1,5 @@
 import asyncio
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import timezone
@@ -32,6 +32,23 @@ from sync_status import sync_user_statuses
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 scheduler = AsyncIOScheduler()
+
+
+#Додаткове меню
+async def set_bot_commands(application):
+    """
+    Встановлює глобальне меню команд для бота.
+    """
+    commands = [
+        BotCommand("start", "🔄 Почати роботу"),
+        BotCommand("help", "ℹ️ Допомога"),
+        BotCommand("debt", "📉 Дебіторська заборгованість"),
+        BotCommand("salary", "💼 Розрахунковий лист"),
+        BotCommand("analytics", "📊 Аналітика"),
+        BotCommand("info", "ℹ️ Інформація")
+    ]
+
+    await application.bot.set_my_commands(commands)
 
 async def start(update: Update, context: CallbackContext) -> None:
     context.user_data['registered'] = False
@@ -220,8 +237,21 @@ async def shutdown(app, scheduler):
     scheduler.shutdown(wait=True)
     logging.info("Планувальник зупинено.")
 
-def main():
+async def main():
     app = ApplicationBuilder().token(KEY).build()
+
+
+    await set_bot_commands(app)
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("help", show_help_menu))
+    app.add_handler(CommandHandler("debt", show_debt_options))
+    app.add_handler(CommandHandler("salary", show_salary_years))
+    app.add_handler(CommandHandler("analytics", show_analytics_options))
+    app.add_handler(CommandHandler("info", show_help_menu))
+
+
+
     scheduler.add_job(check_new_payments, 'interval', seconds=400)
     scheduler.add_job(sync_payments, 'interval', seconds=350)
     scheduler.add_job(check_new_devaluation_records, 'interval', seconds=10800)
