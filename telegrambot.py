@@ -145,8 +145,8 @@ def get_main_menu_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="📊 Аналітика"), KeyboardButton(text="💼 Розрахунковий лист")],
-            [KeyboardButton(text="📉 Дебіторська заборгованість"), KeyboardButton(text="ℹ️ Інформація")],
-            [KeyboardButton(text="Головне меню")]  # Щоб користувач завжди міг повернутися назад
+            [KeyboardButton(text="📉 Дебіторська заборгованість"), KeyboardButton(text="ℹ️ Інформація")]
+            
         ],
         resize_keyboard=True,
         one_time_keyboard=False
