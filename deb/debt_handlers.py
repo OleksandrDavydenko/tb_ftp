@@ -152,10 +152,3 @@ async def show_debt_pie_chart(update: Update, context: CallbackContext):
     reply_markup = ReplyKeyboardMarkup([[back_button, main_menu_button]], one_time_keyboard=True)
     await update.message.reply_text("Натисніть 'Назад' або 'Головне меню'.", reply_markup=reply_markup)
 
-# Функція для повернення до головного меню
-async def show_main_menu(update: Update, context: CallbackContext):
-    context.user_data['menu'] = 'main_menu'
-    debt_button = KeyboardButton(text="Дебіторка")
-    custom_keyboard = [[debt_button]]
-    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
-    await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
