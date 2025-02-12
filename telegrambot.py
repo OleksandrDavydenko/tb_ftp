@@ -226,6 +226,8 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     elif text.startswith("/salary"):  
         context.user_data['menu'] = 'salary_years'
         await show_salary_years(update, context)
+    elif text.startswith("/menu"):  
+        await show_main_menu(update, context)
 
 async def handle_back_navigation(update: Update, context: CallbackContext) -> None:
     menu = context.user_data.get('menu')
