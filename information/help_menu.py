@@ -99,5 +99,5 @@ async def show_devaluation_data(update, context):
      # Додаємо кнопки "Назад" і "Головне меню"
     back_button = KeyboardButton(text="Назад")
     main_menu_button = KeyboardButton(text="Головне меню")
-    reply_markup = ReplyKeyboardMarkup([[back_button, main_menu_button]], one_time_keyboard=True)
+    reply_markup = ReplyKeyboardMarkup([[back_button, main_menu_button]], one_time_keyboard=True, resize_keyboard=True)
     await update.message.reply_text("Виберіть наступну дію:", reply_markup=reply_markup)
