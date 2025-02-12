@@ -331,6 +331,8 @@ def main():
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_main_menu))
     app.add_handler(MessageHandler(filters.COMMAND, handle_main_menu))
+    app.add_handler(MessageHandler(filters.Regex("^(Головне меню)$"), show_main_menu))
+
 
     # ✅ Додаємо обробники для всіх команд
     app.add_handler(CommandHandler("menu", show_main_menu))
