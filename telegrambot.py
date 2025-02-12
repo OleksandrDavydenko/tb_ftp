@@ -117,16 +117,33 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
 
 
 async def show_main_menu(update: Update, context: CallbackContext) -> None:
+    # Перевіряємо, чи користувач зареєстрований
+    if not context.user_data.get('registered', False):
+        await prompt_for_phone_number(update, context)
+        return
 
+    # Створюємо клавіатуру головного меню
+    reply_markup = get_main_menu_keyboard()
+
+    # Визначаємо, звідки надійшов запит (звичайне повідомлення або inline-кнопка)
+    if update.message:
+        await update.message.reply_text("🏠 Виберіть опцію:", reply_markup=reply_markup)
+    elif update.callback_query:
+        await update.callback_query.answer()
+        await update.callback_query.message.edit_text("🏠 Виберіть опцію:", reply_markup=reply_markup)
+
+# Окрема функція для генерації клавіатури головного меню
+def get_main_menu_keyboard():
     analytics_button = KeyboardButton(text="📊 Аналітика")
     salary_button = KeyboardButton(text="💼 Розрахунковий лист")
     debt_button = KeyboardButton(text="📉 Дебіторська заборгованість")
-    info_button = KeyboardButton(text="ℹ️ Інформація")  # Замість "Курс валют"
-    reply_markup = ReplyKeyboardMarkup(
+    info_button = KeyboardButton(text="ℹ️ Інформація")
+    
+    return ReplyKeyboardMarkup(
         [[analytics_button, salary_button], [debt_button, info_button]],
-        one_time_keyboard=True,
+        resize_keyboard=True,
+        one_time_keyboard=False
     )
-    await update.message.reply_text("🏠 Виберіть опцію:", reply_markup=reply_markup)
 
 async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     if not context.user_data.get('registered', False):
