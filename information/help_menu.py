@@ -30,10 +30,13 @@ async def show_currency_rates(update: Update, context: CallbackContext) -> None:
             message += f"{rate['currency']}: {rate['rate']}\n"  # Виводимо тільки валюту та курс
         await update.message.reply_text(message)
 
+
+
         # Додаємо кнопки "Назад" та "Головне меню"
-        back_button = KeyboardButton(text="Назад")
-        main_menu_button = KeyboardButton(text="Головне меню")
-        reply_markup = ReplyKeyboardMarkup([[back_button, main_menu_button]], one_time_keyboard=True)
+        custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
+        reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
+
+        # Відправляємо повідомлення з кнопками
         await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
     except Exception as e:
         await update.message.reply_text("Не вдалося отримати курси валют. Спробуйте пізніше.")
