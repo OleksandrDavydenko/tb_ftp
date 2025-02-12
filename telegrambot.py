@@ -117,33 +117,41 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
 
 
 async def show_main_menu(update: Update, context: CallbackContext) -> None:
+    """Функція показує головне меню та працює з будь-якого місця бота."""
+    
+    # Логування для діагностики
+    logging.info("🔄 Виклик головного меню")
+
     # Перевіряємо, чи користувач зареєстрований
     if not context.user_data.get('registered', False):
+        logging.warning("❌ Користувач не зареєстрований. Запит номера телефону.")
         await prompt_for_phone_number(update, context)
         return
 
     # Створюємо клавіатуру головного меню
     reply_markup = get_main_menu_keyboard()
 
-    # Визначаємо, звідки надійшов запит (звичайне повідомлення або inline-кнопка)
+    # Визначаємо, чи це повідомлення або inline-кнопка
     if update.message:
-        await update.message.reply_text("🏠 Виберіть опцію:", reply_markup=reply_markup)
+        await update.message.reply_text("🏠 Головне меню:", reply_markup=reply_markup)
     elif update.callback_query:
         await update.callback_query.answer()
-        await update.callback_query.message.edit_text("🏠 Виберіть опцію:", reply_markup=reply_markup)
+        await update.callback_query.message.edit_text("🏠 Головне меню:", reply_markup=reply_markup)
+
 
 # Окрема функція для генерації клавіатури головного меню
 def get_main_menu_keyboard():
-    analytics_button = KeyboardButton(text="📊 Аналітика")
-    salary_button = KeyboardButton(text="💼 Розрахунковий лист")
-    debt_button = KeyboardButton(text="📉 Дебіторська заборгованість")
-    info_button = KeyboardButton(text="ℹ️ Інформація")
-    
+    """Генерує клавіатуру головного меню"""
     return ReplyKeyboardMarkup(
-        [[analytics_button, salary_button], [debt_button, info_button]],
+        keyboard=[
+            [KeyboardButton(text="📊 Аналітика"), KeyboardButton(text="💼 Розрахунковий лист")],
+            [KeyboardButton(text="📉 Дебіторська заборгованість"), KeyboardButton(text="ℹ️ Інформація")],
+            [KeyboardButton(text="Головне меню")]  # Щоб користувач завжди міг повернутися назад
+        ],
         resize_keyboard=True,
         one_time_keyboard=False
     )
+
 
 async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     if not context.user_data.get('registered', False):
@@ -331,11 +339,13 @@ def main():
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_main_menu))
     app.add_handler(MessageHandler(filters.COMMAND, handle_main_menu))
-    app.add_handler(MessageHandler(filters.Regex("^(Головне меню)$"), show_main_menu))
+  
 
+    app.add_handler(MessageHandler(filters.Regex(r"^\s*Головне меню\s*$"), show_main_menu))
+    app.add_handler(CommandHandler("menu", show_main_menu))
 
     # ✅ Додаємо обробники для всіх команд
-    app.add_handler(CommandHandler("menu", show_main_menu))
+    
     app.add_handler(CommandHandler("debt", show_debt_options))
     app.add_handler(CommandHandler("salary", show_salary_years))
     app.add_handler(CommandHandler("analytics", show_analytics_options))
