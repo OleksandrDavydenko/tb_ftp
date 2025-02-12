@@ -122,15 +122,14 @@ async def show_debt_histogram(update: Update, context: CallbackContext):
     else:
         await update.message.reply_text(f"Немає даних для {employee_name}.")
 
+    # Додаємо кнопки "Назад" та "Головне меню"
+    custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
+    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
 
-     # Додаємо кнопки "Назад" і "Головне меню" у компактному вигляді
-    reply_markup = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="🔙 Назад"), KeyboardButton(text="🏠 Головне меню")]],
-        resize_keyboard=True,  # Автоматичне зменшення кнопок
-        one_time_keyboard=False,  # Клавіатура залишається після натискання
-        input_field_placeholder="Оберіть дію..."  # Підказка у полі вводу
-    )
-    await update.message.reply_text("Оберіть дію:", reply_markup=reply_markup)
+    # Відправляємо повідомлення з кнопками
+    await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
+
+    
 
 # Функція для показу секторної діаграми
 async def show_debt_pie_chart(update: Update, context: CallbackContext):
