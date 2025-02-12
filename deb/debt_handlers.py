@@ -98,11 +98,12 @@ async def show_debt_details(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text(f"ℹ️ Немає даних для {employee_name}.")
 
 
-    # Додаємо кнопки "Назад" і "Головне меню"
-    back_button = KeyboardButton(text="Назад")
-    main_menu_button = KeyboardButton(text="Головне меню")
-    reply_markup = ReplyKeyboardMarkup([[back_button, main_menu_button]], one_time_keyboard=True)
-    await update.message.reply_text("Натисніть 'Назад' або 'Головне меню'.", reply_markup=reply_markup)
+    # Додаємо кнопки "Назад" та "Головне меню"
+    custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
+    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
+
+    # Відправляємо повідомлення з кнопками
+    await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
 
 # Функція для показу гістограми
 async def show_debt_histogram(update: Update, context: CallbackContext):
@@ -149,9 +150,10 @@ async def show_debt_pie_chart(update: Update, context: CallbackContext):
     else:
         await update.message.reply_text(f"Немає даних для {employee_name}.")
 
-    # Додаємо кнопки "Назад" і "Головне меню"
-    back_button = KeyboardButton(text="Назад")
-    main_menu_button = KeyboardButton(text="Головне меню")
-    reply_markup = ReplyKeyboardMarkup([[back_button, main_menu_button]], one_time_keyboard=True)
-    await update.message.reply_text("Натисніть 'Назад' або 'Головне меню'.", reply_markup=reply_markup)
+    # Додаємо кнопки "Назад" та "Головне меню"
+    custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
+    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
+
+    # Відправляємо повідомлення з кнопками
+    await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
 
