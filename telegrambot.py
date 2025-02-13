@@ -29,7 +29,7 @@ from employee_analytics.analytics_handler import (
 from information.help_menu import show_help_menu, show_currency_rates, show_devaluation_data
 from messages.weekly_overdue_debts import check_overdue_debts
 from sync_status import sync_user_statuses
-from utils.clear_history import clear_chat_history
+# from utils.clear_history import clear_chat_history
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 
@@ -230,8 +230,8 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         await show_salary_years(update, context)
     elif text.startswith("/menu"):  
         await show_main_menu(update, context)
-    elif text == "🗑 Очистити всю історію":
-        await clear_chat_history(update, context)
+"""     elif text == "🗑 Очистити всю історію":
+        await clear_chat_history(update, context) """
 
 async def handle_back_navigation(update: Update, context: CallbackContext) -> None:
     menu = context.user_data.get('menu')
@@ -361,7 +361,7 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
-    app.add_handler(MessageHandler(filters.Regex("^(📉 Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|💼 Розрахунковий лист|ℹ️ Інформація|💱 Курс валют|Перевірка девальвації|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод|Протермінована дебіторська заборгованість|🗑 Очистити всю історію)$"), handle_main_menu))
+    app.add_handler(MessageHandler(filters.Regex("^(📉 Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|💼 Розрахунковий лист|ℹ️ Інформація|💱 Курс валют|Перевірка девальвації|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод|Протермінована дебіторська заборгованість)$"), handle_main_menu))
 
     try:
         app.run_polling()
