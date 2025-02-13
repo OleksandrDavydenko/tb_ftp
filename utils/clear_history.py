@@ -14,13 +14,17 @@ async def clear_chat_history(update: Update, context: CallbackContext):
 
     messages_deleted = 0  # Лічильник видалених повідомлень
 
-    async for update_item in context.bot.get_updates():
+    # Отримуємо останні повідомлення через getUpdates()
+    updates = await context.bot.get_updates()
+
+    for update_item in updates:
         if update_item.message and update_item.message.chat_id == chat_id:
             try:
                 await context.bot.delete_message(chat_id=chat_id, message_id=update_item.message.message_id)
                 messages_deleted += 1
+                await asyncio.sleep(0.1)  # Запобігаємо API-обмеженню
             except:
-                pass  # Якщо не можна видалити, ігноруємо помилку
+                pass  # Ігноруємо помилки, якщо неможливо видалити
 
     # Повідомлення про успішне очищення
     confirmation_message = await update.message.reply_text(f"🗑 Історію очищено! Видалено {messages_deleted} повідомлень.")
