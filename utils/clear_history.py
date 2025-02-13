@@ -3,7 +3,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 async def clear_chat_history(update: Update, context: CallbackContext):
-    """Видаляє всі повідомлення в чаті, які може видалити бот."""
+    """Видаляє всі повідомлення в чаті, які бот може видалити (тільки повідомлення бота)."""
     chat_id = update.message.chat_id
 
     # Видаляємо команду користувача "🗑 Очистити всю історію"
@@ -14,25 +14,15 @@ async def clear_chat_history(update: Update, context: CallbackContext):
 
     messages_deleted = 0  # Лічильник видалених повідомлень
 
-    # Отримуємо всіх адміністраторів чату (щоб дізнатися, чи є бот адміном)
-    chat_admins = await context.bot.get_chat_administrators(chat_id)
-    bot_id = context.bot.id  # ID бота
-
-    # Перевіряємо, чи бот є адміністратором
-    is_admin = any(admin.user.id == bot_id for admin in chat_admins)
-
-    if not is_admin:
-        await update.message.reply_text("❌ Бот не має прав адміністратора для очищення історії.")
-        return
-
-    # Видаляємо останні 100 повідомлень, які бот може видалити
+    # Отримуємо останні 100 повідомлень у чаті
     async for message in context.bot.get_chat_history(chat_id, limit=100):
-        try:
-            await context.bot.delete_message(chat_id=chat_id, message_id=message.message_id)
-            messages_deleted += 1
-            await asyncio.sleep(0.2)  # Уникаємо API-обмежень
-        except:
-            pass  # Якщо не можна видалити, ігноруємо помилку
+        if message.from_user and message.from_user.id == context.bot.id:  # Видаляємо тільки повідомлення бота
+            try:
+                await context.bot.delete_message(chat_id=chat_id, message_id=message.message_id)
+                messages_deleted += 1
+                await asyncio.sleep(0.2)  # Запобігаємо API-обмеженню
+            except:
+                pass  # Ігноруємо помилки, якщо неможливо видалити
 
     # Повідомлення про успішне очищення
     confirmation_message = await update.message.reply_text(f"🗑 Історію очищено! Видалено {messages_deleted} повідомлень.")
