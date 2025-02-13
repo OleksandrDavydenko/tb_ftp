@@ -3,10 +3,10 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 async def clear_chat_history(update: Update, context: CallbackContext):
-    """Видаляє всі повідомлення, які бот може видалити, навіть якщо їх більше 100."""
+    """Видаляє всі повідомлення, які бот може видалити."""
     chat_id = update.message.chat_id
 
-    # Видаляємо команду користувача
+    # Видаляємо команду користувача "🗑 Очистити всю історію"
     try:
         await context.bot.delete_message(chat_id=chat_id, message_id=update.message.message_id)
     except:
@@ -14,27 +14,21 @@ async def clear_chat_history(update: Update, context: CallbackContext):
 
     messages_deleted = 0  # Лічильник видалених повідомлень
 
-    while True:
-        messages_to_delete = []
-
-        async for message in context.bot.get_chat_history(chat_id, limit=100):
-            messages_to_delete.append(message.message_id)
-
-        if not messages_to_delete:
-            break  # Якщо немає більше повідомлень, виходимо
-
-        for message_id in messages_to_delete:
+    # Отримуємо список останніх повідомлень через getUpdates()
+    updates = await context.bot.get_updates()
+    
+    for update in updates:
+        if update.message and update.message.chat_id == chat_id:
             try:
-                await context.bot.delete_message(chat_id=chat_id, message_id=message_id)
+                await context.bot.delete_message(chat_id=chat_id, message_id=update.message.message_id)
                 messages_deleted += 1
             except:
-                pass  
+                pass  # Ігноруємо помилки, якщо неможливо видалити
 
-        await asyncio.sleep(1)  # Уникаємо блокування API
-
+    # Повідомлення про успішне очищення
     confirmation_message = await update.message.reply_text(f"🗑 Історію очищено! Видалено {messages_deleted} повідомлень.")
 
-    await asyncio.sleep(3)
+    await asyncio.sleep(3)  # Чекаємо 3 секунди, щоб користувач побачив повідомлення
     try:
         await context.bot.delete_message(chat_id=chat_id, message_id=confirmation_message.message_id)
     except:
