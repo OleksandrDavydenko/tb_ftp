@@ -73,47 +73,50 @@ def normalize_phone_number(phone_number):
 async def handle_contact(update: Update, context: CallbackContext) -> None:
     if update.message.contact:
         phone_number = normalize_phone_number(update.message.contact.phone_number)
-        logging.info(f"📞 Отримано номер телефону: {phone_number}")
-
         user_id = update.message.from_user.id
+        telegram_name = update.message.from_user.first_name
+
+        logging.info(f"📞 Отримано номер телефону: {phone_number}")
         log_user_action(user_id, f"Надано номер телефону: {phone_number}")
 
         # Перевіряємо користувача в Power BI
-        verify_and_add_user(phone_number, update.message.from_user.id, update.message.from_user.first_name)
+        found, employee_name = is_phone_number_in_power_bi(phone_number)
 
-        # Отримуємо статус із бази
-        status = get_user_status(phone_number)
-        logging.info(f"📊 Статус у БД: {status}")
+        if found:
+            logging.info(f"✅ Користувач знайдений у Power BI: {employee_name}")
 
-        if status == "active":
-            employee_name = get_employee_name(phone_number)  # Отримуємо ім'я користувача
-            logging.info(f"✅ Користувач активний: {employee_name} ({phone_number})")
+            # Додаємо користувача в БД лише якщо він є в Power BI
+            add_telegram_user(phone_number, user_id, telegram_name, employee_name)
 
-            joined_at = get_user_joined_at(phone_number)
-            logging.info(f"📅 Дата приєднання користувача: {joined_at}")
+            # Отримуємо статус із бази
+            status = get_user_status(phone_number)
+            logging.info(f"📊 Статус у БД: {status}")
 
-            # Синхронізація платежів (Немає потреби всіх синхронізувати при верифікації)
-            # if joined_at:
-            #    try:
-            #        await sync_payments()
-            #    except Exception as e:
-            #        logging.error(f"❌ Помилка при синхронізації платежів: {e}")
+            if status == "active":
+                logging.info(f"✅ Користувач активний: {employee_name} ({phone_number})")
 
-            # Оновлення даних користувача в контексті бота
-            context.user_data.update({
-                'registered': True,
-                'phone_number': phone_number,
-                'telegram_name': update.message.from_user.first_name,
-                'employee_name': employee_name
-            })
+                joined_at = get_user_joined_at(phone_number)
+                logging.info(f"📅 Дата приєднання користувача: {joined_at}")
 
-            await update.message.reply_text(f"✅ Вітаємо, {employee_name}! Доступ надано.")
-            await show_main_menu(update, context)
+                # Оновлення даних користувача в контексті бота
+                context.user_data.update({
+                    'registered': True,
+                    'phone_number': phone_number,
+                    'telegram_name': telegram_name,
+                    'employee_name': employee_name
+                })
+
+                await update.message.reply_text(f"✅ Вітаємо, {employee_name}! Доступ надано.")
+                await show_main_menu(update, context)
+
+            else:
+                logging.warning(f"🚫 Користувач неактивний у БД: {phone_number} (Статус: {status})")
+                await update.message.reply_text("🚫 Ви не активний користувач. Доступ заборонено.")
+                await prompt_for_phone_number(update, context)
 
         else:
-            logging.warning(f"🚫 Доступ заборонено для {phone_number} (Статус: {status})")
-            await update.message.reply_text("🚫 Ваш номер не знайдено або ви не активний користувач. Доступ заборонено.")
-            await prompt_for_phone_number(update, context)
+            logging.warning(f"🚫 Номер {phone_number} не знайдено в Power BI. Не додаємо в базу.")
+            await update.message.reply_text("🚫 Ваш номер не знайдено у системі. Доступ заборонено.")
 
 
 
