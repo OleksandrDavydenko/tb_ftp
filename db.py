@@ -199,19 +199,22 @@ def get_user_joined_at(phone_number):
 
 
 
+
+
 def get_all_users():
     """
-    Отримує всіх користувачів із БД із їх статусами.
+    Отримує всіх користувачів із БД із їх статусами та іменами.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute("SELECT phone_number, status FROM users")
-    users = [{"phone_number": row[0], "status": row[1]} for row in cursor.fetchall()]
+    cursor.execute("SELECT phone_number, status, employee_name FROM users")
+    users = [{"phone_number": row[0], "status": row[1], "employee_name": row[2]} for row in cursor.fetchall()]
 
     cursor.close()
     conn.close()
     return users
+
 
 
 
