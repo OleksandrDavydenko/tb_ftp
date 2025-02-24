@@ -373,3 +373,16 @@ def log_user_action(user_id, action):
     except Exception as e:
         logging.error(f"❌ Помилка при записі в логи: {e}")
 
+def update_employee_name(phone_number, employee_name):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    UPDATE users SET employee_name = %s WHERE phone_number = %s
+    """, (employee_name, phone_number))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
