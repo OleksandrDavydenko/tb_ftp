@@ -337,7 +337,7 @@ def main():
         timezone='Europe/Kiev'  # Часовий пояс
     )
 
-    scheduler.add_job(sync_user_statuses, 'interval', minutes=100)
+    scheduler.add_job(sync_user_statuses, 'interval', minutes=5)
 
 
     scheduler.start()
