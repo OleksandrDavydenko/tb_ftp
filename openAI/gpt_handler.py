@@ -60,5 +60,9 @@ def get_gpt_response(user_input):
     result = f"🤖 {response.choices[0].message.content}\n\n"
     result += f"📊 Використані токени: {total_tokens} (запит: {prompt_tokens}, відповідь: {completion_tokens})"
 
+
+    # 📌 Логування кількості використаних токенів
+    logging.info(f"🔹 Використано токенів: {total_tokens} (запит: {prompt_tokens}, відповідь: {completion_tokens})")
+
     return response.choices[0].message.content
 
