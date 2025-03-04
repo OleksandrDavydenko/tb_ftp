@@ -80,13 +80,26 @@ def create_tables():
 
  # Створюємо таблицю для логів бота
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS bot_logs (
+        CREATE TABLE IF NOT EXISTS gpt_queries_logs (
             id SERIAL PRIMARY KEY,
             user_id BIGINT NOT NULL,
-            username VARCHAR(50),
-            action TEXT NOT NULL,
+            username TEXT,
+            query TEXT NOT NULL,
+            response TEXT,
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
+        );
+    """)
+
+# Створюємо таблицю для логів Помічника
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS gpt_queries_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            username TEXT,
+            query TEXT NOT NULL,
+            response TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
     """)
 
     conn.commit()
@@ -389,3 +402,24 @@ def update_employee_name(phone_number, employee_name):
     conn.close()
 
 
+
+def save_gpt_query(user_id, username, query, response):
+    """
+    Зберігає запит користувача та відповідь GPT у базі даних.
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO gpt_queries_logs (user_id, username, query, response)
+            VALUES (%s, %s, %s, %s)
+        """, (user_id, username, query, response))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        logging.info(f"✅ GPT-запит збережено: {user_id} ({username}) - {query}")
+    except Exception as e:
+        logging.error(f"❌ Помилка при збереженні GPT-запиту: {e}")
