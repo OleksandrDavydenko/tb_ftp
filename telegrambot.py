@@ -29,7 +29,10 @@ from employee_analytics.analytics_handler import (
 from information.help_menu import show_help_menu, show_currency_rates, show_devaluation_data
 from messages.weekly_overdue_debts import check_overdue_debts
 from sync_status import sync_user_statuses
-# from utils.clear_history import clear_chat_history
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "openAI"))
+from openAI.gpt_handler import is_known_command, get_gpt_response
+
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 
@@ -183,54 +186,55 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         logging.info(f"✅ Логування успішне для {user_id}: {text}")
     except Exception as e:
         logging.error(f"❌ Помилка логування для {user_id}: {e}")
-    
-    if text == "📉 Дебіторська заборгованість":
-        await show_debt_options(update, context)
-    elif text == "Таблиця":
-        await show_debt_details(update, context)
-    elif text == "Гістограма":
-        await show_debt_histogram(update, context)
-    elif text == "Діаграма":
-        await show_debt_pie_chart(update, context)
-    elif text == "Протермінована дебіторська заборгованість":
-    #    from messages.weekly_overdue_debts import send_overdue_debts_by_request
-        await handle_overdue_debt(update, context)
-    elif text == "💼 Розрахунковий лист":
-        context.user_data['menu'] = 'salary_years'
-        await show_salary_years(update, context)
-    elif text == "📊 Аналітика":
-        await show_analytics_options(update, context)
-    elif text == "ℹ️ Інформація":
-        await show_help_menu(update, context)  # Додана функція для підменю
-    elif text == "💱 Курс валют":
-        await show_currency_rates(update, context)
-    elif text == "Перевірка девальвації":
-        await show_devaluation_data(update, context)
-    elif text == "Назад":
-        await handle_back_navigation(update, context)
-    elif text == "Головне меню":
-        await show_main_menu(update, context)
-    elif text in ["Аналітика за місяць", "Аналітика за рік"]:
-        await handle_analytics_selection(update, context, text)
-    elif text in ["2024", "2025"]:
-        await handle_year_choice(update, context)
-    elif text in ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"]:
-        await handle_month_choice(update, context)
-    elif text in ["Дохід", "Валовий прибуток", "Маржинальність", "Кількість угод"]:
-        await handle_parameter_choice(update, context)
-    elif text.startswith("/debt"):  
-        await show_debt_options(update, context)  
-    elif text.startswith("/info"):  
-        await show_help_menu(update, context)  
-    elif text.startswith("/analytics"):  
-        await show_analytics_options(update, context)
-    elif text.startswith("/salary"):  
-        context.user_data['menu'] = 'salary_years'
-        await show_salary_years(update, context)
-    elif text.startswith("/menu"):  
-        await show_main_menu(update, context)
-"""     elif text == "🗑 Очистити всю історію":
-        await clear_chat_history(update, context) """
+    if is_known_command(text):
+        if text == "📉 Дебіторська заборгованість":
+            await show_debt_options(update, context)
+        elif text == "Таблиця":
+            await show_debt_details(update, context)
+        elif text == "Гістограма":
+            await show_debt_histogram(update, context)
+        elif text == "Діаграма":
+            await show_debt_pie_chart(update, context)
+        elif text == "Протермінована дебіторська заборгованість":
+        #    from messages.weekly_overdue_debts import send_overdue_debts_by_request
+            await handle_overdue_debt(update, context)
+        elif text == "💼 Розрахунковий лист":
+            context.user_data['menu'] = 'salary_years'
+            await show_salary_years(update, context)
+        elif text == "📊 Аналітика":
+            await show_analytics_options(update, context)
+        elif text == "ℹ️ Інформація":
+            await show_help_menu(update, context)  # Додана функція для підменю
+        elif text == "💱 Курс валют":
+            await show_currency_rates(update, context)
+        elif text == "Перевірка девальвації":
+            await show_devaluation_data(update, context)
+        elif text == "Назад":
+            await handle_back_navigation(update, context)
+        elif text == "Головне меню":
+            await show_main_menu(update, context)
+        elif text in ["Аналітика за місяць", "Аналітика за рік"]:
+            await handle_analytics_selection(update, context, text)
+        elif text in ["2024", "2025"]:
+            await handle_year_choice(update, context)
+        elif text in ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"]:
+            await handle_month_choice(update, context)
+        elif text in ["Дохід", "Валовий прибуток", "Маржинальність", "Кількість угод"]:
+            await handle_parameter_choice(update, context)
+        elif text.startswith("/debt"):  
+            await show_debt_options(update, context)  
+        elif text.startswith("/info"):  
+            await show_help_menu(update, context)  
+        elif text.startswith("/analytics"):  
+            await show_analytics_options(update, context)
+        elif text.startswith("/salary"):  
+            context.user_data['menu'] = 'salary_years'
+            await show_salary_years(update, context)
+        elif text.startswith("/menu"):  
+            await show_main_menu(update, context)
+    else:
+        gpt_response = get_gpt_response(text)
+        await update.message.reply_text(f"🤖 {gpt_response}")
 
 async def handle_back_navigation(update: Update, context: CallbackContext) -> None:
     menu = context.user_data.get('menu')
@@ -360,7 +364,12 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
+    
     app.add_handler(MessageHandler(filters.Regex("^(📉 Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|💼 Розрахунковий лист|ℹ️ Інформація|💱 Курс валют|Перевірка девальвації|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод|Протермінована дебіторська заборгованість)$"), handle_main_menu))
+
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_main_menu))
+
+
 
     try:
         app.run_polling()
