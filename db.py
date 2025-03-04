@@ -75,10 +75,20 @@ def create_tables():
         rate NUMERIC(10, 4) NOT NULL
     )
     """)
+     # Створюємо таблицю для логів бота
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS bot_logs (
+            id SERIAL PRIMARY KEY,
+            user_id BIGINT NOT NULL,
+            username VARCHAR(50),
+            action TEXT NOT NULL,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
 
 
 
- # Створюємо таблицю для логів бота
+    # Створюємо таблицю для логів бота
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS gpt_queries_logs (
             id SERIAL PRIMARY KEY,
@@ -90,16 +100,16 @@ def create_tables():
         );
     """)
 
-# Створюємо таблицю для логів Помічника
+    # ✅ Таблиця для логів GPT-запитів (правильна версія)
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS gpt_queries_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            username TEXT,
-            query TEXT NOT NULL,
-            response TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
+    CREATE TABLE IF NOT EXISTS gpt_queries_logs (
+        id SERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        username TEXT,
+        query TEXT NOT NULL,
+        response TEXT,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
     """)
 
     conn.commit()
