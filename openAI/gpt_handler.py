@@ -1,5 +1,6 @@
 import openai
 import os
+import logging
 
 # OpenAI API Key (змінна середовища)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
