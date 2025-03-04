@@ -235,6 +235,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         elif text.startswith("/menu"):  
             await show_main_menu(update, context)
     else:
+        log_user_action(user_id, "GPT-request")  
         # ✅ Якщо це невідома команда – відправляємо запит у GPT
         logging.info(f"🤖 GPT-request від користувача {user_id}: {text}")  # Логування GPT-запиту
         gpt_response = get_gpt_response(text)
