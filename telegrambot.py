@@ -181,12 +181,14 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         return  # Виходимо, якщо немає тексту або ID користувача
 
     # ✅ Запис у логи (один раз, без дублювання)
-    try:
-        log_user_action(user_id, text)
-        logging.info(f"✅ Логування успішне для {user_id}: {text}")
-    except Exception as e:
-        logging.error(f"❌ Помилка логування для {user_id}: {e}")
     if is_known_command(text):
+        try:
+            log_user_action(user_id, text)  # Логування звичайної команди
+            logging.info(f"✅ Користувач {user_id} виконав команду: {text}")
+        except Exception as e:
+            logging.error(f"❌ Помилка логування для {user_id}: {e}")
+    
+
         if text == "📉 Дебіторська заборгованість":
             await show_debt_options(update, context)
         elif text == "Таблиця":
@@ -233,6 +235,8 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         elif text.startswith("/menu"):  
             await show_main_menu(update, context)
     else:
+        # ✅ Якщо це невідома команда – відправляємо запит у GPT
+        logging.info(f"🤖 GPT-request від користувача {user_id}: {text}")  # Логування GPT-запиту
         gpt_response = get_gpt_response(text)
         await update.message.reply_text(f"🤖 {gpt_response}")
 
