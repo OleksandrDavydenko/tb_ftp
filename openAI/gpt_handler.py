@@ -34,13 +34,14 @@ def is_known_command(text):
     return text in KNOWN_COMMANDS
 
 # Генерація відповіді від GPT-3.5 Turbo
+
 def get_gpt_response(user_input):
     if not OPENAI_API_KEY:
         return "Помилка: API-ключ OpenAI не знайдено."
 
-    openai.api_key = OPENAI_API_KEY
-
-    response = openai.ChatCompletion.create(
+    client = openai.OpenAI(api_key=OPENAI_API_KEY)  # Новий підхід
+    
+    response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": f"Ти - корпоративний фінансовий помічник. Відповідай лише на основі облікової політики:\n{ACCOUNTING_POLICY}"},
@@ -49,4 +50,5 @@ def get_gpt_response(user_input):
         temperature=0.2
     )
 
-    return response["choices"][0]["message"]["content"]
+    return response.choices[0].message.content
+
