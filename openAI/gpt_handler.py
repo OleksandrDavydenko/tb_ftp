@@ -52,5 +52,13 @@ def get_gpt_response(user_input):
         temperature=0.2
     )
 
+    total_tokens = response.usage.total_tokens
+    prompt_tokens = response.usage.prompt_tokens
+    completion_tokens = response.usage.completion_tokens
+
+    # Формування відповіді з інформацією про токени
+    result = f"🤖 {response.choices[0].message.content}\n\n"
+    result += f"📊 Використані токени: {total_tokens} (запит: {prompt_tokens}, відповідь: {completion_tokens})"
+
     return response.choices[0].message.content
 
