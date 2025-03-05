@@ -82,7 +82,8 @@ def create_tables():
             user_id BIGINT NOT NULL,
             username VARCHAR(50),
             action TEXT NOT NULL,
-            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            message_id
     )
     """)
 
@@ -96,7 +97,8 @@ def create_tables():
             username TEXT,
             query TEXT NOT NULL,
             response TEXT,
-            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            message_id
         );
     """)
 
@@ -468,31 +470,3 @@ def get_last_gpt_queries(user_id, limit=3):
     
 
 
-def add_message_id_column():
-    """
-    Додає колонку message_id до таблиць gpt_queries_logs і bot_logs, якщо її ще немає.
-    """
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        # Додаємо колонку message_id до gpt_queries_logs
-        cursor.execute("""
-            ALTER TABLE gpt_queries_logs ADD COLUMN IF NOT EXISTS message_id BIGINT;
-        """)
-
-        # Додаємо колонку message_id до bot_logs
-        cursor.execute("""
-            ALTER TABLE bot_logs ADD COLUMN IF NOT EXISTS message_id BIGINT;
-        """)
-
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-        logging.info("✅ Колонка message_id успішно додана до таблиць gpt_queries_logs і bot_logs.")
-    except Exception as e:
-        logging.error(f"❌ Помилка при додаванні колонки message_id: {e}")
-
-# Виклик функції для оновлення бази
-add_message_id_column()
