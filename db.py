@@ -465,3 +465,26 @@ def get_last_gpt_queries(user_id, limit=3):
     except Exception as e:
         logging.error(f"❌ Помилка при отриманні історії GPT-запитів: {e}")
         return []
+    
+
+
+def delete_all_gpt_logs():
+    """
+    Видаляє всі записи з таблиці gpt_queries_logs.
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("DELETE FROM gpt_queries_logs")
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        logging.info("✅ Всі записи з таблиці gpt_queries_logs успішно видалено.")
+    except Exception as e:
+        logging.error(f"❌ Помилка при видаленні записів з gpt_queries_logs: {e}")
+
+
+delete_all_gpt_logs()
