@@ -114,7 +114,7 @@ def recommend_bot_function(user_input, gpt_response):
         return "/debt"
     elif "аналітик" in lower_input:
         return "/analytics"
-    elif "курс валют" in lower_input or "валюта" in lower_input:
+    elif "курс валют" in lower_input or "валюта" in lower_input or "курс" in lower_input:
         return "/info"
     elif "девальвація" in lower_input:
         return "/info"
