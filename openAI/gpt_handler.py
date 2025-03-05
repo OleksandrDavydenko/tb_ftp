@@ -76,6 +76,7 @@ def get_gpt_response(user_input, user_id, employee_name):
 
     🔹 **Запит користувача**:
     "{user_input}"
+    ⚠️ **Не запитуй користувача про додаткову інформацію або уточнення. Відповідай лише конкретними фактами.**
     """
 
     try:
@@ -116,11 +117,11 @@ def recommend_bot_function(user_input):
     lower_input = user_input.lower()
 
     # Визначаємо, чи запит стосується однієї з вбудованих функцій
-    if "зарплата" in lower_input or "виплата" in lower_input:
+    if "зарплата" in lower_input or "виплата" in lower_input or "зп" in lower_input:
         return "/salary"
     elif "дебітор" in lower_input:
         return "/debt"
-    elif "аналітика" in lower_input:
+    elif "аналітик" in lower_input:
         return "/analytics"
     elif "курс валют" in lower_input or "валюта" in lower_input:
         return "/info"
