@@ -445,7 +445,7 @@ def get_last_gpt_queries(user_id, limit=3):
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT query, response 
+            SELECT query, response
             FROM gpt_queries_logs
             WHERE user_id = %s
             ORDER BY timestamp DESC
@@ -456,8 +456,11 @@ def get_last_gpt_queries(user_id, limit=3):
         cursor.close()
         conn.close()
 
-        # Формуємо список словників
-        return [{"query": q, "response": r} for q, r in messages[::-1]]
+        # Формуємо список словників з правильними ключами
+        return [
+            {"role": "user", "content": q} if q else {"role": "assistant", "content": r}
+            for q, r in messages[::-1]  # Перевертаємо, щоб порядок був хронологічним
+        ]
 
     except Exception as e:
         logging.error(f"❌ Помилка при отриманні історії GPT-запитів: {e}")
