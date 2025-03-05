@@ -468,23 +468,31 @@ def get_last_gpt_queries(user_id, limit=3):
     
 
 
-def delete_all_gpt_logs():
+def add_message_id_column():
     """
-    Видаляє всі записи з таблиці gpt_queries_logs.
+    Додає колонку message_id до таблиць gpt_queries_logs і bot_logs, якщо її ще немає.
     """
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("DELETE FROM gpt_queries_logs")
+        # Додаємо колонку message_id до gpt_queries_logs
+        cursor.execute("""
+            ALTER TABLE gpt_queries_logs ADD COLUMN IF NOT EXISTS message_id BIGINT;
+        """)
+
+        # Додаємо колонку message_id до bot_logs
+        cursor.execute("""
+            ALTER TABLE bot_logs ADD COLUMN IF NOT EXISTS message_id BIGINT;
+        """)
 
         conn.commit()
         cursor.close()
         conn.close()
 
-        logging.info("✅ Всі записи з таблиці gpt_queries_logs успішно видалено.")
+        logging.info("✅ Колонка message_id успішно додана до таблиць gpt_queries_logs і bot_logs.")
     except Exception as e:
-        logging.error(f"❌ Помилка при видаленні записів з gpt_queries_logs: {e}")
+        logging.error(f"❌ Помилка при додаванні колонки message_id: {e}")
 
-
-delete_all_gpt_logs()
+# Виклик функції для оновлення бази
+add_message_id_column()
