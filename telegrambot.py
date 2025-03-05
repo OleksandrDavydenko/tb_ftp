@@ -236,10 +236,10 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
 
     
 
-        await update.message.reply_text(
-            f"🤖 {gpt_response}",
-            parse_mode="MarkdownV2"
-        )
+    await update.message.reply_text(
+        f"🤖 {gpt_response}",
+        parse_mode="HTML"
+    )
 
 
 
