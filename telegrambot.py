@@ -171,8 +171,8 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     if query:
         text = query.data  # Якщо це inline-кнопка
         user_id = query.from_user.id
+        message_id = query.message.message_id if query.message else None  # Отримуємо message_id для callback-запитів
         await query.answer()
-        message_id = query.message.message_id
     else:
         text = update.message.text if update.message else None
         user_id = update.message.from_user.id if update.message else None
