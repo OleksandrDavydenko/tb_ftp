@@ -100,8 +100,10 @@ def get_gpt_response(user_input, user_id, employee_name):
 
         # Перевіряємо, чи запит відповідає вбудованій функції
         recommended_command = recommend_bot_function(user_input)
+      
         if recommended_command:
-            gpt_response += f"\n\nℹ️ **Для цього у боті є вбудована функція!**\nВикористайте команду: `{recommended_command}`."
+          gpt_response += f'\n\nℹ️ <b>Для цього у боті є вбудована функція!</b>\nВикористайте команду: <code>{recommended_command}</code>.'
+
 
         return gpt_response
 
