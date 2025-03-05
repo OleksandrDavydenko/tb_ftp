@@ -116,7 +116,7 @@ def recommend_bot_function(user_input):
     # Визначаємо, чи запит стосується однієї з вбудованих функцій
     if "зарплата" in lower_input or "виплата" in lower_input:
         return "/salary"
-    elif "дебіторська" in lower_input:
+    elif "дебітор" in lower_input:
         return "/debt"
     elif "аналітика" in lower_input:
         return "/analytics"

@@ -232,7 +232,15 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         
         # ✅ Передаємо `employee_name` у GPT-запит
         gpt_response = get_gpt_response(text, user_id, user_display_name)
-        await update.message.reply_text(f"🤖 {gpt_response}")
+
+
+    
+
+        await update.message.reply_text(
+            f"🤖 {gpt_response}",
+            parse_mode="MarkdownV2"
+        )
+
 
 
 async def handle_back_navigation(update: Update, context: CallbackContext) -> None:
