@@ -172,6 +172,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         text = query.data  # Якщо це inline-кнопка
         user_id = query.from_user.id
         await query.answer()
+        message_id = query.message.message_id
     else:
         text = update.message.text if update.message else None
         user_id = update.message.from_user.id if update.message else None
@@ -241,9 +242,11 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     # ✅ Якщо команда невідома — викликаємо GPT
     log_user_action(user_id, "GPT-request", update.message.message_id)  
     logging.info(f"🤖 GPT-request від користувача {user_id}: {text}")  
-    gpt_response = get_gpt_response(text, user_id, context.user_data.get('employee_name', 'Користувач'))
+    # Отримуємо відповідь від GPT
+    gpt_response = get_gpt_response(text, user_id, context.user_data.get('employee_name', 'Користувач'), message_id)
     
     await update.message.reply_text(f"🤖 {gpt_response}", parse_mode="HTML")
+    
 
 
 
