@@ -456,8 +456,8 @@ def get_last_gpt_queries(user_id, limit=3):
         cursor.close()
         conn.close()
 
-        # Формуємо список повідомлень у форматі: [("запит", "відповідь"), ...]
-        return messages[::-1]  # Реверсуємо, щоб передавати у правильному порядку
+        # Формуємо список словників
+        return [{"query": q, "response": r} for q, r in messages[::-1]]
 
     except Exception as e:
         logging.error(f"❌ Помилка при отриманні історії GPT-запитів: {e}")

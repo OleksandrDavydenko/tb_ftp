@@ -115,7 +115,7 @@ def recommend_bot_function(user_input, gpt_response):
         return "/salary"
     elif "дебітор" in lower_input:
         return "/debt"
-    elif "аналітик" in lower_input and "чистий прибуток" not in gpt_response.lower():
+    elif "аналітик" in lower_input:
         return "/analytics"
     elif "курс валют" in lower_input or "валюта" in lower_input:
         return "/info"
