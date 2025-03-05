@@ -361,30 +361,33 @@ def update_user_status(phone_number, new_status):
 
 
 
-def log_user_action(user_id, action):
+def log_user_action(user_id, action, message_id=None):
+    """
+    Логування дій користувача у базу даних, збереження message_id.
+    """
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
-        SELECT employee_name FROM users WHERE telegram_id = %s
-        """, (user_id,))
+        # Отримуємо username з бази даних за user_id
+        cursor.execute("SELECT employee_name FROM users WHERE telegram_id = %s", (user_id,))
         result = cursor.fetchone()
-
-        employee_name = result[0] if result else "Unknown User"
+        username = result[0] if result else "Unknown User"
 
         cursor.execute("""
-        INSERT INTO bot_logs (user_id, username, action)
-        VALUES (%s, %s, %s)
-        """, (user_id, employee_name, action))
+            INSERT INTO bot_logs (user_id, username, action, message_id)
+            VALUES (%s, %s, %s, %s)
+        """, (user_id, username, action, message_id))
 
         conn.commit()
         cursor.close()
         conn.close()
-        logging.info(f"✅ Записано в логи: {employee_name} (ID: {user_id}) - {action}")
+
+        logging.info(f"✅ Записано в логи: {username} (ID: {user_id}) - {action} (message_id: {message_id})")
 
     except Exception as e:
         logging.error(f"❌ Помилка при записі в логи: {e}")
+
 
 def update_employee_name(phone_number, employee_name):
     conn = get_db_connection()
@@ -400,26 +403,27 @@ def update_employee_name(phone_number, employee_name):
 
 
 
-def save_gpt_query(user_id, username, query, response):
+def save_gpt_query(user_id, username, query, response, message_id):
     """
-    Зберігає запит користувача та відповідь GPT у базі даних.
+    Зберігає запит користувача та відповідь GPT у базі даних, включаючи message_id.
     """
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
         cursor.execute("""
-            INSERT INTO gpt_queries_logs (user_id, username, query, response)
-            VALUES (%s, %s, %s, %s)
-        """, (user_id, username, query, response))
+            INSERT INTO gpt_queries_logs (user_id, username, query, response, message_id)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (user_id, username, query, response, message_id))
 
         conn.commit()
         cursor.close()
         conn.close()
 
-        logging.info(f"✅ GPT-запит збережено: {user_id} ({username}) - {query}")
+        logging.info(f"✅ GPT-запит збережено: {user_id} ({username}) - {query} (message_id: {message_id})")
     except Exception as e:
         logging.error(f"❌ Помилка при збереженні GPT-запиту: {e}")
+
 
 
 

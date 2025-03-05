@@ -13,7 +13,7 @@ import sys
 from messages.check_payments import check_new_payments
 from messages.sync_payments import sync_payments
 from auth import is_phone_number_in_power_bi
-from db import add_telegram_user, get_user_joined_at, get_user_status, get_employee_name, log_user_action, save_gpt_query
+from db import add_telegram_user, get_user_joined_at, get_user_status, get_employee_name, log_user_action
 from auth import verify_and_add_user 
 from messages.reminder import schedule_monthly_reminder
 from messages.check_devaluation import check_new_devaluation_records
@@ -79,7 +79,7 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
         logging.info(f"📞 Отримано номер телефону: {phone_number}")
 
         user_id = update.message.from_user.id
-        log_user_action(user_id, f"Надано номер телефону: {phone_number}")
+        log_user_action(user_id, f"Надано номер телефону: {phone_number}", update.message.message_id)
 
         # Перевіряємо користувача в Power BI
         verify_and_add_user(phone_number, update.message.from_user.id, update.message.from_user.first_name)
@@ -186,7 +186,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     # ✅ Якщо команда є у списку відомих команд — просто виконуємо її, без GPT
     if is_known_command(text):
         try:
-            log_user_action(user_id, text)  # Логування звичайної команди
+            log_user_action(user_id, text, update.message.message_id)  # Логування звичайної команди
             logging.info(f"✅ Користувач {user_id} виконав команду: {text}")
         except Exception as e:
             logging.error(f"❌ Помилка логування для {user_id}: {e}")
@@ -239,7 +239,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         return  # Важливо: Вихід із функції, щоб не йти в GPT-запит!
 
     # ✅ Якщо команда невідома — викликаємо GPT
-    log_user_action(user_id, "GPT-request")  
+    log_user_action(user_id, "GPT-request", update.message.message_id)  
     logging.info(f"🤖 GPT-request від користувача {user_id}: {text}")  
     gpt_response = get_gpt_response(text, user_id, context.user_data.get('employee_name', 'Користувач'))
     
