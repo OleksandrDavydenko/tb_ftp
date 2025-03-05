@@ -169,25 +169,30 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     
     query = update.callback_query  # Перевіряємо, чи це callback-запит
     if query:
-        text = query.data  # Якщо це inline-кнопка
+        text = query.data
         user_id = query.from_user.id
-        message_id = query.message.message_id if query.message else None  # Отримуємо message_id для callback-запитів
+        message_id = query.message.message_id if query.message else None
         await query.answer()
     else:
         text = update.message.text if update.message else None
         user_id = update.message.from_user.id if update.message else None
+        message_id = update.message.message_id if update.message else None  # Фікс: додано отримання message_id
+
+    # Якщо message_id відсутній, встановлюємо значення за замовчуванням
+    if message_id is None:
+        message_id = -1  # Використовуємо -1 як заглушку
 
     # Логування отриманого тексту перед записом у базу
-    logging.info(f"📩 Отримано повідомлення: {text} від користувача {user_id}")
+    logging.info(f"📩 Отримано повідомлення: {text} від користувача {user_id} (message_id: {message_id})")
 
     if not text or not user_id:
         logging.warning("⚠️ Не вдалося отримати текст кнопки або ID користувача")
-        return  # Виходимо, якщо немає тексту або ID користувача
+        return  # Вихід, якщо немає тексту або ID користувача
 
-    # ✅ Якщо команда є у списку відомих команд — просто виконуємо її, без GPT
+    # ✅ Якщо команда є у списку відомих — не передаємо в GPT
     if is_known_command(text):
         try:
-            log_user_action(user_id, text, update.message.message_id)  # Логування звичайної команди
+            log_user_action(user_id, text, message_id)  # Фікс: передаємо message_id
             logging.info(f"✅ Користувач {user_id} виконав команду: {text}")
         except Exception as e:
             logging.error(f"❌ Помилка логування для {user_id}: {e}")
@@ -240,12 +245,14 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         return  # Важливо: Вихід із функції, щоб не йти в GPT-запит!
 
     # ✅ Якщо команда невідома — викликаємо GPT
-    log_user_action(user_id, "GPT-request", update.message.message_id)  
+    log_user_action(user_id, "GPT-request", message_id)  
     logging.info(f"🤖 GPT-request від користувача {user_id}: {text}")  
+
     # Отримуємо відповідь від GPT
     gpt_response = get_gpt_response(text, user_id, context.user_data.get('employee_name', 'Користувач'), message_id)
     
     await update.message.reply_text(f"🤖 {gpt_response}", parse_mode="HTML")
+
     
 
 
