@@ -163,49 +163,60 @@ def get_main_menu_keyboard():
     )
 
 async def handle_main_menu(update: Update, context: CallbackContext) -> None:
-    """Обробляє команди та текстові запити користувачів."""
-
     if not context.user_data.get('registered', False):
         await prompt_for_phone_number(update, context)
         return
+    
+    query = update.callback_query  # Перевіряємо, чи це callback-запит
+    if query:
+        text = query.data  # Якщо це inline-кнопка
+        user_id = query.from_user.id
+        await query.answer()
+    else:
+        text = update.message.text if update.message else None
+        user_id = update.message.from_user.id if update.message else None
 
-    query = update.callback_query  # Якщо натиснута кнопка
-    text = query.data if query else update.message.text if update.message else None
-    user_id = query.from_user.id if query else update.message.from_user.id if update.message else None
-    phone_number = context.user_data.get("phone_number")  # Отримуємо номер телефону користувача
-    first_name = query.from_user.first_name if query else update.message.from_user.first_name if update.message else None
-
-    # Отримуємо ім'я співробітника з бази, якщо є номер телефону
-    employee_name = get_employee_name(phone_number) if phone_number else None
-    user_display_name = employee_name if employee_name else first_name  # Якщо немає в БД, використовуємо first_name
+    # Логування отриманого тексту перед записом у базу
+    logging.info(f"📩 Отримано повідомлення: {text} від користувача {user_id}")
 
     if not text or not user_id:
-        logging.warning("⚠️ Не вдалося отримати текст або ID користувача")
-        return
+        logging.warning("⚠️ Не вдалося отримати текст кнопки або ID користувача")
+        return  # Виходимо, якщо немає тексту або ID користувача
 
-    # ✅ Якщо це команда – обробляємо її
+    # ✅ Якщо команда є у списку відомих команд — просто виконуємо її, без GPT
     if is_known_command(text):
-        log_user_action(user_id, text)
-        logging.info(f"✅ Користувач {user_display_name} ({user_id}) виконав команду: {text}")
+        try:
+            log_user_action(user_id, text)  # Логування звичайної команди
+            logging.info(f"✅ Користувач {user_id} виконав команду: {text}")
+        except Exception as e:
+            logging.error(f"❌ Помилка логування для {user_id}: {e}")
 
-        # Обробка команд
-        command_handlers = {
-            "📉 Дебіторська заборгованість": show_debt_options,
-            "Таблиця": show_debt_details,
-            "Гістограма": show_debt_histogram,
-            "Діаграма": show_debt_pie_chart,
-            "Протермінована дебіторська заборгованість": handle_overdue_debt,
-            "💼 Розрахунковий лист": show_salary_years,
-            "📊 Аналітика": show_analytics_options,
-            "ℹ️ Інформація": show_help_menu,
-            "💱 Курс валют": show_currency_rates,
-            "Перевірка девальвації": show_devaluation_data,
-            "Назад": handle_back_navigation,
-            "Головне меню": show_main_menu,
-        }
-
-        if text in command_handlers:
-            await command_handlers[text](update, context)
+        # Виконуємо відповідну функцію
+        if text == "📉 Дебіторська заборгованість":
+            await show_debt_options(update, context)
+        elif text == "Таблиця":
+            await show_debt_details(update, context)
+        elif text == "Гістограма":
+            await show_debt_histogram(update, context)
+        elif text == "Діаграма":
+            await show_debt_pie_chart(update, context)
+        elif text == "Протермінована дебіторська заборгованість":
+            await handle_overdue_debt(update, context)
+        elif text == "💼 Розрахунковий лист":
+            context.user_data['menu'] = 'salary_years'
+            await show_salary_years(update, context)
+        elif text == "📊 Аналітика":
+            await show_analytics_options(update, context)
+        elif text == "ℹ️ Інформація":
+            await show_help_menu(update, context)
+        elif text == "💱 Курс валют":
+            await show_currency_rates(update, context)
+        elif text == "Перевірка девальвації":
+            await show_devaluation_data(update, context)
+        elif text == "Назад":
+            await handle_back_navigation(update, context)
+        elif text == "Головне меню":
+            await show_main_menu(update, context)
         elif text in ["Аналітика за місяць", "Аналітика за рік"]:
             await handle_analytics_selection(update, context, text)
         elif text in ["2024", "2025"]:
@@ -225,21 +236,14 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
             await show_salary_years(update, context)
         elif text.startswith("/menu"):  
             await show_main_menu(update, context)
-    else:
-        log_user_action(user_id, "GPT-request")  
-        # ✅ Якщо це невідома команда – відправляємо запит у GPT
-        logging.info(f"🤖 GPT-request від користувача {user_display_name} ({user_id}): {text}")  
-        
-        # ✅ Передаємо `employee_name` у GPT-запит
-        gpt_response = get_gpt_response(text, user_id, user_display_name)
+        return  # Важливо: Вихід із функції, щоб не йти в GPT-запит!
 
-
+    # ✅ Якщо команда невідома — викликаємо GPT
+    log_user_action(user_id, "GPT-request")  
+    logging.info(f"🤖 GPT-request від користувача {user_id}: {text}")  
+    gpt_response = get_gpt_response(text, user_id, context.user_data.get('employee_name', 'Користувач'))
     
-
-    await update.message.reply_text(
-        f"🤖 {gpt_response}",
-        parse_mode="HTML"
-    )
+    await update.message.reply_text(f"🤖 {gpt_response}", parse_mode="HTML")
 
 
 
