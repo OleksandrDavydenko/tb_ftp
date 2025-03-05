@@ -24,14 +24,12 @@ def create_tables():
         telegram_id BIGINT NOT NULL,
         telegram_name VARCHAR(50),
         employee_name VARCHAR(50),
-        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        status VARCHAR(20) DEFAULT 'active'
     )
     """)
-    cursor.execute("""
-        ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active';
-    """)
 
-     # Створюємо таблицю виплат
+    # Створюємо таблицю виплат
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS payments (
         id SERIAL PRIMARY KEY,
@@ -44,7 +42,7 @@ def create_tables():
     )
     """)
 
-    # Створюємо таблицю для аналізу девальвації з колонкою is_notified
+    # Створюємо таблицю для аналізу девальвації
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS DevaluationAnalysis (
         id SERIAL PRIMARY KEY,
@@ -75,34 +73,20 @@ def create_tables():
         rate NUMERIC(10, 4) NOT NULL
     )
     """)
-     # Створюємо таблицю для логів бота
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS bot_logs (
-            id SERIAL PRIMARY KEY,
-            user_id BIGINT NOT NULL,
-            username VARCHAR(50),
-            action TEXT NOT NULL,
-            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            message_id
-    )
-    """)
-
-
 
     # Створюємо таблицю для логів бота
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS gpt_queries_logs (
-            id SERIAL PRIMARY KEY,
-            user_id BIGINT NOT NULL,
-            username TEXT,
-            query TEXT NOT NULL,
-            response TEXT,
-            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            message_id
-        );
+    CREATE TABLE IF NOT EXISTS bot_logs (
+        id SERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL,
+        username VARCHAR(50),
+        action TEXT NOT NULL,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        message_id BIGINT
+    )
     """)
 
-    # ✅ Таблиця для логів GPT-запитів (правильна версія)
+    # Створюємо таблицю для логів GPT-запитів
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS gpt_queries_logs (
         id SERIAL PRIMARY KEY,
@@ -110,18 +94,19 @@ def create_tables():
         username TEXT,
         query TEXT NOT NULL,
         response TEXT,
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        message_id BIGINT
     )
     """)
 
     conn.commit()
     cursor.close()
     conn.close()
-    logging.info("Усі таблиці створено або оновлено успішно.")
+    logging.info("✅ Усі таблиці створено або оновлено успішно.")
 
 # Викликаємо функцію для створення таблиць при запуску
-
 create_tables()
+
 
 
 
