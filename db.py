@@ -433,3 +433,32 @@ def save_gpt_query(user_id, username, query, response):
         logging.info(f"✅ GPT-запит збережено: {user_id} ({username}) - {query}")
     except Exception as e:
         logging.error(f"❌ Помилка при збереженні GPT-запиту: {e}")
+
+
+
+def get_last_gpt_queries(user_id, limit=3):
+    """
+    Отримує останні N повідомлень користувача з бази даних.
+    """
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT query, response 
+            FROM gpt_queries_logs
+            WHERE user_id = %s
+            ORDER BY timestamp DESC
+            LIMIT %s
+        """, (user_id, limit))
+
+        messages = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        # Формуємо список повідомлень у форматі: [("запит", "відповідь"), ...]
+        return messages[::-1]  # Реверсуємо, щоб передавати у правильному порядку
+
+    except Exception as e:
+        logging.error(f"❌ Помилка при отриманні історії GPT-запитів: {e}")
+        return []
