@@ -1,5 +1,6 @@
 import os
 import logging
+from apscheduler.schedulers.blocking import BlockingScheduler
 from telegram import Bot
 from db import get_db_connection
 
@@ -18,7 +19,14 @@ def get_telegram_id_by_name(employee_name):
     conn.close()
     return user_data[0] if user_data else None
 
+import asyncio
+
 def send_message_to_users():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(async_send_message_to_users())
+
+async def async_send_message_to_users():
     """ Відправляє повідомлення користувачам 'Давиденко Олександр' і 'Ступа Олександр'. """
     employee_names = ["Давиденко Олександр", "Ступа Олександр"]
     message = (
