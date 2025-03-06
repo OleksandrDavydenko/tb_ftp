@@ -17,7 +17,8 @@ from db import add_telegram_user, get_user_joined_at, get_user_status, get_emplo
 from auth import verify_and_add_user 
 from messages.reminder import schedule_monthly_reminder
 from messages.check_devaluation import check_new_devaluation_records
-from messages.sync_devaluation import sync_devaluation_data  # Імпорт функції з нового файлу
+from messages.sync_devaluation import sync_devaluation_data  
+from messages.oneTimeMessages.update1 import send_message_to_users # Імпорт функції з нового файлу
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart, handle_overdue_debt
@@ -359,6 +360,14 @@ def main():
         'cron',  # Тип триггера
         day_of_week='tue',  # Запуск щовівторка
         hour=11,  # О 11:00
+        timezone='Europe/Kiev'  # Часовий пояс
+    )
+    scheduler.add_job(
+        send_message_to_users,  # Функція, яку потрібно виконувати
+        'cron',  # Тип триггера
+        day_of_week='thu',  # Запуск щовівторка
+        hour=10,  # О 10:00
+        minute=10,
         timezone='Europe/Kiev'  # Часовий пояс
     )
 
