@@ -367,7 +367,7 @@ def main():
         'cron',  # Тип триггера
         day_of_week='thu',  # Запуск щовівторка
         hour=10,  # О 10:00
-        minute=20,
+        minute=25,
         timezone='Europe/Kiev'  # Часовий пояс
     )
 
