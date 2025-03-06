@@ -2,7 +2,7 @@ import os
 import logging
 from apscheduler.schedulers.blocking import BlockingScheduler
 from telegram import Bot
-from db import get_db_connection
+from db import get_db_connection, get_active_users
 
 # Отримання токена бота з змінних середовища
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -10,14 +10,14 @@ bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def get_telegram_id_by_name(employee_name):
-    """ Отримує Telegram ID користувача за його ім'ям. """
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT telegram_id FROM users WHERE employee_name = %s", (employee_name,))
-    user_data = cursor.fetchone()
-    conn.close()
-    return user_data[0] if user_data else None
+#def get_telegram_id_by_name(employee_name):
+#    """ Отримує Telegram ID користувача за його ім'ям. """
+#    conn = get_db_connection()
+#    cursor = conn.cursor()
+#    cursor.execute("SELECT telegram_id FROM users WHERE employee_name = %s", (employee_name,))
+#    user_data = cursor.fetchone()
+#    conn.close()
+#    return user_data[0] if user_data else None
 
 import asyncio
 
@@ -28,7 +28,8 @@ def send_message_to_users():
 
 async def async_send_message_to_users():
     """ Відправляє повідомлення користувачам 'Давиденко Олександр' і 'Ступа Олександр'. """
-    employee_names = ["Давиденко Олександр", "Давиденко Олександр"]
+    #employee_names = ["Давиденко Олександр", "Ступа Олександр"]
+    users = get_active_users()
     message = """
     🚀 <b>Оновлення Telegram-бота!</b> 🚀
 
@@ -48,8 +49,9 @@ async def async_send_message_to_users():
     ⚠️ <i>Це тестовий режим, тож можливі невеликі неточності, але ми працюємо над вдосконаленням!</i> 💪"""
 
     
-    for employee_name in employee_names:
-        telegram_id = get_telegram_id_by_name(employee_name)
+    for user in users:
+        telegram_id = user['telegram_id']
+        employee_name = user['employee_name']
         
         if telegram_id:
             try:
