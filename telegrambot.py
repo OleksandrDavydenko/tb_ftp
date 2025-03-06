@@ -362,7 +362,7 @@ def main():
     send_message_to_users,
     'cron',
     day_of_week='thu',  # Щочетверга
-    hour=16,  # О 
+    hour=15,  # О 
     timezone='Europe/Kiev'  # Часовий пояс
     )
 
