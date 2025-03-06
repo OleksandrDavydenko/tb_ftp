@@ -1,6 +1,4 @@
 import numpy as np
-import psycopg2
-import os
 import logging
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
