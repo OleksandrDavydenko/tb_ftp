@@ -363,7 +363,7 @@ def main():
     'cron',
     day_of_week='thu',  # Щочетверга
     hour=11,  # О 
-    minute=2,
+    minute=10,
     timezone='Europe/Kiev'  # Часовий пояс
     )
 
