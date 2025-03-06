@@ -362,14 +362,8 @@ def main():
         hour=11,  # О 11:00
         timezone='Europe/Kiev'  # Часовий пояс
     )
-    scheduler.add_job(
-        send_message_to_users,  # Функція, яку потрібно виконувати
-        'cron',  # Тип триггера
-        day_of_week='thu',  # Запуск щовівторка
-        hour=10,  # О 10:00
-        minute=25,
-        timezone='Europe/Kiev'  # Часовий пояс
-    )
+    
+
 
     scheduler.add_job(sync_user_statuses, 'interval', minutes=63)
 
