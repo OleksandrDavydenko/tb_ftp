@@ -47,9 +47,11 @@ async def async_send_message_to_users():
         
         if telegram_id:
             try:
-                bot.send_message(chat_id=telegram_id, text=message)
+                await bot.send_message(chat_id=telegram_id, text=message)
                 logging.info(f"Повідомлення відправлено користувачу {employee_name} (Telegram ID: {telegram_id})")
             except Exception as e:
                 logging.error(f"Помилка при відправці повідомлення користувачу {employee_name}: {e}")
         else:
             logging.warning(f"Користувач {employee_name} не знайдений у базі даних.")
+
+
