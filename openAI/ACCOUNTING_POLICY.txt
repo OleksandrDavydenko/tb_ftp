@@ -4,7 +4,7 @@
 
 2. Основні положення та загальна інформація
 2.1 Валюта обліку USD
-2.2 Для Бронювання переговорних кімнат слід користуватись файлом: https://docs.google.com/spreadsheets/d/1BDDbBkMx2p1CJfSR7TRCq2OnphLwky9lSuOhC9gI2bI/edit#gid=733200602
+2.2 Якщо запитання про бронювання переговорних кімнат слід користуватись файлом: https://docs.google.com/spreadsheets/d/1BDDbBkMx2p1CJfSR7TRCq2OnphLwky9lSuOhC9gI2bI/edit#gid=733200602
 
 
 3. Організаційна структура
