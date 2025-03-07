@@ -24,12 +24,12 @@
 2.4 Телеграм - бот створив Олександр Давиденко od@ftp.ua 
 2.5 Директор компанії Євгеній Окулов eo@ftpua.com
 2.6 Головний бухгалтер Юлія Муравйова my@ftpua.com
-2.7 Для замовлення канцелярії звертатись до Дарія Бойко dbv@ftpua.com
-2.8 З питань нарахування заробітної плати до фінансового директора Олександра Ступи sa@ftpua.com
+2.7 Для замовлення канцелярії звертатись до Дарія Бойко dbv@ftpua.com. Правила взаємодії з офіс менеджером, як замінити картридж в принтері, некоректна робота кондиціонерів та інше що стосується матеріального забезпечення працівників вказано в інструкції https://docs.google.com/document/d/1LlnTQdjzW-XtwWNFofzVyNOT5gp3Zc0Q/edit?tab=t.0
+2.8 З питань нарахування заробітної плати до фінансового директора Олександра Ступи sa@ftpua.com. Якщо питання стосуються нарахування бонусів продавцям тоді звертатись до yd@ftpua.com
 2.9 Таблиця з контактами співробітників https://docs.google.com/spreadsheets/d/1fejV52RJ0M8F2oSJPxSk9ztxbYvWMS6NOzz_E3F8vcs/edit?gid=636262659#gid=636262659
 2.10 Папка де знаходяться всі інструкції компанії https://drive.google.com/drive/folders/1PkJ5d-_NYvNw3LUjoZZbooGylC0IvCxn?hl=ru
 2.11 Реєстри вхідної та вихідної кореспонденції знаходяться в папці: D:\PUBLIC\Office\
-2.12 Правила взаємодії з офіс менеджером, як замінити картридж в принтері, некоректна робота кондиціонерів та інше що стосується матеріального забезпечення працівників вказано в інструкції https://docs.google.com/document/d/1LlnTQdjzW-XtwWNFofzVyNOT5gp3Zc0Q/edit?tab=t.0
+
 2.13 Для доопрацювань в облікових системах слід звертатись у відділ бізнес аналізу. Алгоритм взаємодії з відділом бізнес аналізу https://docs.google.com/document/d/11ScF980SdCRqyYbAl8VmqE_7TExqTHbV/edit?tab=t.0
 2.14 Інструкція взаємодії відділів з бухгалтерією https://docs.google.com/document/d/1-Pq-eqQEroV4UfQLUR8WwBCj8JDQgr6f/edit
 2.15 Інструкція по взаємодії з IT-спеціалістом https://docs.google.com/document/d/1i4fKFEvavYdchP0RkbX72GT0Q2cmnabp/edit?tab=t.0
@@ -38,7 +38,7 @@
 2.18 Кодекс корпоративної етики - встановлює стандарти професійної поведінки, якими ми керуємося в компанії під час щоденної взаємодії один з одним, нашими клієнтами та діловими партнерами Welcome Book https://docs.google.com/document/d/1SUM3tzJduV43ukKdYHP0Ca5Z25FY9388/edit?tab=t.0
 2.19 Алгоритм взаємодії з юридичним відділом https://docs.google.com/document/d/1OmUOMdrmUamytJVEEIw4f5rYRFRQtRiE/edit?tab=t.0
 2.20 Інструкція у разі обшуку на підприємстві https://docs.google.com/document/d/1vZG971eeYVl6nrXaC09bJfyflfLn3a7p/edit?tab=t.0
-2.21 Head of the legal department Євгенія Майорова em@ftpua.com 
+2.21 Head of the legal department Євгенія Майорова em@ftpua.com
 
 
 3. Організаційна структура
