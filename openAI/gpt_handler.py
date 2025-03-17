@@ -2,6 +2,8 @@ import openai
 import os
 import logging
 from db import save_gpt_query, get_last_gpt_queries
+from datetime import datetime
+ 
 
 # OpenAI API Key (змінна середовища)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -46,12 +48,14 @@ def get_gpt_response(user_input, user_id, employee_name, message_id):
     client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
     # Отримуємо останні 3 повідомлення з БД
-    chat_history = get_last_gpt_queries(user_id, limit=3)
+    chat_history = get_last_gpt_queries(user_id, limit=2)
+    current_date = datetime.now().strftime('%Y-%m-%d')
 
     # Формуємо початкове повідомлення
     messages = [
         {"role": "system", "content": "Ти - корпоративний фінансовий помічник у Telegram-боті."},
         {"role": "system", "content": f"""
+        Сьогоднішня дата: {current_date}.
         Ти повинен відповідати у форматі HTML для Telegram. 
             🔹 Використовуй **тільки** HTML-форматування.
             🔹 Не використовуй Markdown.
