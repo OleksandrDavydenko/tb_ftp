@@ -97,7 +97,7 @@ def get_gpt_response(user_input, user_id, employee_name, message_id):
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=messages,
-            temperature=0.4
+            temperature=0.3
         )
 
         gpt_response = response.choices[0].message.content
