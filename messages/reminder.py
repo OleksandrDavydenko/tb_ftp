@@ -101,7 +101,7 @@ def reschedule_next_month(scheduler):
 def schedule_monthly_reminder(scheduler):
     # Перевіряємо, чи 1 число місяця є вихідним, і налаштовуємо запуск на найближчий робочий день
     now = datetime.now(timezone('Europe/Kiev'))
-    first_day_of_month = datetime(now.year, now.month, 1, 15, 0, tzinfo=timezone('Europe/Kiev'))
+    first_day_of_month = datetime(now.year, now.month, 1, 10, 0, tzinfo=timezone('Europe/Kiev'))
     next_workday = get_next_workday(first_day_of_month)
 
     # Додаємо задачу в планувальник
