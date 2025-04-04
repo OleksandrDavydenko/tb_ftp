@@ -187,9 +187,20 @@ def get_main_menu_keyboard():
 def is_registered(telegram_id):
     user = get_user_by_telegram_id(telegram_id)
     return user is not None
+def populate_user_context(context: CallbackContext, telegram_id: int):
+    user = get_user_by_telegram_id(telegram_id)
+    if user:
+        phone_number, employee_name = user
+        context.user_data.update({
+            'registered': True,
+            'phone_number': phone_number,
+            'employee_name': employee_name
+        })
+
 
 async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     telegram_id = update.effective_user.id
+    populate_user_context(context, telegram_id)
 
     if not is_registered(telegram_id):
         logging.warning(f"❌ Користувача {telegram_id} не знайдено в БД. Просимо номер.")
