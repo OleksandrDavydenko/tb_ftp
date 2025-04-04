@@ -462,14 +462,18 @@ def get_last_gpt_queries(user_id, limit=3):
 def get_user_by_telegram_id(telegram_id):
     import logging
     from db import get_db_connection  # якщо ще не імпортовано
+
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
-        # Перетворення в int – ОБОВʼЯЗКОВО, бо в БД тип BIGINT
         telegram_id_int = int(telegram_id)
         cursor.execute(
-            "SELECT phone_number, employee_name FROM users WHERE telegram_id = %s",
+            """
+            SELECT phone_number, employee_name 
+            FROM users 
+            WHERE telegram_id = %s AND status = 'active'
+            """,
             (telegram_id_int,)
         )
         user = cursor.fetchone()
@@ -481,6 +485,7 @@ def get_user_by_telegram_id(telegram_id):
     finally:
         cursor.close()
         conn.close()
+
 
 
 
