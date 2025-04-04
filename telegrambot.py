@@ -84,6 +84,7 @@ async def start(update: Update, context: CallbackContext) -> None:
 
 
 async def prompt_for_phone_number(update: Update, context: CallbackContext) -> None:
+    logging.info(f"[AUTH] Користувача не знайдено. Просимо поділитися номером. Telegram ID: {update.message.from_user.id}")
     contact_button = KeyboardButton(text="Поділитися номером телефоном", request_contact=True)
     reply_markup = ReplyKeyboardMarkup([[contact_button]], one_time_keyboard=True)
     await update.message.reply_text(
