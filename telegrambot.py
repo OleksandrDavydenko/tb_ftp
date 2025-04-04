@@ -63,19 +63,25 @@ async def start(update: Update, context: CallbackContext) -> None:
     telegram_id = update.message.from_user.id
     user = get_user_by_telegram_id(telegram_id)
 
+    logging.info(f"[START] Telegram ID: {telegram_id}, user from DB: {user}")
+
     if user:
         phone_number, employee_name = user
+
         context.user_data.update({
             'registered': True,
             'phone_number': phone_number,
             'telegram_name': update.message.from_user.first_name,
             'employee_name': employee_name
         })
-        await update.message.reply_text(f"Вітаємо, {employee_name}! Доступ надано.")
+
+        await update.message.reply_text(f"👋 Вітаємо, {employee_name}! Доступ надано.")
         await show_main_menu(update, context)
+
     else:
-        context.user_data['registered'] = False
+        # Лише якщо не знайдено в базі — просимо номер
         await prompt_for_phone_number(update, context)
+
 
 async def prompt_for_phone_number(update: Update, context: CallbackContext) -> None:
     contact_button = KeyboardButton(text="Поділитися номером телефоном", request_contact=True)
