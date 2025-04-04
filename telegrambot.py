@@ -13,7 +13,7 @@ import sys
 from messages.check_payments import check_new_payments
 from messages.sync_payments import sync_payments
 from auth import is_phone_number_in_power_bi
-from db import add_telegram_user, get_user_joined_at, get_user_status, get_employee_name, log_user_action
+from db import add_telegram_user, get_user_joined_at, get_user_status, get_employee_name, log_user_action, get_user_by_telegram_id
 from auth import verify_and_add_user 
 from messages.reminder import schedule_monthly_reminder
 from messages.check_devaluation import check_new_devaluation_records
@@ -60,8 +60,22 @@ scheduler = AsyncIOScheduler()
 
 
 async def start(update: Update, context: CallbackContext) -> None:
-    context.user_data['registered'] = False
-    await prompt_for_phone_number(update, context)
+    telegram_id = update.message.from_user.id
+    user = get_user_by_telegram_id(telegram_id)
+
+    if user:
+        phone_number, employee_name = user
+        context.user_data.update({
+            'registered': True,
+            'phone_number': phone_number,
+            'telegram_name': update.message.from_user.first_name,
+            'employee_name': employee_name
+        })
+        await update.message.reply_text(f"Вітаємо, {employee_name}! Доступ надано.")
+        await show_main_menu(update, context)
+    else:
+        context.user_data['registered'] = False
+        await prompt_for_phone_number(update, context)
 
 async def prompt_for_phone_number(update: Update, context: CallbackContext) -> None:
     contact_button = KeyboardButton(text="Поділитися номером телефоном", request_contact=True)

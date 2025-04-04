@@ -459,3 +459,13 @@ def get_last_gpt_queries(user_id, limit=3):
     
 
 
+def get_user_by_telegram_id(telegram_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT phone_number, employee_name FROM users WHERE telegram_id = %s", (telegram_id,))
+    user = cursor.fetchone()
+    conn.close()
+    return user
+
+
+
