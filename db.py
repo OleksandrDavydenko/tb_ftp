@@ -460,12 +460,25 @@ def get_last_gpt_queries(user_id, limit=3):
 
 
 def get_user_by_telegram_id(telegram_id):
+    import logging
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT phone_number, employee_name FROM users WHERE telegram_id = %s", (telegram_id,))
-    user = cursor.fetchone()
-    conn.close()
-    return user
+
+    try:
+        cursor.execute(
+            "SELECT phone_number, employee_name FROM users WHERE telegram_id = %s",
+            (int(telegram_id),)  # 🔥 важливо: перетворення в int
+        )
+        user = cursor.fetchone()
+        logging.info(f"[DB] Результат get_user_by_telegram_id({telegram_id}): {user}")
+        return user
+    except Exception as e:
+        logging.error(f"[DB] ❌ Помилка у get_user_by_telegram_id: {e}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
 
 
 
