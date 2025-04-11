@@ -404,7 +404,7 @@ def main():
         hour=11,  # О 11:00
         timezone='Europe/Kiev'  # Часовий пояс
     )
-    scheduler.add_job(send_birthday_greetings, 'cron', hour=12, minute=10, timezone='Europe/Kiev')
+    scheduler.add_job(send_birthday_greetings, 'cron', hour=9, minute=21, timezone='Europe/Kiev')
     
 
 
