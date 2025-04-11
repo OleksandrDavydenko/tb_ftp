@@ -17,7 +17,8 @@ from db import add_telegram_user, get_user_joined_at, get_user_status, get_emplo
 from auth import verify_and_add_user 
 from messages.reminder import schedule_monthly_reminder
 from messages.check_devaluation import check_new_devaluation_records
-from messages.sync_devaluation import sync_devaluation_data  
+from messages.sync_devaluation import sync_devaluation_data
+from messages.birthday_greetings import send_birthday_greetings  
 from messages.oneTimeMessages.update1 import send_message_to_users # Імпорт функції з нового файлу
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -403,6 +404,7 @@ def main():
         hour=11,  # О 11:00
         timezone='Europe/Kiev'  # Часовий пояс
     )
+    scheduler.add_job(send_birthday_greetings, 'cron', hour=11, minute=30, timezone='Europe/Kiev')
     
 
 
