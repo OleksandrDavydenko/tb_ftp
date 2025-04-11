@@ -4,7 +4,7 @@ from datetime import datetime
 import requests
 from telegram import Bot
 from auth import get_power_bi_token
-from db import get_all_users
+from db import get_active_users
 import os
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -66,7 +66,7 @@ async def send_birthday_greetings():
         logging.info("Сьогодні немає іменинників.")
         return
 
-    users = get_all_users()
+    users = get_active_users()
     users_dict = {u["employee_name"]: u["telegram_id"] for u in users}
 
     for person in birthday_people:
