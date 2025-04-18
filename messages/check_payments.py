@@ -17,20 +17,26 @@ async def check_new_payments():
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    # Крок 1: отримуємо унікальні номери платіжок, які мають хоча б один рядок з is_notified = FALSE
     cursor.execute("""
-    SELECT phone_number, amount, currency, payment_date, payment_number, accrual_month
+    SELECT DISTINCT payment_number
     FROM payments
     WHERE is_notified = FALSE
     """)
-    new_payments = cursor.fetchall()
+    payment_numbers_to_notify = [row[0] for row in cursor.fetchall()]
 
-    # Групуємо за номером документа
-    grouped_by_document = defaultdict(list)
-    for payment in new_payments:
-        payment_number = payment[4]
-        grouped_by_document[payment_number].append(payment)
+    for payment_number in payment_numbers_to_notify:
+        # Крок 2: дістаємо всі рядки по цьому платіжному документу
+        cursor.execute("""
+        SELECT phone_number, amount, currency, payment_date, payment_number, accrual_month
+        FROM payments
+        WHERE payment_number = %s
+        """, (payment_number,))
+        payments = cursor.fetchall()
 
-    for payment_number, payments in grouped_by_document.items():
+        if not payments:
+            continue
+
         phone_number = payments[0][0]
         currency = payments[0][2]
 
@@ -50,16 +56,15 @@ async def check_new_payments():
             accrual_month = p[5]
             amounts_by_month[accrual_month] += float(p[1])
 
-        # Формування повідомлення
+        # Надсилаємо повідомлення з усією інформацією
         await send_notification(telegram_id, amounts_by_month, currency, payment_number)
 
-        # Позначаємо платежі як сповіщені
-        for p in payments:
-            cursor.execute("""
-            UPDATE payments
-            SET is_notified = TRUE
-            WHERE phone_number = %s AND amount = %s AND payment_date = %s AND payment_number = %s
-            """, (p[0], p[1], p[3], p[4]))
+        # Оновлюємо всі записи цього документа: is_notified = TRUE
+        cursor.execute("""
+        UPDATE payments
+        SET is_notified = TRUE
+        WHERE payment_number = %s
+        """, (payment_number,))
 
     conn.commit()
     cursor.close()
@@ -69,7 +74,9 @@ async def send_notification(telegram_id, amounts_by_month, currency, payment_num
     try:
         bot = Bot(token=KEY)
 
-        details = "\n".join([f"• {month} – {amount:.2f} {currency}" for month, amount in amounts_by_month.items()])
+        details = "\n".join(
+            [f"• {month} – {amount:.2f} {currency}" for month, amount in amounts_by_month.items()]
+        )
         total_amount = sum(amounts_by_month.values())
 
         message = (
