@@ -17,27 +17,26 @@ async def check_new_payments():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Крок 1: отримуємо унікальні номери платіжок, які мають хоча б один рядок з is_notified = FALSE
+    # Крок 1: знайти унікальні пари payment_number + phone_number
     cursor.execute("""
-    SELECT DISTINCT payment_number
+    SELECT DISTINCT payment_number, phone_number
     FROM payments
     WHERE is_notified = FALSE
     """)
-    payment_numbers_to_notify = [row[0] for row in cursor.fetchall()]
+    payment_groups = cursor.fetchall()
 
-    for payment_number in payment_numbers_to_notify:
-        # Крок 2: дістаємо всі рядки по цьому платіжному документу
+    for payment_number, phone_number in payment_groups:
+        # Крок 2: дістати всі записи по цій парі
         cursor.execute("""
         SELECT phone_number, amount, currency, payment_date, payment_number, accrual_month
         FROM payments
-        WHERE payment_number = %s
-        """, (payment_number,))
+        WHERE payment_number = %s AND phone_number = %s
+        """, (payment_number, phone_number))
         payments = cursor.fetchall()
 
         if not payments:
             continue
 
-        phone_number = payments[0][0]
         currency = payments[0][2]
 
         # Отримуємо Telegram ID
@@ -56,15 +55,15 @@ async def check_new_payments():
             accrual_month = p[5]
             amounts_by_month[accrual_month] += float(p[1])
 
-        # Надсилаємо повідомлення з усією інформацією
+        # Надсилаємо повідомлення
         await send_notification(telegram_id, amounts_by_month, currency, payment_number)
 
-        # Оновлюємо всі записи цього документа: is_notified = TRUE
+        # Позначаємо ці платежі як повідомлені
         cursor.execute("""
         UPDATE payments
         SET is_notified = TRUE
-        WHERE payment_number = %s
-        """, (payment_number,))
+        WHERE payment_number = %s AND phone_number = %s
+        """, (payment_number, phone_number))
 
     conn.commit()
     cursor.close()
