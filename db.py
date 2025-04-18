@@ -149,21 +149,19 @@ def add_telegram_user(phone_number, telegram_id, telegram_name, employee_name, s
 
 
 
-
-
-
-def add_payment(phone_number, amount, currency, payment_date, payment_number, accrual_month):
+def add_payment(phone_number, amount, currency, payment_date, payment_number, accrual_month, is_notified=False):
     conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
-    INSERT INTO payments (phone_number, amount, currency, payment_date, payment_number, accrual_month)
-    VALUES (%s, %s, %s, %s, %s, %s)
-    """, (phone_number, amount, currency, payment_date, payment_number, accrual_month))
+    INSERT INTO payments (phone_number, amount, currency, payment_date, payment_number, accrual_month, is_notified)
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """, (phone_number, amount, currency, payment_date, payment_number, accrual_month, is_notified))
 
     conn.commit()
     cursor.close()
     conn.close()
+
 
 
 def add_devaluation_record(data):

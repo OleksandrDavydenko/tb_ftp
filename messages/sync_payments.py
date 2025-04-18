@@ -34,10 +34,10 @@ def delete_payment_records(phone_number, payment_number):
         cursor.close()
         conn.close()
 
-
+async def async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу, місяць_нарахування, already_notified):
     try:
-        add_payment(phone_number, сума, currency, дата_платежу, номер_платежу, місяць_нарахування)
-        logging.info(f"✅ Додано платіж: {phone_number} | {сума} {currency} | {місяць_нарахування} | № {номер_платежу}")
+        add_payment(phone_number, сума, currency, дата_платежу, номер_платежу, місяць_нарахування, already_notified)
+        logging.info(f"✅ Додано платіж: {phone_number} | {сума} {currency} | {місяць_нарахування} | № {номер_платежу} | notified={already_notified}")
     except Exception as e:
         logging.error(f"❌ Помилка при додаванні платежу: {e}")
 
@@ -94,16 +94,24 @@ async def sync_payments():
                 data = response.json()
                 rows = data['results'][0]['tables'][0].get('rows', [])
                 
-                # Групування рядків за payment_number
+                # Групуємо за номером платіжки
                 grouped = {}
                 for payment in rows:
                     номер_платежу = payment.get("[Документ]", "")
                     grouped.setdefault(номер_платежу, []).append(payment)
 
                 for номер_платежу, payments in grouped.items():
-                    # Видаляємо старі записи
+                    # Чи була ця платіжка вже повідомлена для користувача?
+                    cursor.execute("""
+                        SELECT COUNT(*) FROM payments
+                        WHERE phone_number = %s AND payment_number = %s AND is_notified = TRUE
+                    """, (phone_number, номер_платежу))
+                    already_notified = cursor.fetchone()[0] > 0
+
+                    # Очищаємо старі записи по користувачу
                     delete_payment_records(phone_number, номер_платежу)
 
+                    # Додаємо всі рядки заново
                     for payment in payments:
                         сума_uah = float(payment.get("[Сума UAH]", 0))
                         сума_usd = float(payment.get("[Сума USD]", 0))
@@ -117,9 +125,9 @@ async def sync_payments():
                             сума = сума_uah
                             currency = "UAH"
                         else:
-                            continue  # Пропустити нульові суми
+                            continue
 
-                        await async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу, місяць_нарахування)
+                        await async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу, місяць_нарахування, already_notified)
 
                 logging.info(f"🔄 Синхронізовано {len(rows)} платежів для {employee_name}.")
             else:
