@@ -10,13 +10,13 @@ from db import add_payment
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 DATABASE_URL = os.getenv('DATABASE_URL')
 
+TARGET_PHONE = "380632773227"  # Тільки для цього номера
+
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
 def normalize_phone_number(phone_number):
-    if phone_number.startswith('+'):
-        phone_number = phone_number[1:]
-    return phone_number
+    return phone_number[1:] if phone_number.startswith('+') else phone_number
 
 def delete_payment_records(phone_number, payment_number):
     conn = get_db_connection()
@@ -56,7 +56,13 @@ async def sync_payments():
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT phone_number, employee_name, joined_at FROM users WHERE status = 'active'")
+
+    # Обираємо лише одного користувача
+    cursor.execute("""
+        SELECT phone_number, employee_name, joined_at 
+        FROM users 
+        WHERE status = 'active' AND phone_number = %s
+    """, (TARGET_PHONE,))
     users = cursor.fetchall()
 
     for user in users:
@@ -94,23 +100,20 @@ async def sync_payments():
                 data = response.json()
                 rows = data['results'][0]['tables'][0].get('rows', [])
                 
-                # Групуємо за номером платіжки
                 grouped = {}
                 for payment in rows:
                     номер_платежу = payment.get("[Документ]", "")
                     grouped.setdefault(номер_платежу, []).append(payment)
 
                 for номер_платежу, payments in grouped.items():
-                    # Чи була ця платіжка вже повідомлена для користувача?
                     cursor.execute("""
                         SELECT COUNT(*) FROM payments
                         WHERE phone_number = %s AND payment_number = %s AND is_notified = TRUE
                     """, (phone_number, номер_платежу))
                     already_notified = cursor.fetchone()[0] > 0
 
-                  
+                    delete_payment_records(phone_number, номер_платежу)
 
-                    # Додаємо всі рядки заново
                     for payment in payments:
                         сума_uah = float(payment.get("[Сума UAH]", 0))
                         сума_usd = float(payment.get("[Сума USD]", 0))
@@ -131,8 +134,8 @@ async def sync_payments():
                 logging.info(f"🔄 Синхронізовано {len(rows)} платежів для {employee_name}.")
             else:
                 logging.error(f"❌ Помилка Power BI: {response.status_code}, {response.text}")
-
-       
+        except Exception as e:
+            logging.error(f"❌ Помилка при синхронізації для {employee_name}: {e}")
 
     cursor.close()
     conn.close()
