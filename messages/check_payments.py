@@ -48,7 +48,7 @@ async def check_new_payments():
         amounts_by_month = defaultdict(float)
         for p in payments:
             accrual_month = p[5]
-            amounts_by_month[accrual_month] += p[1]
+            amounts_by_month[accrual_month] += float(p[1])
 
         # Формування повідомлення
         await send_notification(telegram_id, amounts_by_month, currency, payment_number)
