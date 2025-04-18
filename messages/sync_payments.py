@@ -100,12 +100,14 @@ async def sync_payments():
                     номер_платежу = payment.get("[Документ]", "")
                     місяць_нарахування = payment.get("[МісяцьНарахування]", "").strip()
 
-                    if сума_usd > 0:
+                    if abs(сума_usd) > 0:
                         сума = сума_usd
                         currency = "USD"
-                    else:
+                    elif abs(сума_uah) > 0:
                         сума = сума_uah
                         currency = "UAH"
+                    else:
+                        continue  # Пропустити нульові суми
 
                     cursor.execute("""
                         SELECT 1 FROM payments
