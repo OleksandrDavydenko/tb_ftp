@@ -18,28 +18,28 @@ def normalize_phone_number(phone_number):
         phone_number = phone_number[1:]
     return phone_number
 
-async def async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу, місяць_нарахування):
+def delete_payment_records(phone_number, payment_number):
     conn = get_db_connection()
     cursor = conn.cursor()
-    phone_number = normalize_phone_number(phone_number)
-
     try:
         cursor.execute("""
-            SELECT 1 FROM payments
-            WHERE phone_number = %s AND amount = %s AND currency = %s AND payment_date = %s AND payment_number = %s
-        """, (phone_number, сума, currency, дата_платежу, номер_платежу))
-
-        if not cursor.fetchone():
-            add_payment(phone_number, сума, currency, дата_платежу, номер_платежу, місяць_нарахування)
-            logging.info(f"✅ Додано платіж: {phone_number} | {сума} {currency} | {місяць_нарахування} | № {номер_платежу}")
-        
+            DELETE FROM payments
+            WHERE phone_number = %s AND payment_number = %s
+        """, (phone_number, payment_number))
         conn.commit()
-
+        logging.info(f"🧹 Видалено попередні записи по платіжці {payment_number} для {phone_number}")
     except Exception as e:
-        logging.error(f"❌ Помилка при додаванні платежу: {e}")
+        logging.error(f"❌ Помилка при видаленні записів платіжки {payment_number}: {e}")
     finally:
         cursor.close()
         conn.close()
+
+async def async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу, місяць_нарахування):
+    try:
+        add_payment(phone_number, сума, currency, дата_платежу, номер_платежу, місяць_нарахування)
+        logging.info(f"✅ Додано платіж: {phone_number} | {сума} {currency} | {місяць_нарахування} | № {номер_платежу}")
+    except Exception as e:
+        logging.error(f"❌ Помилка при додаванні платежу: {e}")
 
 async def sync_payments():
     token = get_power_bi_token()
@@ -93,28 +93,32 @@ async def sync_payments():
             if response.status_code == 200:
                 data = response.json()
                 rows = data['results'][0]['tables'][0].get('rows', [])
+                
+                # Групування рядків за payment_number
+                grouped = {}
                 for payment in rows:
-                    сума_uah = float(payment.get("[Сума UAH]", 0))
-                    сума_usd = float(payment.get("[Сума USD]", 0))
-                    дата_платежу = payment.get("[Дата платежу]", "")
                     номер_платежу = payment.get("[Документ]", "")
-                    місяць_нарахування = payment.get("[МісяцьНарахування]", "").strip()
+                    grouped.setdefault(номер_платежу, []).append(payment)
 
-                    if abs(сума_usd) > 0:
-                        сума = сума_usd
-                        currency = "USD"
-                    elif abs(сума_uah) > 0:
-                        сума = сума_uah
-                        currency = "UAH"
-                    else:
-                        continue  # Пропустити нульові суми
+                for номер_платежу, payments in grouped.items():
+                    # Видаляємо старі записи
+                    delete_payment_records(phone_number, номер_платежу)
 
-                    cursor.execute("""
-                        SELECT 1 FROM payments
-                        WHERE phone_number = %s AND amount = %s AND currency = %s AND payment_date = %s AND payment_number = %s
-                    """, (phone_number, сума, currency, дата_платежу, номер_платежу))
+                    for payment in payments:
+                        сума_uah = float(payment.get("[Сума UAH]", 0))
+                        сума_usd = float(payment.get("[Сума USD]", 0))
+                        дата_платежу = payment.get("[Дата платежу]", "")
+                        місяць_нарахування = payment.get("[МісяцьНарахування]", "").strip()
 
-                    if not cursor.fetchone():
+                        if abs(сума_usd) > 0:
+                            сума = сума_usd
+                            currency = "USD"
+                        elif abs(сума_uah) > 0:
+                            сума = сума_uah
+                            currency = "UAH"
+                        else:
+                            continue  # Пропустити нульові суми
+
                         await async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу, місяць_нарахування)
 
                 logging.info(f"🔄 Синхронізовано {len(rows)} платежів для {employee_name}.")
