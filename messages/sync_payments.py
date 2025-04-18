@@ -133,8 +133,7 @@ async def sync_payments():
             else:
                 logging.error(f"❌ Помилка Power BI: {response.status_code}, {response.text}")
 
-        except Exception as e:
-            logging.error(f"❌ Помилка при синхронізації для {employee_name}: {e}")
+       
 
     cursor.close()
     conn.close()
