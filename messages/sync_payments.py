@@ -10,7 +10,7 @@ from db import add_payment
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 DATABASE_URL = os.getenv('DATABASE_URL')
 
-TARGET_PHONE = "380632773227"  # Тільки для цього номера
+TARGET_PHONE = "380632773227"
 
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
@@ -57,7 +57,6 @@ async def sync_payments():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Обираємо лише одного користувача
     cursor.execute("""
         SELECT phone_number, employee_name, joined_at 
         FROM users 
@@ -106,13 +105,16 @@ async def sync_payments():
                     grouped.setdefault(номер_платежу, []).append(payment)
 
                 for номер_платежу, payments in grouped.items():
+                    # Перевіряємо, чи вже повідомлено про цей платіж
                     cursor.execute("""
                         SELECT COUNT(*) FROM payments
                         WHERE phone_number = %s AND payment_number = %s AND is_notified = TRUE
                     """, (phone_number, номер_платежу))
                     already_notified = cursor.fetchone()[0] > 0
 
-                    delete_payment_records(phone_number, номер_платежу)
+                    # Видаляємо записи тільки якщо вони ще не були повідомлені
+                    if not already_notified:
+                        delete_payment_records(phone_number, номер_платежу)
 
                     for payment in payments:
                         сума_uah = float(payment.get("[Сума UAH]", 0))
