@@ -34,7 +34,7 @@ def delete_payment_records(phone_number, payment_number):
         cursor.close()
         conn.close()
 
-async def async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу, місяць_нарахування):
+
     try:
         add_payment(phone_number, сума, currency, дата_платежу, номер_платежу, місяць_нарахування)
         logging.info(f"✅ Додано платіж: {phone_number} | {сума} {currency} | {місяць_нарахування} | № {номер_платежу}")
