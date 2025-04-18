@@ -18,7 +18,7 @@ def normalize_phone_number(phone_number):
         phone_number = phone_number[1:]
     return phone_number
 
-async def async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу):
+async def async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу, місяць_нарахування):
     conn = get_db_connection()
     cursor = conn.cursor()
     phone_number = normalize_phone_number(phone_number)
@@ -30,13 +30,13 @@ async def async_add_payment(phone_number, сума, currency, дата_плат�
         """, (phone_number, сума, currency, дата_платежу, номер_платежу))
 
         if not cursor.fetchone():
-            add_payment(phone_number, сума, currency, дата_платежу, номер_платежу)
-            logging.info(f"Додано новий платіж для користувача: {phone_number} на суму {сума} {currency} (№ {номер_платежу}).")
+            add_payment(phone_number, сума, currency, дата_платежу, номер_платежу, місяць_нарахування)
+            logging.info(f"✅ Додано платіж: {phone_number} | {сума} {currency} | {місяць_нарахування} | № {номер_платежу}")
         
         conn.commit()
 
     except Exception as e:
-        logging.error(f"Помилка при додаванні платежу: {e}")
+        logging.error(f"❌ Помилка при додаванні платежу: {e}")
     finally:
         cursor.close()
         conn.close()
@@ -44,7 +44,7 @@ async def async_add_payment(phone_number, сума, currency, дата_плат�
 async def sync_payments():
     token = get_power_bi_token()
     if not token:
-        logging.error("Не вдалося отримати токен Power BI.")
+        logging.error("❌ Не вдалося отримати токен Power BI.")
         return
 
     dataset_id = '8b80be15-7b31-49e4-bc85-8b37a0d98f1c'
@@ -77,7 +77,8 @@ async def sync_payments():
                             "Дата платежу", SalaryPayment[DocDate],
                             "Документ", SalaryPayment[DocNumber],
                             "Сума UAH", SalaryPayment[SUM_UAH],
-                            "Сума USD", SalaryPayment[SUM_USD]
+                            "Сума USD", SalaryPayment[SUM_USD],
+                            "МісяцьНарахування", SalaryPayment[МісяцьНарахування]
                         )
                     """
                 }
@@ -97,6 +98,7 @@ async def sync_payments():
                     сума_usd = float(payment.get("[Сума USD]", 0))
                     дата_платежу = payment.get("[Дата платежу]", "")
                     номер_платежу = payment.get("[Документ]", "")
+                    місяць_нарахування = payment.get("[МісяцьНарахування]", "").strip()
 
                     if сума_usd > 0:
                         сума = сума_usd
@@ -111,14 +113,14 @@ async def sync_payments():
                     """, (phone_number, сума, currency, дата_платежу, номер_платежу))
 
                     if not cursor.fetchone():
-                        await async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу)
+                        await async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу, місяць_нарахування)
 
-                logging.info(f"Успішно синхронізовано {len(rows)} платежів для користувача {employee_name}.")
+                logging.info(f"🔄 Синхронізовано {len(rows)} платежів для {employee_name}.")
             else:
-                logging.error(f"Помилка при виконанні запиту: {response.status_code}, {response.text}")
+                logging.error(f"❌ Помилка Power BI: {response.status_code}, {response.text}")
 
         except Exception as e:
-            logging.error(f"Помилка при синхронізації для {employee_name}: {e}")
+            logging.error(f"❌ Помилка при синхронізації для {employee_name}: {e}")
 
     cursor.close()
     conn.close()

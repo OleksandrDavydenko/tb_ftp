@@ -41,6 +41,17 @@ def create_tables():
         is_notified BOOLEAN DEFAULT FALSE
     )
     """)
+    cursor.execute("""
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name='payments' AND column_name='accrual_month'
+        ) THEN
+            ALTER TABLE payments ADD COLUMN accrual_month VARCHAR(50);
+        END IF;
+    END$$;
+    """)
 
     # Створюємо таблицю для аналізу девальвації
     cursor.execute("""
@@ -99,6 +110,7 @@ def create_tables():
     )
     """)
 
+
     conn.commit()
     cursor.close()
     conn.close()
@@ -140,18 +152,19 @@ def add_telegram_user(phone_number, telegram_id, telegram_name, employee_name, s
 
 
 
-def add_payment(phone_number, amount, currency, payment_date, payment_number):
+def add_payment(phone_number, amount, currency, payment_date, payment_number, accrual_month):
     conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
-    INSERT INTO payments (phone_number, amount, currency, payment_date, payment_number)
-    VALUES (%s, %s, %s, %s, %s)
-    """, (phone_number, amount, currency, payment_date, payment_number))
+    INSERT INTO payments (phone_number, amount, currency, payment_date, payment_number, accrual_month)
+    VALUES (%s, %s, %s, %s, %s, %s)
+    """, (phone_number, amount, currency, payment_date, payment_number, accrual_month))
 
     conn.commit()
     cursor.close()
     conn.close()
+
 
 def add_devaluation_record(data):
     conn = get_db_connection()
