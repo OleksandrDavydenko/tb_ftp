@@ -108,8 +108,7 @@ async def sync_payments():
                     """, (phone_number, номер_платежу))
                     already_notified = cursor.fetchone()[0] > 0
 
-                    # Очищаємо старі записи по користувачу
-                    delete_payment_records(phone_number, номер_платежу)
+                  
 
                     # Додаємо всі рядки заново
                     for payment in payments:
