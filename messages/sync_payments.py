@@ -9,7 +9,7 @@ from db import add_payment
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 DATABASE_URL = os.getenv('DATABASE_URL')
-TARGET_PHONE = "380632773227"
+#TARGET_PHONE = "380632773227"
 
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
@@ -71,8 +71,8 @@ async def sync_payments():
     cursor.execute("""
         SELECT phone_number, employee_name, joined_at 
         FROM users 
-        WHERE status = 'active' AND phone_number = %s
-    """, (TARGET_PHONE,))
+        WHERE status = 'active'
+    """)
     users = cursor.fetchall()
     cursor.close()
     conn.close()
