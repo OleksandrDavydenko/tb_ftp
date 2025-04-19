@@ -9,7 +9,6 @@ from db import add_payment
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 DATABASE_URL = os.getenv('DATABASE_URL')
-
 TARGET_PHONE = "380632773227"
 
 def get_db_connection():
@@ -18,28 +17,18 @@ def get_db_connection():
 def normalize_phone_number(phone_number):
     return phone_number[1:] if phone_number.startswith('+') else phone_number
 
-def fetch_existing_records(cursor, phone_number, payment_number):
+def fetch_db_payments(phone_number, payment_number):
+    conn = get_db_connection()
+    cursor = conn.cursor()
     cursor.execute("""
-        SELECT amount, currency, payment_date::text, accrual_month
+        SELECT amount, currency, payment_date, accrual_month
         FROM payments
         WHERE phone_number = %s AND payment_number = %s
     """, (phone_number, payment_number))
-    return cursor.fetchall()
-
-def records_differ(existing, new):
-    def normalize(record):
-        # Округлення до 2 знаків після коми, форматування дати
-        amount = round(float(record[0]), 2)
-        currency = str(record[1])
-        payment_date = str(record[2])[:10]  # тільки YYYY-MM-DD
-        accrual_month = str(record[3]).strip()
-        return (amount, currency, payment_date, accrual_month)
-
-    normalized_existing = sorted([normalize(r) for r in existing])
-    normalized_new = sorted([normalize(r) for r in new])
-    
-    return normalized_existing != normalized_new
-
+    records = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return set((str(r[0]), r[1], str(r[2]), r[3]) for r in records)
 
 def delete_payment_records(phone_number, payment_number):
     conn = get_db_connection()
@@ -57,10 +46,10 @@ def delete_payment_records(phone_number, payment_number):
         cursor.close()
         conn.close()
 
-async def async_add_payment(phone_number, сума, currency, дата_платежу, номер_платежу, місяць_нарахування, is_notified=False):
+async def async_add_payment(phone_number, amount, currency, payment_date, payment_number, accrual_month):
     try:
-        add_payment(phone_number, сума, currency, дата_платежу, номер_платежу, місяць_нарахування, is_notified)
-        logging.info(f"✅ Додано платіж: {phone_number} | {сума} {currency} | {місяць_нарахування} | № {номер_платежу}")
+        add_payment(phone_number, amount, currency, payment_date, payment_number, accrual_month, False)
+        logging.info(f"✅ Додано платіж: {phone_number} | {amount} {currency} | {accrual_month} | № {payment_number}")
     except Exception as e:
         logging.error(f"❌ Помилка при додаванні: {e}")
 
@@ -71,77 +60,85 @@ async def sync_payments():
         return
 
     dataset_id = '8b80be15-7b31-49e4-bc85-8b37a0d98f1c'
-    url = f'https://api.powerbi.com/v1.0/myorg/datasets/{dataset_id}/executeQueries'
-    headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
+    power_bi_url = f'https://api.powerbi.com/v1.0/myorg/datasets/{dataset_id}/executeQueries'
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json'
+    }
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT phone_number, employee_name, joined_at FROM users WHERE status = 'active' AND phone_number = %s", (TARGET_PHONE,))
+    cursor.execute("""
+        SELECT phone_number, employee_name, joined_at 
+        FROM users 
+        WHERE status = 'active' AND phone_number = %s
+    """, (TARGET_PHONE,))
     users = cursor.fetchall()
+    cursor.close()
+    conn.close()
 
-    for phone_number, employee_name, joined_at in users:
+    for user in users:
+        phone_number, employee_name, joined_at = user
         phone_number = normalize_phone_number(phone_number)
+
         query_data = {
-            "queries": [{
-                "query": f"""
-                    EVALUATE 
-                    SELECTCOLUMNS(
-                        FILTER(
-                            SalaryPayment,
-                            SalaryPayment[Employee] = "{employee_name}" &&
-                            SalaryPayment[DocDate] >= "{joined_at.strftime('%Y-%m-%d')}"
-                        ),
-                        "Дата платежу", SalaryPayment[DocDate],
-                        "Документ", SalaryPayment[DocNumber],
-                        "Сума UAH", SalaryPayment[SUM_UAH],
-                        "Сума USD", SalaryPayment[SUM_USD],
-                        "МісяцьНарахування", SalaryPayment[МісяцьНарахування]
-                    )
-                """
-            }],
-            "serializerSettings": {"includeNulls": True}
+            "queries": [
+                {
+                    "query": f"""
+                        EVALUATE 
+                        SELECTCOLUMNS(
+                            FILTER(
+                                SalaryPayment,
+                                SalaryPayment[Employee] = "{employee_name}" &&
+                                SalaryPayment[DocDate] >= "{joined_at.strftime('%Y-%m-%d')}"
+                            ),
+                            "Дата платежу", SalaryPayment[DocDate],
+                            "Документ", SalaryPayment[DocNumber],
+                            "Сума UAH", SalaryPayment[SUM_UAH],
+                            "Сума USD", SalaryPayment[SUM_USD],
+                            "МісяцьНарахування", SalaryPayment[МісяцьНарахування]
+                        )
+                    """
+                }
+            ],
+            "serializerSettings": {
+                "includeNulls": True
+            }
         }
 
         try:
-            response = requests.post(url, headers=headers, json=query_data)
+            response = requests.post(power_bi_url, headers=headers, json=query_data)
             if response.status_code != 200:
-                logging.error(f"❌ Power BI Error: {response.status_code}, {response.text}")
+                logging.error(f"❌ Power BI error: {response.status_code} | {response.text}")
                 continue
 
-            rows = response.json()['results'][0]['tables'][0].get('rows', [])
+            data = response.json()
+            rows = data['results'][0]['tables'][0].get('rows', [])
             grouped = {}
-            for row in rows:
-                номер = row.get("[Документ]", "")
-                grouped.setdefault(номер, []).append(row)
+            for payment in rows:
+                doc = payment.get("[Документ]", "")
+                grouped.setdefault(doc, []).append(payment)
 
-            for номер_платежу, items in grouped.items():
-                new_data = []
-                for row in items:
-                    сума_uah = float(row.get("[Сума UAH]", 0))
-                    сума_usd = float(row.get("[Сума USD]", 0))
-                    дата = row.get("[Дата платежу]", "")
-                    місяць = row.get("[МісяцьНарахування]", "").strip()
+            for payment_number, payments in grouped.items():
+                # Підготовка поточних значень з Power BI
+                bi_set = set()
+                for p in payments:
+                    amount = float(p.get("[Сума USD]", 0)) if abs(p.get("[Сума USD]", 0)) > 0 else float(p.get("[Сума UAH]", 0))
+                    currency = "USD" if abs(p.get("[Сума USD]", 0)) > 0 else "UAH"
+                    payment_date = str(p.get("[Дата платежу]", ""))
+                    accrual_month = p.get("[МісяцьНарахування]", "").strip()
+                    bi_set.add((str(amount), currency, payment_date, accrual_month))
 
-                    if abs(сума_usd) > 0:
-                        сума, валюта = сума_usd, "USD"
-                    elif abs(сума_uah) > 0:
-                        сума, валюта = сума_uah, "UAH"
-                    else:
-                        continue
+                # Порівнюємо з БД
+                db_set = fetch_db_payments(phone_number, payment_number)
 
-                    new_data.append((сума, валюта, дата, місяць))
-
-                existing_data = fetch_existing_records(cursor, phone_number, номер_платежу)
-
-                if records_differ(existing_data, new_data):
-                    delete_payment_records(phone_number, номер_платежу)
-                    for сума, валюта, дата, місяць in new_data:
-                        await async_add_payment(phone_number, сума, валюта, дата, номер_платежу, місяць, is_notified=False)
+                if bi_set != db_set:
+                    delete_payment_records(phone_number, payment_number)
+                    for amount, currency, payment_date, accrual_month in bi_set:
+                        await async_add_payment(phone_number, float(amount), currency, payment_date, payment_number, accrual_month)
                 else:
-                    logging.info(f"⚖️ Платіж {номер_платежу} для {phone_number} без змін")
+                    logging.info(f"⏭️ Платіж {payment_number} для {phone_number} без змін")
 
+            logging.info(f"🔄 Синхронізовано {len(rows)} рядків для {employee_name}")
         except Exception as e:
-            logging.error(f"❌ Помилка синхронізації для {employee_name}: {e}")
-
-    cursor.close()
-    conn.close()
+            logging.error(f"❌ Помилка при обробці {employee_name}: {e}")
