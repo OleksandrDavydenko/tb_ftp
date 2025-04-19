@@ -108,12 +108,12 @@ async def sync_payments():
                     # Перевіряємо, чи вже повідомлено про цей платіж
                     cursor.execute("""
                         SELECT COUNT(*) FROM payments
-                        WHERE phone_number = %s AND payment_number = %s AND is_notified = TRUE
+                        WHERE phone_number = %s AND payment_number = %s
                     """, (phone_number, номер_платежу))
-                    already_notified = cursor.fetchone()[0] > 0
+                    exists = cursor.fetchone()[0] > 0
 
-                    # Видаляємо записи тільки якщо вони ще не були повідомлені
-                    if not already_notified:
+                    # Якщо є хоча б один запис по цьому платежу — видаляємо
+                    if exists:
                         delete_payment_records(phone_number, номер_платежу)
 
                     for payment in payments:
