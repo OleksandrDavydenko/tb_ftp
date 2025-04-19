@@ -27,11 +27,19 @@ def fetch_existing_records(cursor, phone_number, payment_number):
     return cursor.fetchall()
 
 def records_differ(existing, new):
-    if len(existing) != len(new):
-        return True
-    existing_sorted = sorted(existing)
-    new_sorted = sorted(new)
-    return existing_sorted != new_sorted
+    def normalize(record):
+        # Округлення до 2 знаків після коми, форматування дати
+        amount = round(float(record[0]), 2)
+        currency = str(record[1])
+        payment_date = str(record[2])[:10]  # тільки YYYY-MM-DD
+        accrual_month = str(record[3]).strip()
+        return (amount, currency, payment_date, accrual_month)
+
+    normalized_existing = sorted([normalize(r) for r in existing])
+    normalized_new = sorted([normalize(r) for r in new])
+    
+    return normalized_existing != normalized_new
+
 
 def delete_payment_records(phone_number, payment_number):
     conn = get_db_connection()
