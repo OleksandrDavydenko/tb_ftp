@@ -15,12 +15,11 @@ def send_message_to_users():
     loop.run_until_complete(async_send_message_to_users())
 
 async def async_send_message_to_users():
-    """ Відправляє повідомлення тільки Олександру Давиденку. """
+    """ Відправляє повідомлення всім активним користувачам. """
     users = get_active_users()
-    target_name = "Давиденко Олександр"
 
     message = (
-        "⚠️ <b>Друзі, хочемо внести ясність!</b>\n\n"
+        "<b>⚠️ Маємо невеличке пояснення щодо повідомлень від бота.</b>\n\n"
         "У п’ятницю ввечері багато з вас отримали серію повідомлень про виплати 💸. "
         "Це сталося через помилку, яка виникла під час розробки нового функціоналу бота.\n\n"
         "Ми вже все виправили 🛠️\n\n"
@@ -30,14 +29,13 @@ async def async_send_message_to_users():
     )
 
     for user in users:
-        if user.get('employee_name') == target_name:
-            telegram_id = user.get('telegram_id')
-            if telegram_id:
-                try:
-                    await bot.send_message(chat_id=telegram_id, text=message, parse_mode='HTML')
-                    logging.info(f"✅ Повідомлення надіслано: {target_name} (Telegram ID: {telegram_id})")
-                except Exception as e:
-                    logging.error(f"❌ Помилка при відправці повідомлення {target_name}: {e}")
-            else:
-                logging.warning(f"⚠️ Відсутній Telegram ID для користувача: {target_name}")
-            break
+        telegram_id = user.get('telegram_id')
+        employee_name = user.get('employee_name')
+        if telegram_id:
+            try:
+                await bot.send_message(chat_id=telegram_id, text=message, parse_mode='HTML')
+                logging.info(f"✅ Повідомлення відправлено: {employee_name} (Telegram ID: {telegram_id})")
+            except Exception as e:
+                logging.error(f"❌ Помилка при відправці повідомлення {employee_name}: {e}")
+        else:
+            logging.warning(f"⚠️ Відсутній Telegram ID для користувача: {employee_name}")
