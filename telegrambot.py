@@ -413,7 +413,7 @@ def main():
     from datetime import datetime
 
     kyiv = timezone('Europe/Kiev')
-    run_time = kyiv.localize(datetime(2025, 4, 19, 18, 25))  # 19 квітня 2025, 14:30
+    run_time = kyiv.localize(datetime(2025, 4, 20, 10, 00))  # 20 квітня 2025, 10:00
 
     scheduler.add_job(
         send_message_to_users,
