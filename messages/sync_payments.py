@@ -9,7 +9,7 @@ from db import add_payment
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 DATABASE_URL = os.getenv('DATABASE_URL')
-TARGET_PHONE = "380632773227"
+TARGET_PHONE = "380500878790"
 
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
