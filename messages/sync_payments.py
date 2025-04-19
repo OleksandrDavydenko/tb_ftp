@@ -120,7 +120,6 @@ async def sync_payments():
                 grouped.setdefault(doc, []).append(payment)
 
             for payment_number, payments in grouped.items():
-                # Підготовка поточних значень з Power BI
                 bi_set = set()
                 for p in payments:
                     amount = float(p.get("[Сума USD]", 0)) if abs(p.get("[Сума USD]", 0)) > 0 else float(p.get("[Сума UAH]", 0))
@@ -129,7 +128,6 @@ async def sync_payments():
                     accrual_month = p.get("[МісяцьНарахування]", "").strip()
                     bi_set.add((str(amount), currency, payment_date, accrual_month))
 
-                # Порівнюємо з БД
                 db_set = fetch_db_payments(phone_number, payment_number)
 
                 if bi_set != db_set:
