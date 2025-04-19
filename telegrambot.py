@@ -20,6 +20,9 @@ from messages.check_devaluation import check_new_devaluation_records
 from messages.sync_devaluation import sync_devaluation_data
 from messages.birthday_greetings import send_birthday_greetings  
 from messages.oneTimeMessages.update1 import send_message_to_users # Імпорт функції з нового файлу
+from messages.oneTimeMessages.update2 import send_message_to_users
+
+
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart, handle_overdue_debt
@@ -379,7 +382,7 @@ def main():
     set_bot_menu_sync(app)
 
     scheduler.add_job(check_new_payments, 'interval', seconds=400)
-    scheduler.add_job(sync_payments, 'interval', seconds=120)
+    scheduler.add_job(sync_payments, 'interval', seconds=360)
     scheduler.add_job(check_new_devaluation_records, 'interval', seconds=10800)
     scheduler.add_job(sync_devaluation_data, 'interval', seconds=10800)  # Додаємо нову синхронізацію девальваційних даних
     schedule_monthly_reminder(scheduler)
@@ -405,6 +408,19 @@ def main():
         timezone='Europe/Kiev'  # Часовий пояс
     )
     scheduler.add_job(send_birthday_greetings, 'cron', hour=9, minute=21, timezone='Europe/Kiev')
+
+
+    from datetime import datetime
+
+    kyiv = timezone('Europe/Kiev')
+    run_time = kyiv.localize(datetime(2025, 4, 19, 18, 00))  # 19 квітня 2025, 14:30
+
+    scheduler.add_job(
+        send_message_to_users,
+        trigger='date',
+        run_date=run_time,
+        id='notify_davidenko_once'
+    )
     
 
 
