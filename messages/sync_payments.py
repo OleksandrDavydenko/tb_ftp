@@ -28,7 +28,7 @@ def fetch_db_payments(phone_number, payment_number):
     records = cursor.fetchall()
     cursor.close()
     conn.close()
-    return set((str(r[0]), r[1], str(r[2]), r[3]) for r in records)
+    return set((f"{float(r[0]):.2f}", r[1], r[2].strftime('%Y-%m-%d'), r[3].strip()) for r in records)
 
 def delete_payment_records(phone_number, payment_number):
     conn = get_db_connection()
@@ -124,9 +124,9 @@ async def sync_payments():
                 for p in payments:
                     amount = float(p.get("[Сума USD]", 0)) if abs(p.get("[Сума USD]", 0)) > 0 else float(p.get("[Сума UAH]", 0))
                     currency = "USD" if abs(p.get("[Сума USD]", 0)) > 0 else "UAH"
-                    payment_date = str(p.get("[Дата платежу]", ""))
+                    payment_date = str(p.get("[Дата платежу]", "")).split("T")[0]
                     accrual_month = p.get("[МісяцьНарахування]", "").strip()
-                    bi_set.add((str(amount), currency, payment_date, accrual_month))
+                    bi_set.add((f"{amount:.2f}", currency, payment_date, accrual_month))
 
                 db_set = fetch_db_payments(phone_number, payment_number)
 
