@@ -125,7 +125,8 @@ def get_salary_payments(employee_name, year, month):
                         "Сума USD", SalaryPayment[SUM_USD],
                         "Разом в USD", SalaryPayment[SUMINUSD],
                         "PaymentType", SalaryPayment[payment_type],
-                        "Character", SalaryPayment[character]
+                        "Character", SalaryPayment[character],
+                        "МісяцьНарахування", SalaryPayment[МісяцьНарахування]
                     )
                 """
             }
