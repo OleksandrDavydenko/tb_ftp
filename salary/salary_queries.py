@@ -226,21 +226,18 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
     if not rows and not payments and not bonuses:
         return f"Розрахунковий лист:\n{employee_name} за {month} {year}:\nНемає даних для вибраного періоду."
 
-    total_uah = 0.0
-    total_usd = 0.0
-    total_payment_uah = 0.0
-    total_payment_usd = 0.0
+    total_uah, total_usd, total_payment_uah, total_payment_usd = 0.0, 0.0, 0.0, 0.0
 
     table = f"Розрахунковий лист:\n{employee_name} за {month} {year}:\n"
     table += "-" * 41 + "\n"
 
-    # ===== НАРАХУВАННЯ =====
+    # Нарахування
     if rows:
         table += f"{'Нарахування':<18}{'UAH':<8}  {'USD':<8}\n"
         table += "-" * 41 + "\n"
         for row in rows:
             оклад_uah = float(row.get("[Нараховано Оклад UAH]", 0))
-            оклад_usd = float(row.get("[Нараховано Оклад USD]", 0)) if оклад_uah == 0 else 0.0
+            оклад_usd = float(row.get("[Нараховано Оклад USD]", 0))
             премії_uah = float(row.get("[Нараховано Премії UAH]", 0))
             премії_usd = float(row.get("[Нараховано Премії USD]", 0))
             додат_uah = float(row.get("[Додаткові нарахування UAH]", 0))
@@ -258,120 +255,51 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
     else:
         table += "Немає даних про нарахування.\n"
 
-    # ===== ВИПЛАТА ЗП (salary + prize) =====
-    salary_payments = [
-        p for p in payments
-        if p.get("[Character]", "").strip().lower() in ["salary", "prize"]
-    ]
+    # Виплата ЗП
+    salary_payments = [p for p in payments if p.get("[Character]", "").strip().lower() in ["salary", "prize"]]
 
     if salary_payments:
         table += "\nВиплата ЗП:\n"
         table += f"{'Дата':<10}{'Документ':<10} {'UAH':<8}  {'USD':<8}\n"
         table += "-" * 41 + "\n"
-
         formatted = []
         for payment in salary_payments:
-            дата_платежу = payment.get("[Дата платежу]", "")
-            try:
-                дата = datetime.strptime(дата_платежу, "%Y-%m-%d")
-                formatted_date = дата.strftime("%d.%m.%y")
-            except ValueError:
-                continue
-
+            дата = datetime.strptime(payment.get("[Дата платежу]", ""), "%Y-%m-%d").strftime("%d.%m.%y")
             doc_number = payment.get("[Документ]", "")
             сума_uah = float(payment.get("[Сума UAH]", 0))
             сума_usd = float(payment.get("[Сума USD]", 0))
-
             total_payment_uah += сума_uah
             total_payment_usd += сума_usd
-            formatted.append((дата, formatted_date, doc_number, сума_uah, сума_usd))
+            formatted.append((дата, doc_number, сума_uah, сума_usd))
 
-        formatted.sort(key=lambda x: x[0])
-        for _, formatted_date, doc_number, сума_uah, сума_usd in formatted:
-            table += f"{formatted_date:<10}{doc_number:<10} {сума_uah:<8.2f}  {сума_usd:<8.2f}\n"
+        for дата, doc_number, сума_uah, сума_usd in sorted(formatted):
+            table += f"{дата:<10}{doc_number:<10} {сума_uah:<8.2f}  {сума_usd:<8.2f}\n"
 
         table += "-" * 41 + "\n"
         table += f"{'Всього виплачено:':<18}{total_payment_uah:<8.2f}  {total_payment_usd:<8.2f}\n\n"
 
-    # ===== НЕВИПЛАЧЕНИЙ ЗАЛИШОК =====
     remaining_uah = total_uah - total_payment_uah
     remaining_usd = total_usd - total_payment_usd
     table += f"{'Невиплачений залишок: ':<18}{remaining_uah:<8.2f}  {remaining_usd:<8.2f}\n"
 
-    # ===== НАРАХОВАНІ БОНУСИ =====
-    if bonuses:
+    # Бонуси (додаємо логіку заповнення нулями)
+    if bonuses or any(p.get("[Character]", "").strip().lower() == "bonus" for p in payments):
         table += "\nБонуси:\n"
         table += "-" * 41 + "\n"
         table += f"{'Нарахування Бонусів':<26}{'USD':<8}\n"
         table += "-" * 41 + "\n"
 
-        total_bonuses = 0
-        bonuses_summary = {
-            "Сейлс": 0,
-            "Оперативний менеджер": 0,
-            "Відсоток ОМ": 0
-        }
-
-        cleaned_bonuses = [{k.strip("[]"): v for k, v in bonus.items()} for bonus in bonuses]
-
-        for bonus in cleaned_bonuses:
-            role = bonus.get("ManagerRole", "")
-            amount = float(bonus.get("TotalAccrued", 0))
-
-            if role == "Сейлс":
-                bonuses_summary["Сейлс"] += amount
-            elif role == "Оперативний менеджер":
-                bonuses_summary["Оперативний менеджер"] += amount
-            elif role == "Відсоток ОМ":
-                bonuses_summary["Відсоток ОМ"] += amount
-
-            total_bonuses += amount
+        bonuses_summary = {"Сейлс": 0, "Оперативний менеджер": 0, "Відсоток ОМ": 0}
+        if bonuses:
+            for bonus in bonuses:
+                role = bonus.get("ManagerRole", "")
+                amount = float(bonus.get("TotalAccrued", 0))
+                bonuses_summary[role] += amount
 
         table += f"{'Бонуси Сейлс':<26}{bonuses_summary['Сейлс']:<8.2f}\n"
         table += f"{'Бонуси ОМ':<26}{bonuses_summary['Оперативний менеджер']:<8.2f}\n"
         table += f"{'Відсоток ОМ':<26}{bonuses_summary['Відсоток ОМ']:<8.2f}\n"
         table += "-" * 41 + "\n"
-        table += f"{'Всього нараховано бонусів: ':<26}{total_bonuses:<8.2f}\n"
+        table += f"{'Всього нараховано бонусів: ':<26}{sum(bonuses_summary.values()):<8.2f}\n"
 
- # ===== ВИПЛАТА БОНУСІВ (з деталізацією по періодах) =====
-    bonus_payments = [
-        p for p in payments
-        if p.get("[Character]", "").strip().lower() == "bonus"
-    ]
-
-    if bonus_payments:
-        table += "\nВиплата бонусів:\n"
-        table += "-" * 41 + "\n"
-        table += f"{'Документ':<15}{'USD':<8}\n"
-        table += "-" * 41 + "\n"
-
-        from collections import defaultdict
-        grouped = defaultdict(list)
-        total_bonus_usd = 0.0
-
-        # Групуємо по даті платежу та номеру документа
-        for p in bonus_payments:
-            doc_number = p.get("[Документ]", "Невідомо")
-            дата_платежу = p.get("[Дата платежу]", "1970-01-01")
-            try:
-                дата = datetime.strptime(дата_платежу, "%Y-%m-%d")
-            except ValueError:
-                continue
-
-            key = (дата, doc_number)
-            сума_usd = float(p.get("[Разом в USD]", p.get("[Сума USD]", 0)))
-            період = p.get("[МісяцьНарахування]", "Невідомо")
-            grouped[key].append((сума_usd, період))
-            total_bonus_usd += сума_usd
-
-        # Сортуємо по даті
-        for (дата, doc_number) in sorted(grouped.keys()):
-            рядки = grouped[(дата, doc_number)]
-            сума_по_документу = sum(r[0] for r in рядки)
-
-            table += f"{doc_number:<15}{сума_по_документу:<8.2f}\n"
-            for сума, період in рядки:
-                table += f"{'':<3}→ {сума:<7.2f} — {період}\n"
-
-        table += "-" * 41 + "\n"
-        table += f"{'Всього виплачено бонусів: ':<26}{total_bonus_usd:<8.2f}\n"
+    return table
