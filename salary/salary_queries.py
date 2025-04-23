@@ -223,12 +223,16 @@ def get_bonuses(employee_name, year, month):
 def format_salary_table(rows, employee_name, year, month, payments, bonuses):
     from datetime import datetime
 
+    if not rows and not payments and not bonuses:
+        return f"Розрахунковий лист:\n{employee_name} за {month} {year}:\nНемає даних для вибраного періоду."
+
     total_uah = 0.0
     total_usd = 0.0
     total_payment_uah = 0.0
     total_payment_usd = 0.0
 
-    table = "-" * 41 + "\n"
+    table = f"Розрахунковий лист:\n{employee_name} за {month} {year}:\n"
+    table += "-" * 41 + "\n"
 
     # ===== НАРАХУВАННЯ =====
     if rows:
