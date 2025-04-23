@@ -222,6 +222,7 @@ def get_bonuses(employee_name, year, month):
 
 def format_salary_table(rows, employee_name, year, month, payments, bonuses):
     from datetime import datetime
+    from collections import defaultdict
 
     if not rows and not payments and not bonuses:
         return f"Розрахунковий лист:\n{employee_name} за {month} {year}:\nНемає даних для вибраного періоду."
@@ -282,24 +283,49 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
     remaining_usd = total_usd - total_payment_usd
     table += f"{'Невиплачений залишок: ':<18}{remaining_uah:<8.2f}  {remaining_usd:<8.2f}\n"
 
-    # Бонуси (додаємо логіку заповнення нулями)
-    if bonuses or any(p.get("[Character]", "").strip().lower() == "bonus" for p in payments):
+    bonus_payments = [p for p in payments if p.get("[Character]", "").strip().lower() == "bonus"]
+
+    if bonuses or bonus_payments:
         table += "\nБонуси:\n"
         table += "-" * 41 + "\n"
         table += f"{'Нарахування Бонусів':<26}{'USD':<8}\n"
         table += "-" * 41 + "\n"
 
-        bonuses_summary = {"Сейлс": 0, "Оперативний менеджер": 0, "Відсоток ОМ": 0}
-        if bonuses:
-            for bonus in bonuses:
-                role = bonus.get("ManagerRole", "")
-                amount = float(bonus.get("TotalAccrued", 0))
-                bonuses_summary[role] += amount
+        bonuses_summary = defaultdict(float)
+        for bonus in bonuses or []:
+            role = bonus.get("ManagerRole", "")
+            bonuses_summary[role] += float(bonus.get("TotalAccrued", 0))
 
-        table += f"{'Бонуси Сейлс':<26}{bonuses_summary['Сейлс']:<8.2f}\n"
-        table += f"{'Бонуси ОМ':<26}{bonuses_summary['Оперативний менеджер']:<8.2f}\n"
-        table += f"{'Відсоток ОМ':<26}{bonuses_summary['Відсоток ОМ']:<8.2f}\n"
+        if not bonuses:
+            bonuses_summary["Сейлс"] = 0
+            bonuses_summary["Оперативний менеджер"] = 0
+            bonuses_summary["Відсоток ОМ"] = 0
+
+        for role, amount in bonuses_summary.items():
+            table += f"{role:<26}{amount:<8.2f}\n"
+
         table += "-" * 41 + "\n"
         table += f"{'Всього нараховано бонусів: ':<26}{sum(bonuses_summary.values()):<8.2f}\n"
+
+    if bonus_payments:
+        table += "\nВиплата бонусів:\n"
+        table += "-" * 41 + "\n"
+
+        grouped = defaultdict(list)
+        for p in bonus_payments:
+            дата = datetime.strptime(p.get("[Дата платежу]", ""), "%Y-%m-%d").strftime("%d.%m.%y")
+            doc_number = p.get("[Документ]", "")
+            сума_usd = float(p.get("[Разом в USD]", 0))
+            період = p.get("[МісяцьНарахування]", "")
+            grouped[(дата, doc_number)].append((сума_usd, період))
+
+        for (дата, doc_number), payments in sorted(grouped.items()):
+            total_bonus_usd = sum(p[0] for p in payments)
+            table += f"{дата} {doc_number:<10}{total_bonus_usd:<8.2f}\n"
+            for сума_usd, період in payments:
+                table += f"  → {сума_usd:<7.2f} — {період}\n"
+
+        table += "-" * 41 + "\n"
+        table += f"{'Всього виплачено бонусів: ':<26}{sum(p[0] for pay in grouped.values() for p in pay):<8.2f}\n"
 
     return table
