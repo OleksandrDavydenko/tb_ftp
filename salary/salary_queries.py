@@ -238,7 +238,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
         table += "-" * 41 + "\n"
         for row in rows:
             оклад_uah = float(row.get("[Нараховано Оклад UAH]", 0))
-            оклад_usd = float(row.get("[Нараховано Оклад USD]", 0))
+            оклад_usd = float(row.get("[Нараховано Оклад USD]", 0)) if оклад_uah == 0 else 0.0
             премії_uah = float(row.get("[Нараховано Премії UAH]", 0))
             премії_usd = float(row.get("[Нараховано Премії USD]", 0))
             додат_uah = float(row.get("[Додаткові нарахування UAH]", 0))
@@ -296,13 +296,8 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
             role = bonus.get("ManagerRole", "")
             bonuses_summary[role] += float(bonus.get("TotalAccrued", 0))
 
-        if not bonuses:
-            bonuses_summary["Сейлс"] = 0
-            bonuses_summary["Оперативний менеджер"] = 0
-            bonuses_summary["Відсоток ОМ"] = 0
-
-        for role, amount in bonuses_summary.items():
-            table += f"{role:<26}{amount:<8.2f}\n"
+        for role in ["Сейлс", "Оперативний менеджер", "Відсоток ОМ"]:
+            table += f"{role:<26}{bonuses_summary.get(role, 0):<8.2f}\n"
 
         table += "-" * 41 + "\n"
         table += f"{'Всього нараховано бонусів: ':<26}{sum(bonuses_summary.values()):<8.2f}\n"
@@ -315,7 +310,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
         for p in bonus_payments:
             дата = datetime.strptime(p.get("[Дата платежу]", ""), "%Y-%m-%d").strftime("%d.%m.%y")
             doc_number = p.get("[Документ]", "")
-            сума_usd = float(p.get("[Разом в USD]", 0))
+            сума_usd = float(p.get("[Разом в USD]", p.get("[Сума USD]", 0)))
             період = p.get("[МісяцьНарахування]", "")
             grouped[(дата, doc_number)].append((сума_usd, період))
 
@@ -326,6 +321,6 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
                 table += f"  → {сума_usd:<7.2f} — {період}\n"
 
         table += "-" * 41 + "\n"
-        table += f"{'Всього виплачено бонусів: ':<26}{sum(p[0] for pay in grouped.values() for p in pay):<8.2f}\n"
+        table += f"{'Всього виплачено бонусів: ':<26}{sum(sum(p[0] for p in pay) for pay in grouped.values()):<8.2f}\n"
 
     return table
