@@ -329,7 +329,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
         table += "-" * 41 + "\n"
         table += f"{'Всього нараховано бонусів: ':<26}{total_bonuses:<8.2f}\n"
 
-    # ===== ВИПЛАТА БОНУСІВ =====
+ # ===== ВИПЛАТА БОНУСІВ (з деталізацією по періодах) =====
     bonus_payments = [
         p for p in payments
         if p.get("[Character]", "").strip().lower() == "bonus"
@@ -341,28 +341,33 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
         table += f"{'Документ':<15}{'USD':<8}\n"
         table += "-" * 41 + "\n"
 
-        total_bonus_usd = 0
-        formatted_bonus = []
+        from collections import defaultdict
+        grouped = defaultdict(list)
+        total_bonus_usd = 0.0
+
+        # Групуємо по даті платежу та номеру документа
         for p in bonus_payments:
-            дата_платежу = p.get("[Дата платежу]", "")
+            doc_number = p.get("[Документ]", "Невідомо")
+            дата_платежу = p.get("[Дата платежу]", "1970-01-01")
             try:
                 дата = datetime.strptime(дата_платежу, "%Y-%m-%d")
             except ValueError:
                 continue
 
-            doc = p.get("[Документ]", "")
-            сума_usd = float(p.get("[Разом в USD]", 0))
-            місяць = p.get("[МісяцьНарахування]", "Невідомо")
+            key = (дата, doc_number)
+            сума_usd = float(p.get("[Разом в USD]", p.get("[Сума USD]", 0)))
+            період = p.get("[МісяцьНарахування]", "Невідомо")
+            grouped[key].append((сума_usd, період))
             total_bonus_usd += сума_usd
-            formatted_bonus.append((дата, doc, сума_usd, місяць))
 
-        formatted_bonus.sort(key=lambda x: x[0])
-        for _, doc, сума, місяць in formatted_bonus:
-            table += f"{doc:<15}{сума:<8.2f}\n"
-            table += f"{'':<3}→ {місяць}\n"
+        # Сортуємо по даті
+        for (дата, doc_number) in sorted(grouped.keys()):
+            рядки = grouped[(дата, doc_number)]
+            сума_по_документу = sum(r[0] for r in рядки)
+
+            table += f"{doc_number:<15}{сума_по_документу:<8.2f}\n"
+            for сума, період in рядки:
+                table += f"{'':<3}→ {сума:<7.2f} — {період}\n"
 
         table += "-" * 41 + "\n"
         table += f"{'Всього виплачено бонусів: ':<26}{total_bonus_usd:<8.2f}\n"
-
-    logging.info("Формування таблиці завершено.")
-    return table
