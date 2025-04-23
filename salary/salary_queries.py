@@ -295,7 +295,6 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
     table += f"{'Невиплачений залишок: ':<18}{remaining_uah:<8.2f}  {remaining_usd:<8.2f}\n"
 
     # ===== НАРАХОВАНІ БОНУСИ =====
-
     if bonuses:
         table += "\nБонуси:\n"
         table += "-" * 41 + "\n"
@@ -329,16 +328,6 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
         table += f"{'Відсоток ОМ':<26}{bonuses_summary['Відсоток ОМ']:<8.2f}\n"
         table += "-" * 41 + "\n"
         table += f"{'Всього нараховано бонусів: ':<26}{total_bonuses:<8.2f}\n"
-    else:
-        # Якщо бонусів немає, заповнюємо секцію нулями
-        table += "\nБонуси:\n"
-        table += "-" * 41 + "\n"
-        table += f"{'Бонуси Сейлс':<26}{0.00:<8.2f}\n"
-        table += f"{'Бонуси ОМ':<26}{0.00:<8.2f}\n"
-        table += f"{'Відсоток ОМ':<26}{0.00:<8.2f}\n"
-        table += "-" * 41 + "\n"
-        table += f"{'Всього нараховано бонусів: ':<26}{0.00:<8.2f}\n"
-        logging.warning("⚠️ Немає нарахувань бонусів, але можуть бути виплати.")
 
  # ===== ВИПЛАТА БОНУСІВ (з деталізацією по періодах) =====
     bonus_payments = [
