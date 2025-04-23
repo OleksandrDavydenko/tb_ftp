@@ -3,7 +3,6 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 import datetime
 from .salary_queries import get_salary_data, get_salary_payments, get_bonuses, format_salary_table
-import logging
 
 # Функція для відображення списку доступних років
 async def show_salary_years(update: Update, context: CallbackContext) -> None:
@@ -46,20 +45,13 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
     bonuses_data = get_bonuses(employee_name, year, month)
 
     if salary_data or payments_data or bonuses_data:
-        # Логування отриманих даних
-        logging.info(f"salary_data: {salary_data}")
-        logging.info(f"payments_data: {payments_data}")
-        logging.info(f"bonuses_data: {bonuses_data}")
-
         # Формуємо розрахунковий лист
         formatted_table = format_salary_table(salary_data, employee_name, year, month, payments_data, bonuses_data)
-        
-        if not formatted_table:
-            logging.error("❌ Помилка: функція format_salary_table повернула None.")
-            await update.message.reply_text("Помилка: не вдалося сформувати розрахунковий лист.")
-            return
-
         main_table = formatted_table.split("\nБонуси:")[0].strip()
+
+
+
+
         bonuses_table = formatted_table.split("\nБонуси:")[1].strip() if "\nБонуси:" in formatted_table else ""
 
         bonuses_section = f"\nБонуси:\n\n```\n{bonuses_table}\n```" if bonuses_table else ""
@@ -80,7 +72,6 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
         # Запускаємо видалення через 60 секунд
         asyncio.create_task(delete_salary_message(update, context, salary_message.message_id, delete_warning.message_id, delay=60))
     else:
-        logging.warning("⚠️ Відсутні дані для формування розрахункового листа.")
         await update.message.reply_text("Немає даних для вибраного періоду.")
 
     # Кнопки навігації
