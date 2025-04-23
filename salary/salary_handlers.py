@@ -46,14 +46,9 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
 
     if salary_data or payments_data or bonuses_data:
         # Формуємо розрахунковий лист
-#       formatted_table = format_salary_table(salary_data, employee_name, year, month, payments_data, bonuses_data)
-#       main_table = formatted_table.split("\nБонуси:")[0].strip()
         formatted_table = format_salary_table(salary_data, employee_name, year, month, payments_data, bonuses_data)
-        if not formatted_table:
-            await update.message.reply_text("Немає даних для вибраного періоду.")
-            return
         main_table = formatted_table.split("\nБонуси:")[0].strip()
-
+      
 
 
         bonuses_table = formatted_table.split("\nБонуси:")[1].strip() if "\nБонуси:" in formatted_table else ""
