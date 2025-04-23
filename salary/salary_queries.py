@@ -342,24 +342,24 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
         table += "-" * 41 + "\n"
 
         total_bonus_usd = 0
-        grouped_by_doc = {}
-
+        formatted_bonus = []
         for p in bonus_payments:
-            doc = p.get("[Документ]", "Невідомо")
-            сума = float(p.get("[Разом в USD]", 0))
-            період = p.get("[МісяцьНарахування]", "Невідомо")
+            дата_платежу = p.get("[Дата платежу]", "")
+            try:
+                дата = datetime.strptime(дата_платежу, "%Y-%m-%d")
+            except ValueError:
+                continue
 
-            total_bonus_usd += сума
+            doc = p.get("[Документ]", "")
+            сума_usd = float(p.get("[Разом в USD]", 0))
+            місяць = p.get("[МісяцьНарахування]", "Невідомо")
+            total_bonus_usd += сума_usd
+            formatted_bonus.append((дата, doc, сума_usd, місяць))
 
-            if doc not in grouped_by_doc:
-                grouped_by_doc[doc] = []
-            grouped_by_doc[doc].append((сума, період))
-
-        for doc, lines in grouped_by_doc.items():
-            total_by_doc = sum([с for с, _ in lines])
-            table += f"{doc:<15}{total_by_doc:<8.2f}\n"
-            for сума, період in lines:
-                table += f"   → {сума:<6.2f} — {період}\n"
+        formatted_bonus.sort(key=lambda x: x[0])
+        for _, doc, сума, місяць in formatted_bonus:
+            table += f"{doc:<15}{сума:<8.2f}\n"
+            table += f"{'':<3}→ {місяць}\n"
 
         table += "-" * 41 + "\n"
         table += f"{'Всього виплачено бонусів: ':<26}{total_bonus_usd:<8.2f}\n"
