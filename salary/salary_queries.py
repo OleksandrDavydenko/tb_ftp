@@ -243,7 +243,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
             додат_usd = float(row.get("[Додаткові нарахування USD]", 0))
 
             total_uah += оклад_uah + премії_uah + додат_uah
-            total_usd += оклад_usd + премії_usd + додат_usд
+            total_usd += оклад_usd + премії_usd + додат_usd
 
             main_table += f"{'Оклад':<18}{оклад_uah:<8.2f}  {оклад_usd:<8.2f}\n"
             main_table += f"{'Премії':<18}{премії_uah:<8.2f}  {премії_usd:<8.2f}\n"
