@@ -87,7 +87,7 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
     main_msg = (
         heading("Розрахунковий лист") +
         f"Співробітник: {heading(employee)}\n" +
-        f"Період: {heading(month_name)} {heading(year)}\n\n" +
+        f"Період: {month_name} {year}\n\n" +
         code_block(main_table)
     )
     await _send_autodelete(update, context, main_msg)

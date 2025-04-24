@@ -392,6 +392,9 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
 
 # --- Виплати ---
     if bonus_payments:
+        bonus_table += "-" * 41 + "\n"
+        bonus_table += "\nВиплата бонусів\n"
+        bonus_table += "-" * 41 + "\n"
         from collections import defaultdict
 
         # Групуємо виплати за документом
@@ -405,7 +408,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
         for doc_number, items in grouped.items():
             total_by_doc = sum(float(p["[Разом в USD]"]) for p in items)
             total_bonus_paid += total_by_doc
-            bonus_table += f"Документ: {doc_number} | Сума: {total_by_doc:.2f} USD\n"
+            bonus_table += f"Документ: {doc_number} Сума: {total_by_doc:.2f} USD\n"
 
             for item in items:
                 місяць = datetime.strptime(item["[МісяцьНарахування]"], "%Y-%m-%d").strftime("%B %Y")
