@@ -2,6 +2,7 @@ import asyncio
 import datetime
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
+import logging
 
 from .salary_queries import (
     get_salary_data,
@@ -78,13 +79,22 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
     )
 
     # --- 1️⃣ основна таблиця (завжди)
-    main_msg = heading("Розрахунковий лист") + code_block(main_table)
+    main_msg = (
+        heading("Розрахунковий лист") +
+        f"Співробітник: {employee}\n" +
+        f"Період: {month_name} {year}\n\n" +
+        code_block(main_table)
+    )
     await _send_autodelete(update, context, main_msg)
 
     # --- 2️⃣ бонуси (якщо є)
     if bonus_table:
+        logging.info("✅ Бонусна таблиця сформована:")
+        logging.info(bonus_table)
         bonus_msg = heading("Бонуси") + code_block(bonus_table)
         await _send_autodelete(update, context, bonus_msg)
+    else:
+        logging.warning("⚠️ Бонусна таблиця порожня або не сформована.")
 
     # Навігація
     nav_kb = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
