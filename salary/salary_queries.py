@@ -306,21 +306,22 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
         table += "\nВиплата бонусів:\n"
         table += "-" * 41 + "\n"
 
-        grouped = defaultdict(list)
+        payments_by_date = defaultdict(list)
+
         for p in bonus_payments:
-            дата = datetime.strptime(p.get("[Дата платежу]", ""), "%Y-%m-%d").strftime("%d.%m.%y")
+            дата_платежу = datetime.strptime(p.get("[Дата платежу]", ""), "%Y-%m-%d").strftime("%d.%m.%y")
             doc_number = p.get("[Документ]", "")
             сума_usd = float(p.get("[Разом в USD]", p.get("[Сума USD]", 0)))
-            період = p.get("[МісяцьНарахування]", "")
-            grouped[(дата, doc_number)].append((сума_usd, період))
+            період = datetime.strptime(p.get("[МісяцьНарахування]", ""), "%Y-%m-%d").strftime("%m.%Y")
+            payments_by_date[(дата_платежу, doc_number)].append((сума_usd, період))
 
-        for (дата, doc_number), payments in sorted(grouped.items()):
-            total_bonus_usd = sum(p[0] for p in payments)
-            table += f"{дата} {doc_number:<10}{total_bonus_usd:<8.2f}\n"
-            for сума_usd, період in payments:
+        for (дата, doc_number), details in sorted(payments_by_date.items()):
+            total_payment_usd = sum(item[0] for item in details)
+            table += f"{дата} {doc_number:<10}{total_payment_usd:<8.2f}\n"
+            for сума_usd, період in details:
                 table += f"  → {сума_usd:<7.2f} — {період}\n"
 
         table += "-" * 41 + "\n"
-        table += f"{'Всього виплачено бонусів: ':<26}{sum(sum(p[0] for p in pay) for pay in grouped.values()):<8.2f}\n"
+        table += f"{'Всього виплачено бонусів: ':<26}{sum(sum(item[0] for item in details) for details in payments_by_date.values()):<8.2f}\n"
 
     return table
