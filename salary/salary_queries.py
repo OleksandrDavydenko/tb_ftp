@@ -261,7 +261,7 @@ def get_bonus_payments(employee_name, year, month):
                         FILTER(
                             SalaryPayment,
                             SalaryPayment[Employee] = "{employee_name}" &&
-                            FORMAT(SalaryPayment[DocDate], "YYYY-MM") = "{year}-{formatted_month}" &&
+                            FORMAT(SalaryPayment[DocDate], "YYYY-MM") = "{year}-{month_number}" &&
                             SalaryPayment[Character] = "bonus"
                         ),
                         "Дата платежу", SalaryPayment[DocDate],
