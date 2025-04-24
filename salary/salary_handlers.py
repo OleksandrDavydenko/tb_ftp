@@ -86,7 +86,7 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
     # --- 1️⃣ основна таблиця (завжди)
     main_msg = (
         heading("Розрахунковий лист") +
-        f"Співробітник: {heading(employee)}\n" +
+        f"Співробітник: {heading(employee)}" +
         f"Період: {month_name} {year}\n\n" +
         code_block(main_table)
     )

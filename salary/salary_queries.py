@@ -392,7 +392,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
 
 # --- Виплати ---
     if bonus_payments:
-        bonus_table += "-" * 41 + "\n"
+
         bonus_table += "\nВиплата бонусів\n"
         bonus_table += "-" * 41 + "\n"
         from collections import defaultdict
