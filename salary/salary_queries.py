@@ -205,6 +205,7 @@ def get_bonuses(employee_name, year, month):
         }
     }
 
+    logging.info(f"SQL-запит до Power BI: {query_data['queries'][0]['query']}")
     response = requests.post(power_bi_url, headers=headers, json=query_data)
 
     if response.status_code == 200:
