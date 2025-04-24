@@ -410,7 +410,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
             for item in items:
                 місяць = datetime.strptime(item["[МісяцьНарахування]"], "%Y-%m-%d").strftime("%B %Y")
                 сума = float(item["[Разом в USD]"])
-                bonus_table += f"→ {місяць} — {сума:.2f} USD\n"
+                bonus_table += f"   → {місяць} — {сума:.2f} USD\n"
 
             bonus_table += "\n"
 
