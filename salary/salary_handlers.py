@@ -70,15 +70,17 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
     salary_rows = get_salary_data(employee, year, month_name)
     payments_rows = get_salary_payments(employee, year, month_name)
     bonus_rows = get_bonuses(employee, year, month_name)
+    bonus_payments = get_bonus_payments(employee, year, month_name)
 
     if not (salary_rows or payments_rows or bonus_rows or bonus_payments):
         await update.message.reply_text("Немає даних для вибраного періоду.")
         return
 
-    bonus_payments = get_bonus_payments(employee, year, month_name)
+
 
     main_table, bonus_table = format_salary_table(
-        salary_rows, employee, int(year), month_num, payments_rows or [], bonus_rows or [], bonus_payments or []
+        salary_rows, employee, int(year), month_num,
+        payments_rows or [], bonus_rows or [], bonus_payments or []
     )
 
     # --- 1️⃣ основна таблиця (завжди)
@@ -90,14 +92,15 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
     )
     await _send_autodelete(update, context, main_msg)
 
-    # --- 2️⃣ бонуси (якщо є)
-    if bonus_table:
-        logging.info("✅ Бонусна таблиця сформована:")
-        logging.info(bonus_table)
-        bonus_msg = heading("Бонуси") + code_block(bonus_table)
-        await _send_autodelete(update, context, bonus_msg)
-    else:
-        logging.warning("⚠️ Бонусна таблиця порожня або не сформована.")
+    # --- 2️⃣ бонуси (якщо є хоча б щось)
+    if bonus_rows or bonus_payments:
+        if bonus_table:
+            logging.info("✅ Бонусна таблиця сформована:")
+            logging.info(bonus_table)
+            bonus_msg = heading("Бонуси") + code_block(bonus_table)
+            await _send_autodelete(update, context, bonus_msg)
+        else:
+            logging.warning("⚠️ Бонусна таблиця порожня або не сформована.")
 
     # Навігація
     nav_kb = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]

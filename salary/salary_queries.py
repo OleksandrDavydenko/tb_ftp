@@ -205,7 +205,7 @@ def get_bonuses(employee_name, year, month):
         }
     }
 
-    logging.info(f"SQL-запит до Power BI: {query_data['queries'][0]['query']}")
+
     response = requests.post(power_bi_url, headers=headers, json=query_data)
 
     if response.status_code == 200:
@@ -279,7 +279,7 @@ def get_bonus_payments(employee_name, year, month):
         }
     }
 
-    logging.info(f"SQL-запит до Power BI: {query_data['queries'][0]['query']}")
+
     response = requests.post(power_bi_url, headers=headers, json=query_data)
 
     if response.status_code == 200:
@@ -299,7 +299,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
     from datetime import datetime
     from collections import defaultdict
 
-    main_table = f"Розрахунковий лист:\n{employee_name} за {month} {year}:\n"
+    #main_table = f"Розрахунковий лист:\n{employee_name} за {month} {year}:\n"
     main_table += "-" * 41 + "\n"
 
     total_uah, total_usd, total_payment_uah, total_payment_usd = 0.0, 0.0, 0.0, 0.0
