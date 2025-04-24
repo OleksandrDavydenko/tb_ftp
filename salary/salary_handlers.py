@@ -97,7 +97,14 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
         if bonus_table:
             logging.info("✅ Бонусна таблиця сформована:")
             logging.info(bonus_table)
-            bonus_msg = heading("Бонуси") + code_block(bonus_table)
+
+            bonus_msg = (
+                heading("Бонуси") +
+                f"Співробітник: {employee}\n" +
+                f"Період: {month_name} {year}\n\n" +
+                code_block(bonus_table)
+            )
+
             await _send_autodelete(update, context, bonus_msg)
         else:
             logging.warning("⚠️ Бонусна таблиця порожня або не сформована.")
