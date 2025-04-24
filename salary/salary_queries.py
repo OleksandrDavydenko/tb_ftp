@@ -230,6 +230,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
 
     total_uah, total_usd, total_payment_uah, total_payment_usd = 0.0, 0.0, 0.0, 0.0
 
+    # Відображення нарахувань
     if rows:
         main_table += f"{'Нарахування':<18}{'UAH':<8}  {'USD':<8}\n"
         main_table += "-" * 41 + "\n"
@@ -251,6 +252,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
         main_table += "-" * 41 + "\n"
         main_table += f"{'Всього нараховано: ':<18}{total_uah:<8.2f}  {total_usd:<8.2f}\n"
 
+    # Відображення виплат навіть за відсутності нарахувань
     salary_payments = [p for p in payments if p.get("[Character]", "").strip().lower() in ["salary", "prize"]]
 
     if salary_payments:
@@ -271,10 +273,12 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
         main_table += "-" * 41 + "\n"
         main_table += f"{'Всього виплачено:':<18}{total_payment_uah:<8.2f}  {total_payment_usd:<8.2f}\n\n"
 
+    # Розрахунок залишку
     remaining_uah = total_uah - total_payment_uah
     remaining_usd = total_usd - total_payment_usd
     main_table += f"{'Невиплачений залишок: ':<18}{remaining_uah:<8.2f}  {remaining_usd:<8.2f}\n"
 
+    # Відображення бонусів
     bonus_table = ""
     bonus_payments = [p for p in payments if p.get("[Character]", "").strip().lower() == "bonus" and datetime.strptime(p["[Дата платежу]"], "%Y-%m-%d").strftime("%Y-%m") == f"{year}-{month:02}"]
 
