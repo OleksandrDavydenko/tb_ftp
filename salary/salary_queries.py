@@ -260,7 +260,9 @@ def get_bonus_payments(employee_name, year, month):
                     SELECTCOLUMNS(
                         FILTER(
                             SalaryPayment,
-                            SalaryPayment[Employee] = "Давиденко Олександр"
+                            SalaryPayment[Employee] = "{employee_name}" &&
+                            
+                            SalaryPayment[character] = "bonus"
                         ),
                         "Дата платежу", SalaryPayment[DocDate],
                         "Документ", SalaryPayment[DocNumber],
