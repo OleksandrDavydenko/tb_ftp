@@ -300,7 +300,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
     from collections import defaultdict
 
     #main_table = f"Розрахунковий лист:\n{employee_name} за {month} {year}:\n"
-    main_table += "-" * 41 + "\n"
+    main_table = "-" * 41 + "\n"
 
     total_uah, total_usd, total_payment_uah, total_payment_usd = 0.0, 0.0, 0.0, 0.0
 
