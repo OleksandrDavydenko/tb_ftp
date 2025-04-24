@@ -284,6 +284,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
         p for p in payments
         if p.get("[Character]", "").strip().lower() == "bonus"
     ]
+    logging.info(f"Отримано {bonus_payments}.")
 
     if bonuses or bonus_payments:
         bonus_table += "Бонуси:\n" + "-" * 41 + "\n"
