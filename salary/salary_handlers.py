@@ -1,72 +1,117 @@
 import asyncio
+import datetime
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
-import datetime
-from .salary_queries import get_salary_data, get_salary_payments, get_bonuses, format_salary_table
 
-# Відображення списку років
+from .salary_queries import (
+    get_salary_data,
+    get_salary_payments,
+    get_bonuses,
+    format_salary_table,
+)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Константи
+# ──────────────────────────────────────────────────────────────────────────────
+MONTHS_UA = [
+    "Січень",
+    "Лютий",
+    "Березень",
+    "Квітень",
+    "Травень",
+    "Червень",
+    "Липень",
+    "Серпень",
+    "Вересень",
+    "Жовтень",
+    "Листопад",
+    "Грудень",
+]
+MONTHS_MAP = {name: idx + 1 for idx, name in enumerate(MONTHS_UA)}
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Меню вибору року / місяця
+# ──────────────────────────────────────────────────────────────────────────────
 async def show_salary_years(update: Update, context: CallbackContext) -> None:
     current_year = datetime.datetime.now().year
-    years = [str(year) for year in range(2025, current_year + 1)]
-    custom_keyboard = [[KeyboardButton(year)] for year in years] + [[KeyboardButton("Назад")]]
-    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
-    context.user_data['menu'] = 'salary_years'
-    await update.message.reply_text("Оберіть рік:", reply_markup=reply_markup)
+    years = [str(y) for y in range(2025, current_year + 1)]
 
-# Відображення списку місяців
+    kb = [[KeyboardButton(y)] for y in years] + [[KeyboardButton("Назад")]]
+    context.user_data["menu"] = "salary_years"
+    await update.message.reply_text("Оберіть рік:", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
+
+
 async def show_salary_months(update: Update, context: CallbackContext) -> None:
-    months = [
-        "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
-        "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
-    ]
-    custom_keyboard = [[KeyboardButton(month)] for month in months] + [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
-    context.user_data['menu'] = 'salary_months'
-    await update.message.reply_text("Оберіть місяць:", reply_markup=reply_markup)
+    kb = [[KeyboardButton(m)] for m in MONTHS_UA]
+    kb.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
+    context.user_data["menu"] = "salary_months"
+    await update.message.reply_text("Оберіть місяць:", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
 
-# Відображення розрахункового листа
+# ──────────────────────────────────────────────────────────────────────────────
+# Показ розрахункового листа
+# ──────────────────────────────────────────────────────────────────────────────
 async def show_salary_details(update: Update, context: CallbackContext) -> None:
-    employee_name = context.user_data.get('employee_name')
-    year = context.user_data.get('selected_year')
-    month_name = context.user_data.get('selected_month')
+    employee = context.user_data.get("employee_name")
+    year = context.user_data.get("selected_year")
+    month_name = context.user_data.get("selected_month")
 
-    if not employee_name or not year or not month_name:
-        await update.message.reply_text("Помилка: необхідно вибрати рік і місяць.")
+    if not (employee and year and month_name):
+        await update.message.reply_text("Помилка: спочатку оберіть рік та місяць.")
         return
 
-    months_mapping = {
-        "Січень": 1, "Лютий": 2, "Березень": 3, "Квітень": 4, "Травень": 5, "Червень": 6,
-        "Липень": 7, "Серпень": 8, "Вересень": 9, "Жовтень": 10, "Листопад": 11, "Грудень": 12
-    }
-    month_number = months_mapping[month_name]
+    month_num = MONTHS_MAP.get(month_name)
+    if month_num is None:
+        await update.message.reply_text("Невідомий місяць.")
+        return
 
-    salary_data = get_salary_data(employee_name, year, month_name)
-    payments_data = get_salary_payments(employee_name, year, month_name)
-    bonuses_data = get_bonuses(employee_name, year, month_name)
+    # Дані Power BI
+    salary_rows = get_salary_data(employee, year, month_name)
+    payments_rows = get_salary_payments(employee, year, month_name)
+    bonus_rows = get_bonuses(employee, year, month_name)
 
-    if salary_data or payments_data or bonuses_data:
-        main_table, bonus_table = format_salary_table(salary_data, employee_name, int(year), month_number, payments_data, bonuses_data)
-
-        if main_table:
-            salary_message = await update.message.reply_text(f"```{main_table}```", parse_mode="Markdown")
-            delete_warning = await update.message.reply_text("⚠️ Розрахунковий лист буде видалено через 60 секунд!")
-            asyncio.create_task(delete_salary_message(update, context, salary_message.message_id, delete_warning.message_id, delay=60))
-
-        if bonus_table:
-            await update.message.reply_text(f"```{bonus_table}```", parse_mode="Markdown")
-    else:
+    if not (salary_rows or payments_rows or bonus_rows):
         await update.message.reply_text("Немає даних для вибраного періоду.")
+        return
 
-    custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
-    await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
+    main_table, bonus_table = format_salary_table(
+        salary_rows, employee, int(year), month_num, payments_rows or [], bonus_rows or []
+    )
 
-# Видалення повідомлень після затримки
-async def delete_salary_message(update: Update, context: CallbackContext, salary_message_id: int, warning_message_id: int, delay: int = 60):
+    # --- 1️⃣ основна таблиця (завжди)
+    main_msg = heading("Розрахунковий лист") + code_block(main_table)
+    await _send_autodelete(update, context, main_msg)
+
+    # --- 2️⃣ бонуси (якщо є)
+    if bonus_table:
+        bonus_msg = heading("Бонуси") + code_block(bonus_table)
+        await _send_autodelete(update, context, bonus_msg)
+
+    # Навігація
+    nav_kb = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
+    await update.message.reply_text("Виберіть опцію:", reply_markup=ReplyKeyboardMarkup(nav_kb, one_time_keyboard=True, resize_keyboard=True))
+
+# ──────────────────────────────────────────────────────────────────────────────
+#   Service helpers
+# ──────────────────────────────────────────────────────────────────────────────
+
+def heading(text: str) -> str:
+    return f"*{text}*\n"
+
+
+def code_block(content: str) -> str:
+    return f"```\n{content}\n```"
+
+
+async def _send_autodelete(update: Update, context: CallbackContext, message_text: str, *, delay: int = 60):
+    msg = await update.message.reply_text(message_text, parse_mode="Markdown")
+    warn = await update.message.reply_text("⚠️ Це повідомлення буде видалено через 60 секунд!")
+    asyncio.create_task(_delete_later(context, update.effective_chat.id, [msg.message_id, warn.message_id], delay))
+
+
+async def _delete_later(context: CallbackContext, chat_id: int, mids: list[int], delay: int):
     await asyncio.sleep(delay)
-    chat_id = update.message.chat_id
-    try:
-        await context.bot.delete_message(chat_id=chat_id, message_id=salary_message_id)
-        await context.bot.delete_message(chat_id=chat_id, message_id=warning_message_id)
-    except Exception as e:
-        print(f"Помилка видалення розрахункового листа: {e}")
+    for mid in mids:
+        try:
+            await context.bot.delete_message(chat_id=chat_id, message_id=mid)
+        except Exception:
+            pass
