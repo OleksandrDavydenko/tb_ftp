@@ -280,13 +280,19 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
 
     # Відображення бонусів
     bonus_table = ""
-    bonus_payments = [p for p in payments if p.get("[Character]", "").strip().lower() == "bonus" and datetime.strptime(p["[Дата платежу]"], "%Y-%m-%d").strftime("%Y-%m") == f"{year}-{month:02}"]
-
+    bonus_payments = [
+        p for p in payments
+        if p.get("[Character]", "").strip().lower() == "bonus"
+        and datetime.strptime(p["[Дата платежу]"], "%Y-%m-%d").strftime("%Y-%m") == f"{year}-{int(month):02}"
+    ]
+    logging.info(f"Фільтровані платежі з бонусами: {bonus_payments}")
     # Формувати таблицю бонусів лише за наявності нарахувань або виплат
+
     if bonuses or bonus_payments:
         bonus_table += "Бонуси:\n" + "-" * 41 + "\n"
         bonus_table += f"{'Нарахування Бонусів':<26}{'USD':<8}\n" + "-" * 41 + "\n"
 
+        # Додати нарахування бонусів
         bonuses_summary = defaultdict(float)
         for bonus in bonuses:
             bonuses_summary[bonus["ManagerRole"]] += float(bonus["TotalAccrued"])
@@ -298,6 +304,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
         bonus_table += "-" * 41 + "\n"
         bonus_table += f"{'Всього нараховано бонусів: ':<26}{sum(bonuses_summary.values()):<8.2f}\n\n"
 
+        # Додати виплати бонусів
         payments_by_date = defaultdict(list)
         for p in bonus_payments:
             дата_платежу = datetime.strptime(p["[Дата платежу]"], "%Y-%m-%d").strftime("%d.%m.%y")
