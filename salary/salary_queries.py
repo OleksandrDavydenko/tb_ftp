@@ -353,7 +353,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
     main_table += f"{'Невиплачений залишок: ':<18}{remaining_uah:<8.2f}  {remaining_usd:<8.2f}\n"
 
     # Відображення бонусів
-    bonus_table = "Бонуси:\n" + "-" * 41 + "\n"
+    bonus_table = "-" * 41 + "\n"
 
     # --- Нарахування ---
     if bonuses:
@@ -390,22 +390,33 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
     else:
         bonus_table += "Нарахування бонусів відсутні.\n\n"
 
-    # --- Виплати ---
+# --- Виплати ---
     if bonus_payments:
-        bonus_table += f"{'Дата':<10}{'Документ':<10}{'USD':<8}  {'Місяць нарахування':<15}\n"
-        bonus_table += "-" * 41 + "\n"
+        from collections import defaultdict
 
+        # Групуємо виплати за документом
+        grouped = defaultdict(list)
         for payment in bonus_payments:
-            дата = datetime.strptime(payment["[Дата платежу]"], "%Y-%m-%d").strftime("%d.%m.%y")
             doc_number = payment["[Документ]"]
-            сума_usd = float(payment["[Разом в USD]"])
-            місяць_нарахування = datetime.strptime(payment["[МісяцьНарахування]"], "%Y-%m-%d").strftime("%B %Y")
+            grouped[doc_number].append(payment)
 
-            bonus_table += f"{дата:<10}{doc_number:<10}{сума_usd:<8.2f}  {місяць_нарахування:<15}\n"
+        total_bonus_paid = 0
 
-        bonus_table += "-" * 41 + "\n"
-        bonus_table += f"{'Всього виплачено бонусів: ':<26}{sum(float(p['[Разом в USD]']) for p in bonus_payments):<8.2f}\n"
+        for doc_number, items in grouped.items():
+            total_by_doc = sum(float(p["[Разом в USD]"]) for p in items)
+            total_bonus_paid += total_by_doc
+            bonus_table += f"Документ: {doc_number} | Сума: {total_by_doc:.2f} USD\n"
+
+            for item in items:
+                місяць = datetime.strptime(item["[МісяцьНарахування]"], "%Y-%m-%d").strftime("%B %Y")
+                сума = float(item["[Разом в USD]"])
+                bonus_table += f"→ {місяць} — {сума:.2f} USD\n"
+
+            bonus_table += "\n"
+
+        bonus_table += f"Всього виплачено бонусів: {total_bonus_paid:.2f} USD\n"
     else:
         bonus_table += "Виплати бонусів відсутні.\n"
+
 
     return main_table, bonus_table.strip()
