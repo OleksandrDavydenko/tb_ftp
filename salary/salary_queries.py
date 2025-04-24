@@ -283,41 +283,24 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
     bonus_payments = [
         p for p in payments
         if p.get("[Character]", "").strip().lower() == "bonus"
-        and datetime.strptime(p["[Дата платежу]"], "%Y-%m-%d").strftime("%Y-%m") == f"{year}-{int(month):02}"
+        and datetime.strptime(p["[Дата платежу]"], "%Y-%m-%d").strftime("%Y-%m") == f"{year}-{month:02}"
     ]
-    logging.info(f"Фільтровані платежі з бонусами: {bonus_payments}")
-    # Формувати таблицю бонусів лише за наявності нарахувань або виплат
 
     if bonuses or bonus_payments:
         bonus_table += "Бонуси:\n" + "-" * 41 + "\n"
-        bonus_table += f"{'Нарахування Бонусів':<26}{'USD':<8}\n" + "-" * 41 + "\n"
-
-        # Додати нарахування бонусів
-        bonuses_summary = defaultdict(float)
-        for bonus in bonuses:
-            bonuses_summary[bonus["ManagerRole"]] += float(bonus["TotalAccrued"])
-
-        for role in ["Сейлс", "Оперативний менеджер", "Відсоток ОМ"]:
-            if role in bonuses_summary:
-                bonus_table += f"{role:<26}{bonuses_summary[role]:<8.2f}\n"
-
+        bonus_table += f"{'Дата':<10}{'Документ':<10}{'USD':<8}  {'Місяць нарахування':<15}\n"
         bonus_table += "-" * 41 + "\n"
-        bonus_table += f"{'Всього нараховано бонусів: ':<26}{sum(bonuses_summary.values()):<8.2f}\n\n"
 
         # Додати виплати бонусів
-        payments_by_date = defaultdict(list)
-        for p in bonus_payments:
-            дата_платежу = datetime.strptime(p["[Дата платежу]"], "%Y-%m-%d").strftime("%d.%m.%y")
-            payments_by_date[(дата_платежу, p["[Документ]"])].append((float(p["[Разом в USD]"]), p["[МісяцьНарахування]"].split("-")[1]))
+        for payment in bonus_payments:
+            дата = datetime.strptime(payment["[Дата платежу]"], "%Y-%m-%d").strftime("%d.%m.%y")
+            doc_number = payment["[Документ]"]
+            сума_usd = float(payment["[Разом в USD]"])
+            місяць_нарахування = datetime.strptime(payment["[МісяцьНарахування]"], "%Y-%m-%d").strftime("%B %Y")
 
-        bonus_table += "Виплата бонусів:\n" + "-" * 41 + "\n"
-        for (дата, doc_number), details in sorted(payments_by_date.items()):
-            total_payment_usd = sum(x[0] for x in details)
-            bonus_table += f"{дата} {doc_number:<10}{total_payment_usd:<8.2f}\n"
-            for сума_usd, період in details:
-                bonus_table += f"  → {сума_usd:<7.2f} — {період}\n"
+            bonus_table += f"{дата:<10}{doc_number:<10}{сума_usd:<8.2f}  {місяць_нарахування:<15}\n"
 
         bonus_table += "-" * 41 + "\n"
-        bonus_table += f"{'Всього виплачено бонусів: ':<26}{sum(sum(x[0] for x in det) for det in payments_by_date.values()):<8.2f}\n"
+        bonus_table += f"{'Всього виплачено бонусів: ':<26}{sum(float(p['[Разом в USD]']) for p in bonus_payments):<8.2f}\n"
 
     return main_table, bonus_table.strip()
