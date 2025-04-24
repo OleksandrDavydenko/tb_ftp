@@ -224,18 +224,14 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
     from datetime import datetime
     from collections import defaultdict
 
-    if not rows and not payments and not bonuses:
-        return f"Розрахунковий лист:\n{employee_name} за {month} {year}:\nНемає даних для вибраного періоду."
+    main_table = f"Розрахунковий лист:\n{employee_name} за {month} {year}:\n"
+    main_table += "-" * 41 + "\n"
 
     total_uah, total_usd, total_payment_uah, total_payment_usd = 0.0, 0.0, 0.0, 0.0
 
-    table = f"Розрахунковий лист:\n{employee_name} за {month} {year}:\n"
-    table += "-" * 41 + "\n"
-
-    # Нарахування
     if rows:
-        table += f"{'Нарахування':<18}{'UAH':<8}  {'USD':<8}\n"
-        table += "-" * 41 + "\n"
+        main_table += f"{'Нарахування':<18}{'UAH':<8}  {'USD':<8}\n"
+        main_table += "-" * 41 + "\n"
         for row in rows:
             оклад_uah = float(row.get("[Нараховано Оклад UAH]", 0))
             оклад_usd = float(row.get("[Нараховано Оклад USD]", 0)) if оклад_uah == 0 else 0.0
@@ -247,83 +243,68 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
             total_uah += оклад_uah + премії_uah + додат_uah
             total_usd += оклад_usd + премії_usd + додат_usd
 
-            table += f"{'Оклад':<18}{оклад_uah:<8.2f}  {оклад_usd:<8.2f}\n"
-            table += f"{'Премії':<18}{премії_uah:<8.2f}  {премії_usd:<8.2f}\n"
-            table += f"{'Додаткові':<18}{додат_uah:<8.2f}  {додат_usd:<8.2f}\n"
+            main_table += f"{'Оклад':<18}{оклад_uah:<8.2f}  {оклад_usd:<8.2f}\n"
+            main_table += f"{'Премії':<18}{премії_uah:<8.2f}  {премії_usd:<8.2f}\n"
+            main_table += f"{'Додаткові':<18}{додат_uah:<8.2f}  {додат_usd:<8.2f}\n"
 
-        table += "-" * 41 + "\n"
-        table += f"{'Всього нараховано: ':<18}{total_uah:<8.2f}  {total_usd:<8.2f}\n"
-    else:
-        table += "Немає даних про нарахування.\n"
+        main_table += "-" * 41 + "\n"
+        main_table += f"{'Всього нараховано: ':<18}{total_uah:<8.2f}  {total_usd:<8.2f}\n"
 
-    # Виплата ЗП
     salary_payments = [p for p in payments if p.get("[Character]", "").strip().lower() in ["salary", "prize"]]
 
     if salary_payments:
-        table += "\nВиплата ЗП:\n"
-        table += f"{'Дата':<10}{'Документ':<10} {'UAH':<8}  {'USD':<8}\n"
-        table += "-" * 41 + "\n"
-        formatted = []
-        for payment in salary_payments:
-            дата = datetime.strptime(payment.get("[Дата платежу]", ""), "%Y-%m-%d").strftime("%d.%m.%y")
-            doc_number = payment.get("[Документ]", "")
-            сума_uah = float(payment.get("[Сума UAH]", 0))
-            сума_usd = float(payment.get("[Сума USD]", 0))
+        main_table += "\nВиплата ЗП:\n"
+        main_table += f"{'Дата':<10}{'Документ':<10} {'UAH':<8}  {'USD':<8}\n"
+        main_table += "-" * 41 + "\n"
+        for payment in sorted(salary_payments, key=lambda x: x["[Дата платежу]"]):
+            дата = datetime.strptime(payment["[Дата платежу]"], "%Y-%m-%d").strftime("%d.%m.%y")
+            doc_number = payment["[Документ]"]
+            сума_uah = float(payment["[Сума UAH]"])
+            сума_usd = float(payment["[Сума USD]"])
+
             total_payment_uah += сума_uah
             total_payment_usd += сума_usd
-            formatted.append((дата, doc_number, сума_uah, сума_usd))
 
-        for дата, doc_number, сума_uah, сума_usd in sorted(formatted):
-            table += f"{дата:<10}{doc_number:<10} {сума_uah:<8.2f}  {сума_usd:<8.2f}\n"
+            main_table += f"{дата:<10}{doc_number:<10} {сума_uah:<8.2f}  {сума_usd:<8.2f}\n"
 
-        table += "-" * 41 + "\n"
-        table += f"{'Всього виплачено:':<18}{total_payment_uah:<8.2f}  {total_payment_usd:<8.2f}\n\n"
+        main_table += "-" * 41 + "\n"
+        main_table += f"{'Всього виплачено:':<18}{total_payment_uah:<8.2f}  {total_payment_usd:<8.2f}\n\n"
 
     remaining_uah = total_uah - total_payment_uah
     remaining_usd = total_usd - total_payment_usd
-    table += f"{'Невиплачений залишок: ':<18}{remaining_uah:<8.2f}  {remaining_usd:<8.2f}\n"
+    main_table += f"{'Невиплачений залишок: ':<18}{remaining_uah:<8.2f}  {remaining_usd:<8.2f}\n"
 
-    bonus_payments = [p for p in payments if p.get("[Character]", "").strip().lower() == "bonus"]
+    bonus_table = ""
+    bonus_payments = [p for p in payments if p.get("[Character]", "").strip().lower() == "bonus" and datetime.strptime(p["[Дата платежу]"], "%Y-%m-%d").strftime("%Y-%m") == f"{year}-{month:02}"]
 
     if bonuses or bonus_payments:
-        table += "\nБонуси:\n"
-        table += "-" * 41 + "\n"
-        table += f"{'Нарахування Бонусів':<26}{'USD':<8}\n"
-        table += "-" * 41 + "\n"
+        bonus_table += "Бонуси:\n" + "-" * 41 + "\n"
+        bonus_table += f"{'Нарахування Бонусів':<26}{'USD':<8}\n" + "-" * 41 + "\n"
 
         bonuses_summary = defaultdict(float)
-        for bonus in bonuses or []:
-            role = bonus.get("ManagerRole", "")
-            bonuses_summary[role] += float(bonus.get("TotalAccrued", 0))
+        for bonus in bonuses:
+            bonuses_summary[bonus["ManagerRole"]] += float(bonus["TotalAccrued"])
 
         for role in ["Сейлс", "Оперативний менеджер", "Відсоток ОМ"]:
-            table += f"{role:<26}{bonuses_summary.get(role, 0):<8.2f}\n"
+            if role in bonuses_summary:
+                bonus_table += f"{role:<26}{bonuses_summary[role]:<8.2f}\n"
 
-        table += "-" * 41 + "\n"
-        table += f"{'Всього нараховано бонусів: ':<26}{sum(bonuses_summary.values()):<8.2f}\n"
-
-    if bonus_payments:
-        table += "\nВиплата бонусів:\n"
-        table += "-" * 41 + "\n"
-
-        filtered_bonus_payments = [p for p in bonus_payments if datetime.strptime(p.get("[Дата платежу]", ""), "%Y-%m-%d").strftime("%Y-%m") == f"{year}-{month:02}"]
+        bonus_table += "-" * 41 + "\n"
+        bonus_table += f"{'Всього нараховано бонусів: ':<26}{sum(bonuses_summary.values()):<8.2f}\n\n"
 
         payments_by_date = defaultdict(list)
+        for p in bonus_payments:
+            дата_платежу = datetime.strptime(p["[Дата платежу]"], "%Y-%m-%d").strftime("%d.%m.%y")
+            payments_by_date[(дата_платежу, p["[Документ]"])].append((float(p["[Разом в USD]"]), p["[МісяцьНарахування]"].split("-")[1]))
 
-        for p in filtered_bonus_payments:
-            дата_платежу = datetime.strptime(p.get("[Дата платежу]", ""), "%Y-%m-%d").strftime("%d.%m.%y")
-            doc_number = p.get("[Документ]", "")
-            сума_usd = float(p.get("[Разом в USD]", p.get("[Сума USD]", 0)))
-            період = datetime.strptime(p.get("[МісяцьНарахування]", ""), "%Y-%m-%d").strftime("%m.%Y")
-            payments_by_date[(дата_платежу, doc_number)].append((сума_usd, період))
-
+        bonus_table += "Виплата бонусів:\n" + "-" * 41 + "\n"
         for (дата, doc_number), details in sorted(payments_by_date.items()):
-            total_payment_usd = sum(item[0] for item in details)
-            table += f"{дата} {doc_number:<10}{total_payment_usd:<8.2f}\n"
+            total_payment_usd = sum(x[0] for x in details)
+            bonus_table += f"{дата} {doc_number:<10}{total_payment_usd:<8.2f}\n"
             for сума_usd, період in details:
-                table += f"  → {сума_usd:<7.2f} — {період}\n"
+                bonus_table += f"  → {сума_usd:<7.2f} — {період}\n"
 
-        table += "-" * 41 + "\n"
-        table += f"{'Всього виплачено бонусів: ':<26}{sum(sum(item[0] for item in details) for details in payments_by_date.values()):<8.2f}\n"
+        bonus_table += "-" * 41 + "\n"
+        bonus_table += f"{'Всього виплачено бонусів: ':<26}{sum(sum(x[0] for x in det) for det in payments_by_date.values()):<8.2f}\n"
 
-    return table
+    return main_table, bonus_table.strip()
