@@ -282,6 +282,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
     bonus_table = ""
     bonus_payments = [p for p in payments if p.get("[Character]", "").strip().lower() == "bonus" and datetime.strptime(p["[Дата платежу]"], "%Y-%m-%d").strftime("%Y-%m") == f"{year}-{month:02}"]
 
+    # Формувати таблицю бонусів лише за наявності нарахувань або виплат
     if bonuses or bonus_payments:
         bonus_table += "Бонуси:\n" + "-" * 41 + "\n"
         bonus_table += f"{'Нарахування Бонусів':<26}{'USD':<8}\n" + "-" * 41 + "\n"
