@@ -408,19 +408,6 @@ def main():
         timezone='Europe/Kiev'  # Часовий пояс
     )
     scheduler.add_job(send_birthday_greetings, 'cron', hour=9, minute=21, timezone='Europe/Kiev')
-
-
-    from datetime import datetime
-
-    kyiv = timezone('Europe/Kiev')
-    run_time = kyiv.localize(datetime(2025, 4, 20, 10, 00))  # 20 квітня 2025, 10:00
-
-    scheduler.add_job(
-        send_message_to_users,
-        trigger='date',
-        run_date=run_time,
-        id='notify_davidenko_once'
-    )
     
 
 
