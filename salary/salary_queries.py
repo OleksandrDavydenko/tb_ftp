@@ -353,13 +353,48 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
     main_table += f"{'Невиплачений залишок: ':<18}{remaining_uah:<8.2f}  {remaining_usd:<8.2f}\n"
 
     # Відображення бонусів
-    bonus_table = ""
-    if bonuses or bonus_payments:
-        bonus_table += "Бонуси:\n" + "-" * 41 + "\n"
+    bonus_table = "Бонуси:\n" + "-" * 41 + "\n"
+
+    # --- Нарахування ---
+    if bonuses:
+        bonus_table += f"{'Нарахування Бонусів':<26}{'USD':<8}\n"
+        bonus_table += "-" * 41 + "\n"
+
+        total_bonuses = 0
+        bonuses_summary = {
+            "Сейлс": 0,
+            "Оперативний менеджер": 0,
+            "Відсоток ОМ": 0
+        }
+
+        cleaned_bonuses = [{key.strip("[]"): value for key, value in bonus.items()} for bonus in bonuses]
+
+        for bonus in cleaned_bonuses:
+            role = bonus.get("ManagerRole", "")
+            amount = float(bonus.get("TotalAccrued", 0))
+
+            if role == "Сейлс":
+                bonuses_summary["Сейлс"] += amount
+            elif role == "Оперативний менеджер":
+                bonuses_summary["Оперативний менеджер"] += amount
+            elif role == "Відсоток ОМ":
+                bonuses_summary["Відсоток ОМ"] += amount
+
+            total_bonuses += amount
+
+        bonus_table += f"{'Бонуси Сейлс':<26}{bonuses_summary['Сейлс']:<8.2f}\n"
+        bonus_table += f"{'Бонуси ОМ':<26}{bonuses_summary['Оперативний менеджер']:<8.2f}\n"
+        bonus_table += f"{'Відсоток ОМ':<26}{bonuses_summary['Відсоток ОМ']:<8.2f}\n"
+        bonus_table += "-" * 41 + "\n"
+        bonus_table += f"{'Всього нараховано бонусів: ':<26}{total_bonuses:<8.2f}\n\n"
+    else:
+        bonus_table += "Нарахування бонусів відсутні.\n\n"
+
+    # --- Виплати ---
+    if bonus_payments:
         bonus_table += f"{'Дата':<10}{'Документ':<10}{'USD':<8}  {'Місяць нарахування':<15}\n"
         bonus_table += "-" * 41 + "\n"
 
-        # Додати виплати бонусів
         for payment in bonus_payments:
             дата = datetime.strptime(payment["[Дата платежу]"], "%Y-%m-%d").strftime("%d.%m.%y")
             doc_number = payment["[Документ]"]
@@ -370,5 +405,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
 
         bonus_table += "-" * 41 + "\n"
         bonus_table += f"{'Всього виплачено бонусів: ':<26}{sum(float(p['[Разом в USD]']) for p in bonus_payments):<8.2f}\n"
+    else:
+        bonus_table += "Виплати бонусів відсутні.\n"
 
     return main_table, bonus_table.strip()
