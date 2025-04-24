@@ -9,6 +9,7 @@ from .salary_queries import (
     get_salary_payments,
     get_bonuses,
     format_salary_table,
+    get_bonus_payments
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -70,12 +71,14 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
     payments_rows = get_salary_payments(employee, year, month_name)
     bonus_rows = get_bonuses(employee, year, month_name)
 
-    if not (salary_rows or payments_rows or bonus_rows):
+    if not (salary_rows or payments_rows or bonus_rows or bonus_payments):
         await update.message.reply_text("Немає даних для вибраного періоду.")
         return
 
+    bonus_payments = get_bonus_payments(employee, year, month_name)
+
     main_table, bonus_table = format_salary_table(
-        salary_rows, employee, int(year), month_num, payments_rows or [], bonus_rows or []
+        salary_rows, employee, int(year), month_num, payments_rows or [], bonus_rows or [], bonus_payments or []
     )
 
     # --- 1️⃣ основна таблиця (завжди)
