@@ -306,9 +306,11 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses):
         table += "\nВиплата бонусів:\n"
         table += "-" * 41 + "\n"
 
+        filtered_bonus_payments = [p for p in bonus_payments if datetime.strptime(p.get("[Дата платежу]", ""), "%Y-%m-%d").strftime("%Y-%m") == f"{year}-{month:02}"]
+
         payments_by_date = defaultdict(list)
 
-        for p in bonus_payments:
+        for p in filtered_bonus_payments:
             дата_платежу = datetime.strptime(p.get("[Дата платежу]", ""), "%Y-%m-%d").strftime("%d.%m.%y")
             doc_number = p.get("[Документ]", "")
             сума_usd = float(p.get("[Разом в USD]", p.get("[Сума USD]", 0)))
