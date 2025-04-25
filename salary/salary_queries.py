@@ -453,6 +453,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
 
     if bonus_payments:
         bonus_table += "\nВиплата бонусів\n"
+        prize_table += "-" * 41 + "\n"
         from collections import defaultdict
 
         grouped = defaultdict(list)
@@ -501,6 +502,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
 
         if prize_payments:
             prize_table += "\nВиплата премій\n"
+            prize_table += "-" * 41 + "\n"
             from collections import defaultdict
 
             grouped = defaultdict(list)
