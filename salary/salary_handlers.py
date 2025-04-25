@@ -66,7 +66,7 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("Невідомий місяць.")
         return
 
-    # Дані Power BI
+    # Отримання даних
     salary_rows = get_salary_data(employee, year, month_name)
     payments_rows = get_salary_payments(employee, year, month_name)
     bonus_rows = get_bonuses(employee, year, month_name)
@@ -76,42 +76,59 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("Немає даних для вибраного періоду.")
         return
 
-
-
-    main_table, bonus_table = format_salary_table(
+    # Формування таблиць
+    main_table, bonus_table, prize_table = format_salary_table(
         salary_rows, employee, int(year), month_num,
         payments_rows or [], bonus_rows or [], bonus_payments or []
     )
 
-    # --- 1️⃣ основна таблиця (завжди)
+    # --- 1️⃣ основна таблиця (обов'язково)
     main_msg = (
         heading("Розрахунковий лист") +
-        f"Співробітник: {heading(employee)}" +
+        f"Співробітник: {employee}\n" +
         f"Період: {month_name} {year}\n\n" +
         code_block(main_table)
     )
     await _send_autodelete(update, context, main_msg)
 
-    # --- 2️⃣ бонуси (якщо є хоча б щось)
+    # --- 2️⃣ бонуси (якщо є)
     if bonus_rows or bonus_payments:
-        if bonus_table:
-            logging.info("✅ Бонусна таблиця сформована:")
-            logging.info(bonus_table)
-
+        if bonus_table and "Нарахування бонусів відсутні" not in bonus_table:
             bonus_msg = (
                 heading("Бонуси") +
                 f"Співробітник: {employee}\n" +
                 f"Період: {month_name} {year}\n\n" +
                 code_block(bonus_table)
             )
-
             await _send_autodelete(update, context, bonus_msg)
-        else:
-            logging.warning("⚠️ Бонусна таблиця порожня або не сформована.")
 
-    # Навігація
+    # --- 3️⃣ премії (якщо є нарахування або виплати премій)
+    has_prize_accruals = any(
+        float(row.get("[Нараховано Премії UAH]", 0)) > 0 or float(row.get("[Нараховано Премії USD]", 0)) > 0
+        for row in salary_rows or []
+    )
+    has_prize_payments = any(
+        p.get("[Character]", "").strip().lower() == "prize"
+        for p in payments_rows or []
+    )
+
+    if has_prize_accruals or has_prize_payments:
+        if prize_table and "Нарахування премій відсутні" not in prize_table:
+            prize_msg = (
+                heading("Премії") +
+                f"Співробітник: {employee}\n" +
+                f"Період: {month_name} {year}\n\n" +
+                code_block(prize_table)
+            )
+            await _send_autodelete(update, context, prize_msg)
+
+    # --- Навігація
     nav_kb = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-    await update.message.reply_text("Виберіть опцію:", reply_markup=ReplyKeyboardMarkup(nav_kb, one_time_keyboard=True, resize_keyboard=True))
+    await update.message.reply_text(
+        "Виберіть опцію:", 
+        reply_markup=ReplyKeyboardMarkup(nav_kb, one_time_keyboard=True, resize_keyboard=True)
+    )
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 #   Service helpers
