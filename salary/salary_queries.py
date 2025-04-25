@@ -464,16 +464,18 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
         total_bonus_paid = 0
 
         for doc_number, items in grouped.items():
-            total_by_doc = sum(float(p["[Разом в USD]"]) for p in items)
-            total_bonus_paid += total_by_doc
-            bonus_table += f"Документ: {doc_number} від {doc_date} | Σ {total_by_doc:.2f} $\n"
+            doc_date = items[0]["[Дата платежу]"]
+            bonus_table += f"Документ: {doc_number} від {doc_date}\n"
+
+            total_by_doc = 0
             for item in items:
                 місяць = datetime.strptime(item["[МісяцьНарахування]"], "%Y-%m-%d").strftime("%B %Y")
                 сума = float(item["[Разом в USD]"])
+                total_by_doc += сума
                 bonus_table += f"   → {місяць} — {сума:.2f} USD\n"
-            bonus_table += "\n"
 
-        bonus_table += f"Всього виплачено бонусів: {total_bonus_paid:.2f} USD\n"
+            bonus_table += f"Сума: {total_by_doc:.2f} USD\n\n"
+            total_bonus_paid += total_by_doc
 
     # --- Премії ---
     has_prizes = any(float(row.get("[Нараховано Премії UAH]", 0)) > 0 or float(row.get("[Нараховано Премії USD]", 0)) > 0 for row in rows or [])
@@ -519,7 +521,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
                     total_by_doc += сума
                     prize_table += f"   → {місяць} — {сума:.2f} USD\n"
 
-                prize_table += f"    Сума: {total_by_doc:.2f} USD\n\n"
+                prize_table += f"Сума: {total_by_doc:.2f} USD\n\n"
                 total_paid += total_by_doc
 
             prize_table += f"Всього виплачено премій: {total_paid:.2f} USD\n"
