@@ -509,16 +509,18 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
 
             total_paid = 0
             for doc_number, items in grouped.items():
-                total_by_doc = sum(float(p["[Разом в USD]"]) for p in items)
-                total_paid += total_by_doc
-                prize_table += f"Документ: {doc_number} від {doc_date} | Σ {total_by_doc:.2f} $\n"
+                doc_date = items[0]["[Дата платежу]"]  # Візьмемо дату з першого рядка
+                prize_table += f"Документ: {doc_number} від {doc_date}\n"
 
+                total_by_doc = 0
                 for item in items:
                     місяць = datetime.strptime(item["[МісяцьНарахування]"], "%Y-%m-%d").strftime("%B %Y")
                     сума = float(item["[Разом в USD]"])
+                    total_by_doc += сума
                     prize_table += f"   → {місяць} — {сума:.2f} USD\n"
 
-                prize_table += "\n"
+                prize_table += f"    Сума: {total_by_doc:.2f} USD\n\n"
+                total_paid += total_by_doc
 
             prize_table += f"Всього виплачено премій: {total_paid:.2f} USD\n"
 
