@@ -9,7 +9,8 @@ from .salary_queries import (
     get_salary_payments,
     get_bonuses,
     format_salary_table,
-    get_bonus_payments
+    get_bonus_payments,
+    get_prize_payments 
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -71,6 +72,8 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
     payments_rows = get_salary_payments(employee, year, month_name)
     bonus_rows = get_bonuses(employee, year, month_name)
     bonus_payments = get_bonus_payments(employee, year, month_name)
+    prize_payments = get_prize_payments(employee, year, month_name)
+
 
     if not (salary_rows or payments_rows or bonus_rows or bonus_payments):
         await update.message.reply_text("Немає даних для вибраного періоду.")
@@ -79,8 +82,9 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
     # Формування таблиць
     main_table, bonus_table, prize_table = format_salary_table(
         salary_rows, employee, int(year), month_num,
-        payments_rows or [], bonus_rows or [], bonus_payments or []
+        payments_rows or [], bonus_rows or [], bonus_payments or [], prize_payments or []
     )
+
 
     # --- 1️⃣ основна таблиця (обов'язково)
     main_msg = (
@@ -107,13 +111,10 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
         float(row.get("[Нараховано Премії UAH]", 0)) > 0 or float(row.get("[Нараховано Премії USD]", 0)) > 0
         for row in salary_rows or []
     )
-    has_prize_payments = any(
-        p.get("[Character]", "").strip().lower() == "prize"
-        for p in payments_rows or []
-    )
+    has_prize_payments = prize_payments and len(prize_payments) > 0
 
     if has_prize_accruals or has_prize_payments:
-        if prize_table and "Нарахування премій відсутні" not in prize_table:
+        if prize_table:
             prize_msg = (
                 heading("Премії") +
                 f"Співробітник: {employee}\n" +
@@ -121,6 +122,7 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
                 code_block(prize_table)
             )
             await _send_autodelete(update, context, prize_msg)
+
 
     # --- Навігація
     nav_kb = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]

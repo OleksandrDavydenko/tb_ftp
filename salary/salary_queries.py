@@ -291,11 +291,85 @@ def get_bonus_payments(employee_name, year, month):
     else:
         logging.error(f"Помилка при виконанні запиту: {response.status_code}, {response.text}")
         return None
+    
+
+def get_prize_payments(employee_name, year, month):
+    """
+    Функція для отримання виплат бонусів за датою платежу.
+    """
+    logging.info(f"Запит на отримання виплат бонусів для: {employee_name}, рік: {year}, місяць: {month}")
+    token = get_power_bi_token()
+    if not token:
+        logging.error("Не вдалося отримати токен Power BI.")
+        return None
+
+    dataset_id = '8b80be15-7b31-49e4-bc85-8b37a0d98f1c'
+    power_bi_url = f'https://api.powerbi.com/v1.0/myorg/datasets/{dataset_id}/executeQueries'
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json'
+    }
+
+    # Форматування місяця для SQL-запиту
+    months_mapping = {
+        "Січень": 1, "Лютий": 2, "Березень": 3, "Квітень": 4,
+        "Травень": 5, "Червень": 6, "Липень": 7, "Серпень": 8,
+        "Вересень": 9, "Жовтень": 10, "Листопад": 11, "Грудень": 12
+    }
+
+    month_number = months_mapping.get(month, None)
+    if month_number is None:
+        logging.error(f"Неправильний місяць: {month}")
+        return None
+
+    formatted_month = f"{month_number:02d}"
+
+    # Запит для отримання виплат бонусів за датою платежу
+    query_data = {
+        "queries": [
+            {
+                "query": f"""
+                    EVALUATE 
+                    SELECTCOLUMNS(
+                        FILTER(
+                            SalaryPayment,
+                            SalaryPayment[Employee] = "{employee_name}" &&
+                            SalaryPayment[character] = "bonus" &&
+                            YEAR(SalaryPayment[AccrualDateFromDoc]) = {year} &&
+                            MONTH(SalaryPayment[AccrualDateFromDoc]) = {int(formatted_month)}
+                        ),
+                        "Дата платежу", SalaryPayment[DocDate],
+                        "Документ", SalaryPayment[DocNumber],
+                        "Сума USD", SalaryPayment[SUM_USD],
+                        "Разом в USD", SalaryPayment[SUMINUSD],
+                        "МісяцьНарахування", SalaryPayment[МісяцьНарахування]
+                    )
+                """
+            }
+        ],
+        "serializerSettings": {
+            "includeNulls": True
+        }
+    }
+
+
+    response = requests.post(power_bi_url, headers=headers, json=query_data)
+
+    if response.status_code == 200:
+        logging.info("Запит на виплати бонусів успішний.")
+        data = response.json()
+        rows = data['results'][0]['tables'][0].get('rows', [])
+        logging.info(f"Отримано виплат бонусів: {len(rows)}. Дані: {rows}")
+        return rows
+    else:
+        logging.error(f"Помилка при виконанні запиту: {response.status_code}, {response.text}")
+        return None
 
 
 
 
-def format_salary_table(rows, employee_name, year, month, payments, bonuses, bonus_payments):
+def format_salary_table(rows, employee_name, year, month, payments, bonuses, bonus_payments, prize_payments):
+    
     from datetime import datetime
     from collections import defaultdict
 
@@ -425,15 +499,26 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
 
         if prize_payments:
             prize_table += "\nВиплата премій\n"
-            prize_table += "-" * 41 + "\n"
+            from collections import defaultdict
 
+            grouped = defaultdict(list)
             for payment in prize_payments:
-                дата = datetime.strptime(payment["[Дата платежу]"], "%Y-%m-%d").strftime("%d.%m.%y")
                 doc_number = payment["[Документ]"]
-                сума_uah = float(payment["[Сума UAH]"])
-                сума_usd = float(payment["[Сума USD]"])
-                prize_table += f"{дата:<10}{doc_number:<10} {сума_uah:<8.2f}  {сума_usd:<8.2f}\n"
+                grouped[doc_number].append(payment)
 
-            prize_table += "-" * 41 + "\n"
+            total_paid = 0
+            for doc_number, items in grouped.items():
+                total_by_doc = sum(float(p["[Разом в USD]"]) for p in items)
+                total_paid += total_by_doc
+                prize_table += f"Документ: {doc_number} | Сума: {total_by_doc:.2f} USD\n"
+
+                for item in items:
+                    місяць = datetime.strptime(item["[МісяцьНарахування]"], "%Y-%m-%d").strftime("%B %Y")
+                    сума = float(item["[Разом в USD]"])
+                    prize_table += f"   → {місяць} — {сума:.2f} USD\n"
+
+                prize_table += "\n"
+
+            prize_table += f"Всього виплачено премій: {total_paid:.2f} USD\n"
 
     return main_table.strip(), bonus_table.strip(), prize_table.strip()
