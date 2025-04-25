@@ -144,9 +144,9 @@ def code_block(content: str) -> str:
     return f"```\n{content}\n```"
 
 
-async def _send_autodelete(update: Update, context: CallbackContext, message_text: str, *, delay: int = 60):
+async def _send_autodelete(update: Update, context: CallbackContext, message_text: str, *, delay: int = 180):
     msg = await update.message.reply_text(message_text, parse_mode="Markdown")
-    warn = await update.message.reply_text("⚠️ Це повідомлення буде видалено через 60 секунд!")
+    warn = await update.message.reply_text("⚠️ Це повідомлення буде видалено через 180 секунд!")
     asyncio.create_task(_delete_later(context, update.effective_chat.id, [msg.message_id, warn.message_id], delay))
 
 
