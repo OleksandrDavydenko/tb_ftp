@@ -262,8 +262,8 @@ def get_bonus_payments(employee_name, year, month):
                             SalaryPayment,
                             SalaryPayment[Employee] = "{employee_name}" &&
                             SalaryPayment[character] = "bonus" &&
-                            YEAR(SalaryPayment[DocDate]) = {year} &&
-                            MONTH(SalaryPayment[DocDate]) = {int(formatted_month)}
+                            YEAR(SalaryPayment[AccrualDateFromDoc]) = {year} &&
+                            MONTH(SalaryPayment[AccrualDateFromDoc]) = {int(formatted_month)}
                         ),
                         "Дата платежу", SalaryPayment[DocDate],
                         "Документ", SalaryPayment[DocNumber],
@@ -401,6 +401,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
         grouped = defaultdict(list)
         for payment in bonus_payments:
             doc_number = payment["[Документ]"]
+            doc_date = payment["[Дата платежу]"]
             grouped[doc_number].append(payment)
 
         total_bonus_paid = 0
@@ -408,7 +409,7 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
         for doc_number, items in grouped.items():
             total_by_doc = sum(float(p["[Разом в USD]"]) for p in items)
             total_bonus_paid += total_by_doc
-            bonus_table += f"Документ: {doc_number} Сума: {total_by_doc:.2f} USD\n"
+            bonus_table += f"Документ: {doc_number} від {doc_date} Загальна сума: {total_by_doc:.2f} USD\n"
 
             for item in items:
                 місяць = datetime.strptime(item["[МісяцьНарахування]"], "%Y-%m-%d").strftime("%B %Y")
