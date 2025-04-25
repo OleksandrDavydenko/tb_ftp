@@ -334,7 +334,7 @@ def get_prize_payments(employee_name, year, month):
                         FILTER(
                             SalaryPayment,
                             SalaryPayment[Employee] = "{employee_name}" &&
-                            SalaryPayment[character] = "bonus" &&
+                            SalaryPayment[character] = "prize" &&
                             YEAR(SalaryPayment[AccrualDateFromDoc]) = {year} &&
                             MONTH(SalaryPayment[AccrualDateFromDoc]) = {int(formatted_month)}
                         ),
@@ -476,7 +476,6 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
 
     # --- Премії ---
     has_prizes = any(float(row.get("[Нараховано Премії UAH]", 0)) > 0 or float(row.get("[Нараховано Премії USD]", 0)) > 0 for row in rows or [])
-    prize_payments = [p for p in payments if p.get("[Character]", "").strip().lower() == "prize"]
 
     if has_prizes or prize_payments:
         prize_table += f"{'Нарахування Премій':<26}{'UAH':<8}  {'USD':<8}\n"
