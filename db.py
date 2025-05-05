@@ -252,6 +252,18 @@ def get_active_users():
     return [{'telegram_id': user[0], 'telegram_name': user[1], 'employee_name': user[2]} for user in users]
 
 
+def get_test_user():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    #тільки активні користувачі
+    cursor.execute("SELECT telegram_id, telegram_name, employee_name FROM users WHERE telegram_id = 203148640")
+    users = cursor.fetchall()
+
+    conn.close()
+
+    return [{'telegram_id': user[0], 'telegram_name': user[1], 'employee_name': user[2]} for user in users]
+
+
 
 
 def get_latest_currency_rates(currencies):
