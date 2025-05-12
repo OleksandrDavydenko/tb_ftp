@@ -32,6 +32,8 @@ from employee_analytics.analytics_handler import (
     show_monthly_analytics, show_yearly_chart_for_parameter
 )
 from hr.hr_handlers import show_hr_menu, handle_hr_feature_placeholder
+
+from hr.vacation_query import show_vacation_balance
 from information.help_menu import show_help_menu, show_currency_rates, show_devaluation_data
 from messages.weekly_overdue_debts import check_overdue_debts
 from sync_status import sync_user_statuses
@@ -291,6 +293,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
             await show_hr_menu(update, context)
         elif text in ["🗓 Залишки відпусток", "🕓 Відпрацьовані дні"]:
             await handle_hr_feature_placeholder(update, context)
+
 
         return  # Важливо: Вихід із функції, щоб не йти в GPT-запит!
 
