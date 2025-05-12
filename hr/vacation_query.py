@@ -33,7 +33,7 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
                     SELECTCOLUMNS(
                         FILTER(
                             employee_vacation_summary,
-                            STARTSWITH(employee_vacation_summary[employee_name], \"{employee_name}\")
+                            LEFT(employee_vacation_summary[employee_name], LEN(\"{employee_name}\")) = \"{employee_name}\"
                         ),
                         "Year", employee_vacation_summary[year],
                         "Organization", employee_vacation_summary[organization],
