@@ -35,11 +35,11 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
                             employee_vacation_summary,
                             employee_vacation_summary[employee_name] = \"{employee_name}\"
                         ),
-                        \"Year\", employee_vacation_summary[year],
-                        \"Organization\", employee_vacation_summary[organization],
-                        \"Accrued\", employee_vacation_summary[accrued_days],
-                        \"Used\", employee_vacation_summary[used_days],
-                        \"Remaining\", employee_vacation_summary[remaining_days]
+                        "Year", employee_vacation_summary[year],
+                        "Organization", employee_vacation_summary[organization],
+                        "Accrued", employee_vacation_summary[accrued_days],
+                        "Used", employee_vacation_summary[used_days],
+                        "Remaining", employee_vacation_summary[remaining_days]
                     )
                 """
             }
@@ -50,7 +50,6 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
     logging.info(f"📤 Відправляємо запит до Power BI для {employee_name}")
     response = requests.post(power_bi_url, headers=headers, json=dax_query)
 
-    # ⚠️ Додаткове логування
     logging.info(f"📥 Статус відповіді Power BI: {response.status_code}")
     try:
         logging.info(f"📄 Вміст відповіді: {response.text}")
@@ -78,11 +77,11 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
     message += "-" * 60 + "\n"
 
     for row in rows:
-        org = str(row['Organization'])
-        year = str(row['Year'])
-        accrued = str(row['Accrued'])
-        used = str(row['Used'])
-        remaining = str(row['Remaining'])
+        org = str(row['[Organization]'])
+        year = str(row['[Year]'])
+        accrued = str(row['[Accrued]'])
+        used = str(row['[Used]'])
+        remaining = str(row['[Remaining]'])
         message += f"{org:<15} {year:<5} {accrued:<12} {used:<12} {remaining:<10}\n"
 
     await update.message.reply_text(f"```\n{message}\n```", parse_mode="Markdown")
