@@ -32,14 +32,14 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
                     EVALUATE
                     SELECTCOLUMNS(
                         FILTER(
-                            VacationBalance,
-                            VacationBalance[employee_name] = \"{employee_name}\"
+                            employee_vacation_summary,
+                            employee_vacation_summary[employee_name] = \"{employee_name}\"
                         ),
-                        \"Year\", VacationBalance[year],
-                        \"Organization\", VacationBalance[organization],
-                        \"Accrued\", VacationBalance[accrued_days],
-                        \"Used\", VacationBalance[used_days],
-                        \"Remaining\", VacationBalance[remaining_days]
+                        \"Year\", employee_vacation_summary[year],
+                        \"Organization\", employee_vacation_summary[organization],
+                        \"Accrued\", employee_vacation_summary[accrued_days],
+                        \"Used\", employee_vacation_summary[used_days],
+                        \"Remaining\", employee_vacation_summary[remaining_days]
                     )
                 """
             }
