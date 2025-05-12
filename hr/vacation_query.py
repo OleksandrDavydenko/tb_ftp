@@ -51,10 +51,7 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
     response = requests.post(power_bi_url, headers=headers, json=dax_query)
 
     logging.info(f"📥 Статус відповіді Power BI: {response.status_code}")
-    try:
-        logging.info(f"📄 Вміст відповіді: {response.text}")
-    except Exception as e:
-        logging.warning(f"⚠️ Неможливо прочитати тіло відповіді: {e}")
+    logging.info(f"📄 Вміст відповіді: {response.text}")
 
     if response.status_code != 200:
         await update.message.reply_text("❌ Не вдалося отримати дані про відпустки.")
@@ -72,19 +69,30 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
         await update.message.reply_text("ℹ️ Немає даних про відпустки.")
         return
 
-    message = f"📄 *Залишки відпусток для {employee_name}:*\n\n"
-    message += f"{'Організація':<15} {'Рік':<5} {'Нараховано':<12} {'Використано':<12} {'Залишок':<10}\n"
-    message += "-" * 60 + "\n"
+    # Формуємо повідомлення
+    message = f"📄 *Залишки відпусток: {employee_name}*\n"
+    message += f"{'Орг.':<7} {'Рік':<4} {'Нарах.':<6} {'Викор.':<6} {'Залиш.':<6}\n"
+    message += "-" * 34 + "\n"
+
+    total_accrued = total_used = total_remaining = 0
 
     for row in rows:
-        org = str(row['[Organization]'])
+        org = str(row['[Organization]'])[:7]
         year = str(row['[Year]'])
-        accrued = str(row['[Accrued]'])
-        used = str(row['[Used]'])
-        remaining = str(row['[Remaining]'])
-        message += f"{org:<15} {year:<5} {accrued:<12} {used:<12} {remaining:<10}\n"
+        accrued = float(row['[Accrued]'] or 0)
+        used = float(row['[Used]'] or 0)
+        remaining = float(row['[Remaining]'] or 0)
 
-    await update.message.reply_text(f"```\n{message}\n```", parse_mode="Markdown")
+        total_accrued += accrued
+        total_used += used
+        total_remaining += remaining
+
+        message += f"{org:<7} {year:<4} {accrued:<6.1f} {used:<6.1f} {remaining:<6.1f}\n"
+
+    message += "-" * 34 + "\n"
+    message += f"{'Разом':<12} {total_accrued:<6.1f} {total_used:<6.1f} {total_remaining:<6.1f}\n"
+
+    await update.message.reply_text(f"```\n{message}```", parse_mode="Markdown")
 
     keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
