@@ -69,16 +69,14 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
         await update.message.reply_text("ℹ️ Немає даних про відпустки.")
         return
 
-    # Формуємо повідомлення
-    message = f"📄 *Залишки відпусток: {employee_name}*\n"
-    message += f"{'Орг.':<7} {'Рік':<4} {'Нарах.':<6} {'Викор.':<6} {'Залиш.':<6}\n"
-    message += "-" * 34 + "\n"
+    # Побудова повідомлення
+    message = f"📄 Відпустки для: *{employee_name}*\n\n"
 
     total_accrued = total_used = total_remaining = 0
 
     for row in rows:
-        org = str(row['[Organization]'])[:7]
         year = str(row['[Year]'])
+        org = str(row['[Organization]'])
         accrued = float(row['[Accrued]'] or 0)
         used = float(row['[Used]'] or 0)
         remaining = float(row['[Remaining]'] or 0)
@@ -87,13 +85,22 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
         total_used += used
         total_remaining += remaining
 
-        message += f"{org:<7} {year:<4} {accrued:<6.1f} {used:<6.1f} {remaining:<6.1f}\n"
+        message += (
+            f"📆 *{year}* | 🏢 {org}\n"
+            f"📈 Нараховано: {accrued:.1f} днів\n"
+            f"📉 Використано: {used:.1f} днів\n"
+            f"📌 Залишок: {remaining:.1f} днів\n\n"
+        )
 
-    message += "-" * 34 + "\n"
-    message += f"{'Разом':<12} {total_accrued:<6.1f} {total_used:<6.1f} {total_remaining:<6.1f}\n"
+    message += (
+        "🧾 *Підсумок:*\n"
+        f"🔹 Всього нараховано: {total_accrued:.1f} днів\n"
+        f"🔸 Всього використано: {total_used:.1f} днів\n"
+        f"✅ Залишок: {total_remaining:.1f} днів"
+    )
 
-    await update.message.reply_text(f"```\n{message}```", parse_mode="Markdown")
+    await update.message.reply_text(message, parse_mode="Markdown")
 
     keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-    await update.message.reply_text("⬅️ Повернення:", reply_markup=reply_markup)
+    await update.message.reply_text("Оберіть дію:", reply_markup=reply_markup)
