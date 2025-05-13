@@ -125,3 +125,9 @@ async def show_workdays_details(update: Update, context: CallbackContext) -> Non
     )
 
     await update.message.reply_text(message)
+
+
+# Додаємо кнопки після виводу
+    keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
+    reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+    await update.message.reply_text("⬅️ Оберіть дію:", reply_markup=reply_markup)
