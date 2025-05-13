@@ -336,30 +336,37 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
 async def handle_back_navigation(update: Update, context: CallbackContext) -> None:
     menu = context.user_data.get('menu')
 
+    # Зарплата
     if menu == 'salary_months':
         await show_salary_years(update, context)
-    elif menu == 'help_menu':
-        # Повертаємо користувача до меню "Довідкова інформація"
-        await show_help_menu(update, context)
-    elif menu == 'devaluation_data':
-        # Повертаємо користувача до меню "Довідкова інформація"
-        await show_help_menu(update, context)
     elif menu == 'salary_years':
         await show_main_menu(update, context)
+
+    # Аналітика
     elif menu == 'analytics_years':
         await show_analytics_options(update, context)
     elif menu == 'parameter_selection':
         await show_analytics_years(update, context)
     elif menu == 'analytics_months':
         await show_analytics_years(update, context)
+
+    # Дебіторка
     elif menu in ['debt_details', 'debt_histogram', 'debt_pie_chart', 'overdue_debt']:
         await show_debt_options(update, context)
-    elif menu == 'hr_main':
-        await show_main_menu(update, context)
-    elif menu == 'workdays_months':
-        await show_workdays_years(update, context)
+
+    # Довідкова інформація
+    elif menu in ['help_menu', 'devaluation_data']:
+        await show_help_menu(update, context)
+
+    # Кадровий облік
+    elif menu in ['workdays_years', 'workdays_months', 'workdays_details', 'vacation_balance']:
+        from hr.hr_handlers import show_hr_menu
+        await show_hr_menu(update, context)
+
+    # За замовчуванням — головне меню
     else:
         await show_main_menu(update, context)
+
 
 async def handle_analytics_selection(update: Update, context: CallbackContext, selection: str) -> None:
     context.user_data['analytics_type'] = 'monthly' if selection == "Аналітика за місяць" else 'yearly'
