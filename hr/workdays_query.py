@@ -65,7 +65,7 @@ async def show_workdays_details(update: Update, context: CallbackContext) -> Non
                         FILTER(
                             workdays_by_employee,
                             workdays_by_employee[Employee] = \"{employee_name}\" &&
-                            workdays_by_employee[Period] = DATE({year}, {int(month_num)}, 1)
+                            DATEVALUE(workdays_by_employee[Period]) = DATE({year}, {int(month_num)}, 1)
                         ),
                         \"Period\", workdays_by_employee[Period],
                         \"TotalDays\", workdays_by_employee[TotalDays],
