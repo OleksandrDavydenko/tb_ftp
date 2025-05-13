@@ -31,7 +31,7 @@ from employee_analytics.analytics_handler import (
     show_analytics_options, show_analytics_years, show_analytics_months, 
     show_monthly_analytics, show_yearly_chart_for_parameter
 )
-from hr.hr_handlers import show_hr_menu, handle_hr_feature_placeholder
+from hr.hr_handlers import show_hr_menu
 
 from hr.vacation_query import show_vacation_balance
 from hr.workdays_query import show_workdays_years, show_workdays_months, show_workdays_details
