@@ -215,119 +215,115 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         logging.warning(f"❌ Користувача {telegram_id} не знайдено в БД. Просимо номер.")
         await prompt_for_phone_number(update, context)
         return
-    
-    query = update.callback_query  # Перевіряємо, чи це callback-запит
+
+    query = update.callback_query
     if query:
         text = query.data
         user_id = query.from_user.id
-        message_id = query.message.message_id if query.message else None
+        message_id = query.message.message_id if query.message else -1
         await query.answer()
     else:
         text = update.message.text if update.message else None
         user_id = update.message.from_user.id if update.message else None
-        message_id = update.message.message_id if update.message else None  # Фікс: додано отримання message_id
-
-    # Якщо message_id відсутній, встановлюємо значення за замовчуванням
-    if message_id is None:
-        message_id = -1  # Використовуємо -1 як заглушку
-
-    # Логування отриманого тексту перед записом у базу
-    logging.info(f"📩 Отримано повідомлення: {text} від користувача {user_id} (message_id: {message_id})")
+        message_id = update.message.message_id if update.message else -1
 
     if not text or not user_id:
         logging.warning("⚠️ Не вдалося отримати текст кнопки або ID користувача")
-        return  # Вихід, якщо немає тексту або ID користувача
+        return
 
-    # ✅ Якщо команда є у списку відомих — не передаємо в GPT
+    logging.info(f"📩 Отримано повідомлення: {text} від користувача {user_id} (message_id: {message_id})")
+
     if is_known_command(text):
         try:
-            log_user_action(user_id, text, message_id)  # Фікс: передаємо message_id
+            log_user_action(user_id, text, message_id)
             logging.info(f"✅ Користувач {user_id} виконав команду: {text}")
         except Exception as e:
             logging.error(f"❌ Помилка логування для {user_id}: {e}")
 
-    # ✅ Головні розділи
-    if text == "📉 Дебіторська заборгованість":
-        await show_debt_options(update, context)
-    elif text == "💼 Розрахунковий лист":
-        context.user_data['menu'] = 'salary_years'
-        await show_salary_years(update, context)
-    elif text == "📊 Аналітика":
-        await show_analytics_options(update, context)
-    elif text == "🧾 Кадровий облік":
-        await show_hr_menu(update, context)
-    elif text == "ℹ️ Інформація":
-        await show_help_menu(update, context)
-    elif text == "💱 Курс валют":
-        await show_currency_rates(update, context)
-    elif text == "Перевірка девальвації":
-        await show_devaluation_data(update, context)
+        # 🔹 Головні розділи
+        if text == "📉 Дебіторська заборгованість":
+            await show_debt_options(update, context)
+        elif text == "💼 Розрахунковий лист":
+            context.user_data['menu'] = 'salary_years'
+            await show_salary_years(update, context)
+        elif text == "📊 Аналітика":
+            await show_analytics_options(update, context)
+        elif text == "🧾 Кадровий облік":
+            await show_hr_menu(update, context)
+        elif text == "ℹ️ Інформація":
+            await show_help_menu(update, context)
+        elif text == "💱 Курс валют":
+            await show_currency_rates(update, context)
+        elif text == "Перевірка девальвації":
+            await show_devaluation_data(update, context)
 
-    # ✅ Підменю дебіторки
-    elif text == "Таблиця":
-        await show_debt_details(update, context)
-    elif text == "Гістограма":
-        await show_debt_histogram(update, context)
-    elif text == "Діаграма":
-        await show_debt_pie_chart(update, context)
-    elif text == "Протермінована дебіторська заборгованість":
-        await handle_overdue_debt(update, context)
+        # 🔹 Підменю
+        elif text == "Таблиця":
+            await show_debt_details(update, context)
+        elif text == "Гістограма":
+            await show_debt_histogram(update, context)
+        elif text == "Діаграма":
+            await show_debt_pie_chart(update, context)
+        elif text == "Протермінована дебіторська заборгованість":
+            await handle_overdue_debt(update, context)
 
-    # ✅ Кадровий облік
-    elif text == "🗓 Залишки відпусток":
-        await show_vacation_balance(update, context)
-    elif text == "🕓 Відпрацьовані дні":
-        await show_workdays_years(update, context)
+        elif text == "🗓 Залишки відпусток":
+            await show_vacation_balance(update, context)
+        elif text == "🕓 Відпрацьовані дні":
+            await show_workdays_years(update, context)
 
-    # ✅ Навігація
-    elif text == "Назад":
-        await handle_back_navigation(update, context)
-    elif text == "Головне меню":
-        await show_main_menu(update, context)
+        # 🔹 Навігація
+        elif text == "Назад":
+            await handle_back_navigation(update, context)
+        elif text == "Головне меню":
+            await show_main_menu(update, context)
 
-    # ✅ Аналітика: вибір періоду і параметра
-    elif text in ["Аналітика за місяць", "Аналітика за рік"]:
-        await handle_analytics_selection(update, context, text)
-    elif text in ["2024", "2025"]:
-        await handle_year_choice(update, context)
-    elif text in [
-        "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
-        "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
-    ]:
-        menu = context.user_data.get("menu")
-        if menu == "workdays_years":
-            await show_workdays_months(update, context)
-        elif menu == "workdays_months":
-            await show_workdays_details(update, context)
-        else:
-            await handle_month_choice(update, context)
-    elif text in ["Дохід", "Валовий прибуток", "Маржинальність", "Кількість угод"]:
-        await handle_parameter_choice(update, context)
+        # 🔹 Аналітика
+        elif text in ["Аналітика за місяць", "Аналітика за рік"]:
+            await handle_analytics_selection(update, context, text)
+        elif text in ["2024", "2025"]:
+            await handle_year_choice(update, context)
+        elif text in [
+            "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
+            "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
+        ]:
+            menu = context.user_data.get("menu")
+            if menu == "workdays_years":
+                await show_workdays_months(update, context)
+            elif menu == "workdays_months":
+                await show_workdays_details(update, context)
+            else:
+                await handle_month_choice(update, context)
+        elif text in ["Дохід", "Валовий прибуток", "Маржинальність", "Кількість угод"]:
+            await handle_parameter_choice(update, context)
 
-    # ✅ Slash-команди
-    elif text.startswith("/debt"):
-        await show_debt_options(update, context)
-    elif text.startswith("/info"):
-        await show_help_menu(update, context)
-    elif text.startswith("/analytics"):
-        await show_analytics_options(update, context)
-    elif text.startswith("/salary"):
-        context.user_data['menu'] = 'salary_years'
-        await show_salary_years(update, context)
-    elif text.startswith("/menu"):
-        await show_main_menu(update, context)
+        # 🔹 Slash-команди
+        elif text.startswith("/debt"):
+            await show_debt_options(update, context)
+        elif text.startswith("/info"):
+            await show_help_menu(update, context)
+        elif text.startswith("/analytics"):
+            await show_analytics_options(update, context)
+        elif text.startswith("/salary"):
+            context.user_data['menu'] = 'salary_years'
+            await show_salary_years(update, context)
+        elif text.startswith("/menu"):
+            await show_main_menu(update, context)
 
-    return  # 🛑 Завершення, щоб не пішло в GPT
+        return  # Якщо команда відома — завершити
 
+    # 🔸 Якщо команда невідома — викликаємо GPT
+    log_user_action(user_id, "GPT-request", message_id)
+    logging.info(f"🤖 GPT-request від користувача {user_id}: {text}")
 
-    # ✅ Якщо команда невідома — викликаємо GPT
-    log_user_action(user_id, "GPT-request", message_id)  
-    logging.info(f"🤖 GPT-request від користувача {user_id}: {text}")  
-
-    # Отримуємо відповідь від GPT
-    gpt_response = get_gpt_response(text, user_id, context.user_data.get('employee_name', 'Користувач'), message_id)
-    
+    gpt_response = get_gpt_response(
+        text,
+        user_id,
+        context.user_data.get("employee_name", "Користувач"),
+        message_id
+    )
     await update.message.reply_text(f"🤖 {gpt_response}", parse_mode="HTML")
+
 
     
 
