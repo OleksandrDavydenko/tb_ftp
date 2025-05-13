@@ -7,8 +7,14 @@ import logging
 
 async def show_workdays_years(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'workdays_years'
-    years = ["2024", "2025"]
-    keyboard = [[KeyboardButton(year)] for year in years] + [[KeyboardButton("Назад")]]
+
+    current_year = datetime.now().year
+    start_year = max(current_year, 2025)
+    years = [str(start_year + i) for i in range(3)]  # 2025, 2026, 2027
+
+    keyboard = [[KeyboardButton(year)] for year in years]
+    keyboard.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
+
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
     await update.message.reply_text("🗓 Оберіть рік:", reply_markup=reply_markup)
 
