@@ -3,6 +3,7 @@ from telegram.ext import CallbackContext
 from auth import get_power_bi_token
 import requests
 import logging
+from datetime import datetime
 
 async def show_vacation_balance(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'hr_main'
@@ -35,10 +36,6 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
                             employee_vacation_summary,
                             LEFT(employee_vacation_summary[employee_name], LEN(\"{employee_name}\")) = \"{employee_name}\"
                         ),
-                        "Year", employee_vacation_summary[year],
-                        "Organization", employee_vacation_summary[organization],
-                        "Accrued", employee_vacation_summary[accrued_days],
-                        "Used", employee_vacation_summary[used_days],
                         "Remaining", employee_vacation_summary[remaining_days]
                     )
                 """
@@ -66,40 +63,20 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
         return
 
     if not rows:
-        await update.message.reply_text("ℹ️ Немає даних про відпустки.")
+        await update.message.reply_text("ℹ️ Немає даних про залишки відпустки.")
         return
 
-    # Побудова повідомлення
-    message = f"📄 Відпустки для: *{employee_name}*\n\n"
+    # Обчислення сумарного залишку
+    total_remaining = sum(float(row.get('[Remaining]', 0)) for row in rows)
 
-    total_accrued = total_used = total_remaining = 0
-
-    for row in rows:
-        year = str(row['[Year]'])
-        org = str(row['[Organization]'])
-        accrued = float(row['[Accrued]'] or 0)
-        used = float(row['[Used]'] or 0)
-        remaining = float(row['[Remaining]'] or 0)
-
-        total_accrued += accrued
-        total_used += used
-        total_remaining += remaining
-
-        message += (
-            f"📆 *{year}* | 🏢 {org}\n"
-            f"📈 Нараховано: {accrued:.1f} днів\n"
-            f"📉 Використано: {used:.1f} днів\n"
-            f"📌 Залишок: {remaining:.1f} днів\n\n"
-        )
-
-    message += (
-        "🧾 *Підсумок:*\n"
-        f"🔹 Всього нараховано: {total_accrued:.1f} днів\n"
-        f"🔸 Всього використано: {total_used:.1f} днів\n"
-        f"✅ Залишок: {total_remaining:.1f} днів"
+    today = datetime.now().strftime('%d.%m.%Y')
+    message = (
+        f"📅 Станом на {today}\n"
+        f"🧑‍💼 {employee_name}\n"
+        f"📌 Залишок відпустки: {total_remaining:.1f} днів"
     )
 
-    await update.message.reply_text(message, parse_mode="Markdown")
+    await update.message.reply_text(message)
 
     keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
