@@ -356,6 +356,8 @@ async def handle_back_navigation(update: Update, context: CallbackContext) -> No
         await show_debt_options(update, context)
     elif menu == 'hr_main':
         await show_main_menu(update, context)
+    elif menu == 'workdays_months':
+        await show_workdays_years(update, context)
     else:
         await show_main_menu(update, context)
 

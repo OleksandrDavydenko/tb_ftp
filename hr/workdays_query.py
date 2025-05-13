@@ -22,7 +22,8 @@ async def show_workdays_months(update: Update, context: CallbackContext) -> None
         "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
         "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
     ]
-    keyboard = [[KeyboardButton(month)] for month in months] + [[KeyboardButton("Назад")]]
+    keyboard = [[KeyboardButton(month)] for month in months]
+    keyboard.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
     await update.message.reply_text("📅 Оберіть місяць:", reply_markup=reply_markup)
 
@@ -35,7 +36,6 @@ async def show_workdays_details(update: Update, context: CallbackContext) -> Non
     employee_name = context.user_data.get('employee_name')
     year = context.user_data.get('selected_year')
 
-    # Визначаємо порядковий номер місяця
     month_map = {
         "Січень": "01", "Лютий": "02", "Березень": "03", "Квітень": "04",
         "Травень": "05", "Червень": "06", "Липень": "07", "Серпень": "08",
@@ -45,9 +45,6 @@ async def show_workdays_details(update: Update, context: CallbackContext) -> Non
     if not month_num:
         await update.message.reply_text("⚠️ Невідомий місяць.")
         return
-
-    # Формуємо шаблон дати у форматі "01.MM.YYYY"
-    period_prefix = f"01.{month_num}.{year}"
 
     token = get_power_bi_token()
     if not token:
@@ -86,8 +83,11 @@ async def show_workdays_details(update: Update, context: CallbackContext) -> Non
         "serializerSettings": {"includeNulls": True}
     }
 
-    power_bi_url = f"https://api.powerbi.com/v1.0/myorg/datasets/8b80be15-7b31-49e4-bc85-8b37a0d98f1c/executeQueries"
+    power_bi_url = "https://api.powerbi.com/v1.0/myorg/datasets/8b80be15-7b31-49e4-bc85-8b37a0d98f1c/executeQueries"
     response = requests.post(power_bi_url, headers=headers, json=dax_query)
+
+    logging.info(f"📥 Статус відповіді Power BI: {response.status_code}")
+    logging.info(f"📄 Вміст відповіді: {response.text}")
 
     if response.status_code != 200:
         await update.message.reply_text("❌ Помилка при отриманні даних з Power BI.")
@@ -100,7 +100,7 @@ async def show_workdays_details(update: Update, context: CallbackContext) -> Non
         await update.message.reply_text("ℹ️ Дані по відпрацьованих днях відсутні.")
         return
 
-    row = rows[0]  # Очікуємо один рядок
+    row = rows[0]
     message = (
         f"📅 Період: {row['[Period]'][:10]}\n"
         f"👤 Працівник: {employee_name}\n"
