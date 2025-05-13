@@ -257,7 +257,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         elif text == "Перевірка девальвації":
             await show_devaluation_data(update, context)
 
-        # 🔹 Підменю
+        # 🔹 Підменю дебіторки
         elif text == "Таблиця":
             await show_debt_details(update, context)
         elif text == "Гістограма":
@@ -267,6 +267,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         elif text == "Протермінована дебіторська заборгованість":
             await handle_overdue_debt(update, context)
 
+        # 🔹 Кадровий облік
         elif text == "🗓 Залишки відпусток":
             await show_vacation_balance(update, context)
         elif text == "🕓 Відпрацьовані дні":
@@ -282,15 +283,17 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         elif text in ["Аналітика за місяць", "Аналітика за рік"]:
             await handle_analytics_selection(update, context, text)
         elif text in ["2024", "2025"]:
-            await handle_year_choice(update, context)
+            menu = context.user_data.get("menu")
+            if menu == "workdays_years":
+                await show_workdays_months(update, context)
+            else:
+                await handle_year_choice(update, context)
         elif text in [
             "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
             "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
         ]:
             menu = context.user_data.get("menu")
-            if menu == "workdays_years":
-                await show_workdays_months(update, context)
-            elif menu == "workdays_months":
+            if menu == "workdays_months":
                 await show_workdays_details(update, context)
             else:
                 await handle_month_choice(update, context)
@@ -323,6 +326,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         message_id
     )
     await update.message.reply_text(f"🤖 {gpt_response}", parse_mode="HTML")
+
 
 
     
