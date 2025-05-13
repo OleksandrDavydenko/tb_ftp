@@ -313,6 +313,8 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
             await show_salary_years(update, context)
         elif text.startswith("/menu"):
             await show_main_menu(update, context)
+        elif text.startswith("/hr"):
+            await show_hr_menu(update, context)
 
         return  # Якщо команда відома — завершити
 
