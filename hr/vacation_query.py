@@ -72,7 +72,7 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
     today = datetime.now().strftime('%d.%m.%Y')
     message = (
         f"📅 Станом на {today}\n"
-        f"🧑‍💼 {employee_name}\n"
+        f"🧑 {employee_name}\n"
         f"📌 Залишок відпустки: {total_remaining:.1f} днів"
     )
 

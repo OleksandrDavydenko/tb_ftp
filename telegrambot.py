@@ -34,6 +34,8 @@ from employee_analytics.analytics_handler import (
 from hr.hr_handlers import show_hr_menu, handle_hr_feature_placeholder
 
 from hr.vacation_query import show_vacation_balance
+from hr.workdays_query import show_workdays_years, show_workdays_months, show_workdays_details
+
 from information.help_menu import show_help_menu, show_currency_rates, show_devaluation_data
 from messages.weekly_overdue_debts import check_overdue_debts
 from sync_status import sync_user_statuses
@@ -244,9 +246,24 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         except Exception as e:
             logging.error(f"❌ Помилка логування для {user_id}: {e}")
 
-        # Виконуємо відповідну функцію
+        # ✅ Головні розділи
         if text == "📉 Дебіторська заборгованість":
             await show_debt_options(update, context)
+        elif text == "💼 Розрахунковий лист":
+            context.user_data['menu'] = 'salary_years'
+            await show_salary_years(update, context)
+        elif text == "📊 Аналітика":
+            await show_analytics_options(update, context)
+        elif text == "🧾 Кадровий облік":
+            await show_hr_menu(update, context)
+        elif text == "ℹ️ Інформація":
+            await show_help_menu(update, context)
+        elif text == "💱 Курс валют":
+            await show_currency_rates(update, context)
+        elif text == "Перевірка девальвації":
+            await show_devaluation_data(update, context)
+
+        # ✅ Підменю дебіторки
         elif text == "Таблиця":
             await show_debt_details(update, context)
         elif text == "Гістограма":
@@ -255,47 +272,53 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
             await show_debt_pie_chart(update, context)
         elif text == "Протермінована дебіторська заборгованість":
             await handle_overdue_debt(update, context)
-        elif text == "💼 Розрахунковий лист":
-            context.user_data['menu'] = 'salary_years'
-            await show_salary_years(update, context)
-        elif text == "📊 Аналітика":
-            await show_analytics_options(update, context)
-        elif text == "ℹ️ Інформація":
-            await show_help_menu(update, context)
-        elif text == "💱 Курс валют":
-            await show_currency_rates(update, context)
-        elif text == "Перевірка девальвації":
-            await show_devaluation_data(update, context)
+
+        # ✅ Кадровий облік
+        elif text == "🗓 Залишки відпусток":
+            await show_vacation_balance(update, context)
+        elif text == "🕓 Відпрацьовані дні":
+            await show_workdays_years(update, context)
+
+        # ✅ Навігація
         elif text == "Назад":
             await handle_back_navigation(update, context)
         elif text == "Головне меню":
             await show_main_menu(update, context)
+
+        # ✅ Аналітика: вибір періоду і параметра
         elif text in ["Аналітика за місяць", "Аналітика за рік"]:
             await handle_analytics_selection(update, context, text)
         elif text in ["2024", "2025"]:
             await handle_year_choice(update, context)
-        elif text in ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"]:
-            await handle_month_choice(update, context)
+        elif text in [
+            "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
+            "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
+        ]:
+            menu = context.user_data.get("menu")
+            if menu == "workdays_years":
+                await show_workdays_months(update, context)
+            elif menu == "workdays_months":
+                await show_workdays_details(update, context)
+            else:
+                await handle_month_choice(update, context)
         elif text in ["Дохід", "Валовий прибуток", "Маржинальність", "Кількість угод"]:
             await handle_parameter_choice(update, context)
-        elif text.startswith("/debt"):  
-            await show_debt_options(update, context)  
-        elif text.startswith("/info"):  
-            await show_help_menu(update, context)  
-        elif text.startswith("/analytics"):  
+
+        # ✅ Slash-команди
+        elif text.startswith("/debt"):
+            await show_debt_options(update, context)
+        elif text.startswith("/info"):
+            await show_help_menu(update, context)
+        elif text.startswith("/analytics"):
             await show_analytics_options(update, context)
-        elif text.startswith("/salary"):  
+        elif text.startswith("/salary"):
             context.user_data['menu'] = 'salary_years'
             await show_salary_years(update, context)
-        elif text.startswith("/menu"):  
+        elif text.startswith("/menu"):
             await show_main_menu(update, context)
-        elif text == "🧾 Кадровий облік":
-            await show_hr_menu(update, context)
-        elif text in ["🗓 Залишки відпусток", "🕓 Відпрацьовані дні"]:
-            await handle_hr_feature_placeholder(update, context)
 
+        return  # 🛑 Завершення, щоб не пішло в GPT
 
-        return  # Важливо: Вихід із функції, щоб не йти в GPT-запит!
 
     # ✅ Якщо команда невідома — викликаємо GPT
     log_user_action(user_id, "GPT-request", message_id)  
