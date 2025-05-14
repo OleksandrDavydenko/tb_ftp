@@ -448,20 +448,6 @@ def main():
 
 
 
-   
-    #Видалити завтра
-    scheduler.add_job(
-        send_message_to_users,  # Функція, яку потрібно виконувати
-        'cron',  # Тип триггера
-        day_of_week='wed',  # Запуск середа
-        hour=18,  # О 18:00
-        timezone='Europe/Kiev'  # Часовий пояс
-    )
-
-
-
-
-
 
     scheduler.add_job(
         check_overdue_debts,  # Функція, яку потрібно виконувати
