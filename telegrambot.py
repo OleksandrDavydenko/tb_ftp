@@ -19,8 +19,9 @@ from messages.reminder import schedule_monthly_reminder
 from messages.check_devaluation import check_new_devaluation_records
 from messages.sync_devaluation import sync_devaluation_data
 from messages.birthday_greetings import send_birthday_greetings  
-from messages.oneTimeMessages.update1 import send_message_to_users # Імпорт функції з нового файлу
-from messages.oneTimeMessages.update2 import send_message_to_users
+#from messages.oneTimeMessages.update1 import send_message_to_users # Імпорт функції з нового файлу
+#from messages.oneTimeMessages.update2 import send_message_to_users
+from messages.oneTimeMessages.update3 import send_message_to_users
 
 
 
@@ -443,6 +444,22 @@ def main():
         timezone=kyiv_timezone,
         id='daily_exchange_rates',
     )
+
+
+
+
+   
+    #Видалити завтра
+    scheduler.add_job(
+        send_message_to_users,  # Функція, яку потрібно виконувати
+        'cron',  # Тип триггера
+        day_of_week='wed',  # Запуск середа
+        hour=18,  # О 18:00
+        timezone='Europe/Kiev'  # Часовий пояс
+    )
+
+
+
 
 
 
