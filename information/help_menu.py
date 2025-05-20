@@ -4,17 +4,22 @@ from db import get_latest_currency_rates
 from information.devaluation_query import fetch_devaluation_data
 
 async def show_help_menu(update: Update, context: CallbackContext) -> None:
+    """
+    Відображає меню 'Довідкова інформація' з додатковою кнопкою інструкції.
+    """
     context.user_data['current_menu'] = 'help_menu'
 
-    currency_button = KeyboardButton("Курс Валют")
-    guide_button = KeyboardButton("📘 Довідка")  # ➕ нова кнопка
+    currency_button = KeyboardButton("💱 Курс валют")
+    devaluation_button = KeyboardButton("Перевірка девальвації")
+    guide_button = KeyboardButton("📘 Довідка")
     main_menu_button = KeyboardButton("Головне меню")
 
     reply_markup = ReplyKeyboardMarkup(
-        [[currency_button], [guide_button], [main_menu_button]],
+        [[currency_button, devaluation_button], [guide_button], [main_menu_button]],
         one_time_keyboard=True,
         resize_keyboard=True
     )
+
     await update.message.reply_text("ℹ️ Довідкова інформація:", reply_markup=reply_markup)
 
 async def show_currency_rates(update: Update, context: CallbackContext) -> None:
