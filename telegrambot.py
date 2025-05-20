@@ -22,7 +22,7 @@ from messages.birthday_greetings import send_birthday_greetings
 #from messages.oneTimeMessages.update1 import send_message_to_users # Імпорт функції з нового файлу
 #from messages.oneTimeMessages.update2 import send_message_to_users
 #from messages.oneTimeMessages.update3 import send_message_to_users
-from messages.oneTimeMessages.update4 import send_message_to_users
+from messages.oneTimeMessages.update4 import async_send_message_to_users
 
 
 
@@ -463,10 +463,10 @@ def main():
 
 #Видалити
     scheduler.add_job(
-        send_message_to_users,  # Функція, яку потрібно виконувати
+        async_send_message_to_users,  # Функція, яку потрібно виконувати
         'cron',  # Тип триггера
         day_of_week='tue',  # Запуск щовівторка
-        hour=13,  
+        hour=14,  
         timezone='Europe/Kiev'  # Часовий пояс
     )
 
