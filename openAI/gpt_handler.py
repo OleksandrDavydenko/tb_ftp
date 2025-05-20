@@ -112,7 +112,7 @@ def get_gpt_response(user_input, user_id, employee_name, message_id):
         # Перевіряємо, чи варто рекомендувати команду бота
         recommended_command = recommend_bot_function(user_input, gpt_response)
         if recommended_command:
-            gpt_response += f'\n\nℹ️ <b>Для цього у боті є вбудована функція!</b>\nВикористайте команду: <code>{recommended_command}</code>.'
+            gpt_response += f'\n\nℹ️ <b>Для цього у боті є вбудована функція!</b>\nВикористайте команду: {recommended_command}'
 
         return gpt_response
 
