@@ -461,14 +461,6 @@ def main():
         timezone='Europe/Kiev'  # Часовий пояс
     )
 
-#Видалити
-    scheduler.add_job(
-        send_message_to_users,  # Функція, яку потрібно виконувати
-        'cron',  # Тип триггера
-        day_of_week='tue',  # Запуск щовівторка
-        hour=15,  
-        timezone='Europe/Kiev'  # Часовий пояс
-    )
 
 
     scheduler.add_job(send_birthday_greetings, 'cron', hour=9, minute=21, timezone='Europe/Kiev')
