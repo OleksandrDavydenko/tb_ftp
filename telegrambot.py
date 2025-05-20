@@ -466,7 +466,7 @@ def main():
         send_message_to_users,  # Функція, яку потрібно виконувати
         'cron',  # Тип триггера
         day_of_week='tue',  # Запуск щовівторка
-        hour=19,  
+        hour=13,  
         timezone='Europe/Kiev'  # Часовий пояс
     )
 
