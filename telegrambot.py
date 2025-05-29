@@ -432,8 +432,8 @@ def main():
 
     set_bot_menu_sync(app)
 
-    scheduler.add_job(check_new_payments, 'interval', seconds=800)
-    scheduler.add_job(sync_payments, 'interval', seconds=1000)
+    scheduler.add_job(check_new_payments, 'interval', seconds=1000)
+    scheduler.add_job(sync_payments, 'interval', seconds=800)
     scheduler.add_job(check_new_devaluation_records, 'interval', seconds=10800)
     scheduler.add_job(sync_devaluation_data, 'interval', seconds=10600)  # Додаємо нову синхронізацію девальваційних даних
     schedule_monthly_reminder(scheduler)

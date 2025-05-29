@@ -78,10 +78,19 @@ async def send_notification(telegram_id, amounts_by_month, currency, payment_num
         "05": "Травень", "06": "Червень", "07": "Липень", "08": "Серпень",
         "09": "Вересень", "10": "Жовтень", "11": "Листопад", "12": "Грудень"
     }
-    formatted_periods = {
-        f"{MONTHS_UA.get(month[-2:], month)}": amount
-        for month, amount in amounts_by_month.items()
-    }
+    #formatted_periods = {
+    #    f"{MONTHS_UA.get(month[-2:], month)}": amount
+    #    for month, amount in amounts_by_month.items()
+    #}
+
+    formatted_periods = {}
+    for raw_month, amount in amounts_by_month.items():
+        try:
+            parsed_date = datetime.strptime(raw_month, "%Y-%m-%d")
+            month_name = MONTHS_UA.get(f"{parsed_date.month:02d}", raw_month)
+            formatted_periods[month_name] = amount
+        except ValueError:
+            formatted_periods[raw_month] = amount
 
     try:
         bot = Bot(token=KEY)
