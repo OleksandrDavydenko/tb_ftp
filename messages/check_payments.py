@@ -3,6 +3,7 @@ import os
 import logging
 from collections import defaultdict
 from telegram import Bot
+from datetime import datetime
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -56,7 +57,7 @@ async def check_new_payments():
             amounts_by_month[accrual_month] += float(p[1])
 
         # Надсилаємо повідомлення
-        await send_notification(telegram_id, amounts_by_month, currency, payment_number)
+        await send_notification(telegram_id, amounts_by_month, currency, payment_number, payment_date)
 
         # Позначаємо ці платежі як повідомлені
         cursor.execute("""
@@ -69,18 +70,29 @@ async def check_new_payments():
     cursor.close()
     conn.close()
 
-async def send_notification(telegram_id, amounts_by_month, currency, payment_number):
+async def send_notification(telegram_id, amounts_by_month, currency, payment_number, payment_date):
+    MONTHS_UA = {
+        "01": "Січень", "02": "Лютий", "03": "Березень", "04": "Квітень",
+        "05": "Травень", "06": "Червень", "07": "Липень", "08": "Серпень",
+        "09": "Вересень", "10": "Жовтень", "11": "Листопад", "12": "Грудень"
+    }
+    formatted_periods = {
+        f"{MONTHS_UA.get(month[-2:], month)}": amount
+        for month, amount in amounts_by_month.items()
+    }
+
     try:
         bot = Bot(token=KEY)
 
         details = "\n".join(
-            [f"• {month} – {amount:.2f} {currency}" for month, amount in amounts_by_month.items()]
+            [f"• {month} – {amount:.2f} {currency}" for month, amount in formatted_periods.items()]
         )
         total_amount = sum(amounts_by_month.values())
+        formatted_date = payment_date.strftime('%d.%m.%Y')
 
         message = (
             f"💸 *Здійснена виплата!*\n"
-            f"📄 *Документ №:* {payment_number}\n\n"
+            f"📄 *Документ №:* {payment_number} від {formatted_date}\n\n"
             f"📅 *Періоди та суми:*\n"
             f"{details}\n\n"
             f"💰 *Загальна сума:* {total_amount:.2f} {currency}"
