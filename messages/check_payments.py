@@ -55,6 +55,8 @@ async def check_new_payments():
         for p in payments:
             accrual_month = p[5]
             amounts_by_month[accrual_month] += float(p[1])
+        
+        payment_date = payments[0][3]
 
         # Надсилаємо повідомлення
         await send_notification(telegram_id, amounts_by_month, currency, payment_number, payment_date)
