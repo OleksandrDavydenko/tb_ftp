@@ -512,5 +512,26 @@ def get_user_by_telegram_id(telegram_id):
 
 
 
+def log_birthday_greeting(employee_name, query, response):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Отримуємо телефон користувача
+    cursor.execute("SELECT phone_number FROM users WHERE employee_name = %s", (employee_name,))
+    result = cursor.fetchone()
+    phone_number = result[0] if result else None
+
+    cursor.execute("""
+        INSERT INTO gpt_queries_logs (user_name, phone_number, query_type, query, response, timestamp)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (employee_name, phone_number, 'birthday', query, response, datetime.now()))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+
+
 
 

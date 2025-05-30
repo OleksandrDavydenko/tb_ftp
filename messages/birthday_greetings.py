@@ -6,6 +6,7 @@ from telegram import Bot
 from auth import get_power_bi_token
 from db import get_active_users
 from openai import AsyncOpenAI
+from db import log_birthday_greeting
 
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -63,6 +64,9 @@ async def generate_ai_birthday_greeting(name: str) -> str:
         "Звертайся до нього на 'ти'. Додай трохи емоцій, побажай добра, радості, мотивації, фінансового достатку та емодзі. "
         "Будь лаконічним, але щирим."
     )
+    query = (
+        f"Привітання {name} з Днем народження. "
+    )
 
     try:
         response = await gpt.chat.completions.create(
@@ -71,6 +75,9 @@ async def generate_ai_birthday_greeting(name: str) -> str:
             temperature=0.85
         )
         message = response.choices[0].message.content.strip()
+        # Логування після генерації
+        log_birthday_greeting(name, query, message)
+        
         return f"🤖 {message}"
     except Exception as e:
         logging.error(f"Помилка генерації привітання для {name}: {e}")
