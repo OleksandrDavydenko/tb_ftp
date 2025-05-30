@@ -516,19 +516,26 @@ def log_birthday_greeting(employee_name, query, response):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Отримуємо телефон користувача
-    cursor.execute("SELECT phone_number FROM users WHERE employee_name = %s", (employee_name,))
+    # Отримати telegram_id та username
+    cursor.execute("SELECT telegram_id, telegram_name FROM users WHERE employee_name = %s", (employee_name,))
     result = cursor.fetchone()
-    phone_number = result[0] if result else None
+
+    if not result:
+        logging.warning(f"Не знайдено користувача {employee_name} для логування привітання.")
+        return
+
+    user_id, username = result
+    timestamp = datetime.now()
 
     cursor.execute("""
-        INSERT INTO gpt_queries_logs (user_name, phone_number, query_type, query, response, timestamp)
-        VALUES (%s, %s, %s, %s, %s, %s)
-    """, (employee_name, phone_number, 'birthday', query, response, datetime.now()))
+        INSERT INTO gpt_queries_logs (user_id, username, query, response, timestamp)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (user_id, username, query, response, timestamp))
 
     conn.commit()
     cursor.close()
     conn.close()
+
 
 
 
