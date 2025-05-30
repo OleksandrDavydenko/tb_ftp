@@ -38,7 +38,7 @@ async def check_new_devaluation_records():
         manager_data = cursor.fetchone()
 
         # Пошук Telegram ID для Давиденка Олександра
-        cursor.execute("SELECT telegram_id FROM users WHERE employee_name = 'Давиденко Олександр'")
+        cursor.execute("SELECT telegram_id FROM users WHERE employee_name = 'Давиденко Олександр' AND is_active = TRUE")
         davidenko_data = cursor.fetchone()
 
         # Пошук Telegram ID для Ступи Олександра

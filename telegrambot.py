@@ -434,7 +434,8 @@ def main():
 
     scheduler.add_job(check_new_payments, 'interval', seconds=1000)
     scheduler.add_job(sync_payments, 'interval', seconds=800)
-    scheduler.add_job(check_new_devaluation_records, 'interval', seconds=10800)
+    # scheduler.add_job(check_new_devaluation_records, 'interval', seconds=10800)
+    scheduler.add_job(check_new_devaluation_records, 'cron', hour=11, minute=10, timezone='Europe/Kiev') # Перевірка нових записів девальвації щодня о 10:20
     scheduler.add_job(sync_devaluation_data, 'interval', seconds=10600)  # Додаємо нову синхронізацію девальваційних даних
     schedule_monthly_reminder(scheduler)
 
@@ -463,7 +464,7 @@ def main():
 
 
 
-    scheduler.add_job(send_birthday_greetings, 'cron', hour=10, minute=38, timezone='Europe/Kiev')
+    scheduler.add_job(send_birthday_greetings, 'cron', hour=12, minute=38, timezone='Europe/Kiev')
     
 
 
