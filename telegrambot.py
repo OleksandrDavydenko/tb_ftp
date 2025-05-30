@@ -463,7 +463,7 @@ def main():
 
 
 
-    scheduler.add_job(send_birthday_greetings, 'cron', hour=9, minute=21, timezone='Europe/Kiev')
+    scheduler.add_job(send_birthday_greetings, 'cron', hour=10, minute=38, timezone='Europe/Kiev')
     
 
 
