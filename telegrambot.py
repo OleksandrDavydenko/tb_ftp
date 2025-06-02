@@ -437,7 +437,43 @@ def main():
     # scheduler.add_job(check_new_devaluation_records, 'interval', seconds=10800)
     scheduler.add_job(check_new_devaluation_records, 'cron', hour=11, minute=10, timezone='Europe/Kiev') # Перевірка нових записів девальвації щодня о 10:20
     scheduler.add_job(sync_devaluation_data, 'interval', seconds=10600)  # Додаємо нову синхронізацію девальваційних даних
-    schedule_monthly_reminder(scheduler)
+    
+    from messages.reminder import send_reminder_to_all_users, get_this_month_reminder_date, get_next_reminder_date
+
+# Щомісячне нагадування 
+# 
+# 
+# Додаємо перше нагадування (на цей місяць)
+    scheduler.add_job(
+        send_reminder_to_all_users,
+        'date',
+        run_date=get_this_month_reminder_date(),
+        timezone='Europe/Kiev',
+        id='monthly_reminder_initial'
+    )
+
+    # Слухач, щоб автоматично додавати наступне нагадування
+    from apscheduler.events import EVENT_JOB_EXECUTED
+
+    def reschedule_next_month(event):
+        if event.job_id == 'monthly_reminder_initial' or event.job_id.startswith("monthly_reminder_"):
+            next_date = get_next_reminder_date()
+            job_id = f"monthly_reminder_{next_date.strftime('%Y%m%d')}"
+            scheduler.add_job(
+                send_reminder_to_all_users,
+                'date',
+                run_date=next_date,
+                timezone='Europe/Kiev',
+                id=job_id
+            )
+            logging.info(f"[Reminder] Наступне нагадування заплановано на {next_date}")
+
+    scheduler.add_listener(reschedule_next_month, EVENT_JOB_EXECUTED)
+
+
+
+
+
 
 
     kyiv_timezone = timezone('Europe/Kiev')

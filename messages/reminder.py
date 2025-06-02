@@ -1,11 +1,9 @@
 import logging
 import os
 from datetime import datetime, timedelta
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from telegram import Bot
-from db import get_active_users, get_test_user
+from db import get_active_users
 from pytz import timezone
-from apscheduler.events import EVENT_JOB_EXECUTED  # Імпортуємо подію
 
 # Ініціалізація бота
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -39,14 +37,10 @@ def get_next_workday(date):
 # Асинхронна функція для відправки нагадування всім користувачам
 async def send_reminder_to_all_users():
     users = get_active_users()
-    #users = get_test_user()
-    
-    # Визначаємо попередній місяць та дату для повідомлення
     previous_month_name = get_previous_month()
     now = datetime.now()
     reminder_date = f"07.{now.strftime('%m')}"
-    
-    # Формуємо повідомлення
+
     message = (
         f"Нагадування!\n"
         f"Колеги, закриваємо {previous_month_name.upper()} місяць 💪\n"
@@ -54,7 +48,6 @@ async def send_reminder_to_all_users():
         "Продуктивного дня."
     )
 
-    # Відправляємо повідомлення кожному користувачу
     for user in users:
         try:
             await bot.send_message(chat_id=user['telegram_id'], text=message)
@@ -62,56 +55,18 @@ async def send_reminder_to_all_users():
         except Exception as e:
             logging.error(f"Помилка при відправці повідомлення користувачу {user['telegram_name']}: {e}")
 
-# Функція для переналаштування нагадування на наступний місяць
-def reschedule_next_month(scheduler):
+# Функція для отримання дати запуску наступного нагадування
+def get_next_reminder_date():
     now = datetime.now(timezone('Europe/Kiev'))
-    first_day_next_month = datetime(
-        now.year + (now.month // 12), 
-        (now.month % 12) + 1, 
-        1, 
-        10, 
-        0, 
-        tzinfo=timezone('Europe/Kiev')
+    first_day_of_next_month = datetime(
+        now.year + (now.month // 12),
+        (now.month % 12) + 1,
+        1, 10, 0, tzinfo=timezone('Europe/Kiev')
     )
-    next_workday = get_next_workday(first_day_next_month)
-    
-    scheduler.add_job(
-        send_reminder_to_all_users,
-        'date',
-        run_date=next_workday,
-        misfire_grace_time=60,
-        timezone='Europe/Kiev',
-        id=f"monthly_reminder_{next_workday.strftime('%Y%m%d')}"
-    )
+    return get_next_workday(first_day_of_next_month)
 
-    logging.info(
-        f"Наступне нагадування заплановано на {next_workday.strftime('%Y-%m-%d %H:%M')} за київським часом."
-    )
-
-# Функція для налаштування щомісячного нагадування
-
-def schedule_monthly_reminder(scheduler):
-    # Перевіряємо, чи 1 число місяця є вихідним, і налаштовуємо запуск на найближчий робочий день
+# Функція для отримання дати запуску першого нагадування цього місяця
+def get_this_month_reminder_date():
     now = datetime.now(timezone('Europe/Kiev'))
-    first_day_of_month = datetime(now.year, now.month, 1, 10, 0, tzinfo=timezone('Europe/Kiev'))
-    next_workday = get_next_workday(first_day_of_month)
-
-    # Додаємо задачу в планувальник
-    scheduler.add_job(
-        send_reminder_to_all_users,
-        'date',
-        run_date=next_workday,
-        misfire_grace_time=60,
-        timezone='Europe/Kiev',
-        id=f"monthly_reminder_{next_workday.strftime('%Y%m%d')}"
-    )
-
-    logging.info(
-        f"Планувальник щомісячного нагадування налаштовано на {next_workday.strftime('%Y-%m-%d %H:%M')} за київським часом."
-    )
-
-    # Після виконання задачі, автоматично переналаштовуємо її на наступний місяць
-    scheduler.add_listener(
-        lambda event: reschedule_next_month(scheduler) if event.job_id.startswith("monthly_reminder_") else None,
-        EVENT_JOB_EXECUTED  # Вказуємо подію
-    )
+    first_day_of_month = datetime(now.year, now.month, 1, 10, 30, tzinfo=timezone('Europe/Kiev'))
+    return get_next_workday(first_day_of_month)
