@@ -7,6 +7,7 @@ from information.querryFinanceUa import store_exchange_rates
 import logging
 import os
 import sys
+from datetime import datetime
 
 
 
@@ -438,21 +439,27 @@ def main():
     scheduler.add_job(check_new_devaluation_records, 'cron', hour=11, minute=10, timezone='Europe/Kiev') # Перевірка нових записів девальвації щодня о 10:20
     scheduler.add_job(sync_devaluation_data, 'interval', seconds=10600)  # Додаємо нову синхронізацію девальваційних даних
     
-    from messages.reminder import send_reminder_to_all_users, get_this_month_reminder_date, get_next_reminder_date
+    
 
+##################################################################################
 # Щомісячне нагадування 
-# 
-# 
-# Додаємо перше нагадування (на цей місяць)
-    scheduler.add_job(
-        send_reminder_to_all_users,
-        'date',
-        run_date=get_this_month_reminder_date(),
-        timezone='Europe/Kiev',
-        id='monthly_reminder_initial'
-    )
 
-    # Слухач, щоб автоматично додавати наступне нагадування
+# Додаємо перше нагадування (на цей місяць)
+    first_reminder = get_this_month_reminder_date()
+    now = datetime.now(timezone('Europe/Kiev'))
+
+    if first_reminder > now:
+        scheduler.add_job(
+            send_reminder_to_all_users,
+            'date',
+            run_date=first_reminder,
+            timezone='Europe/Kiev',
+            id='monthly_reminder_initial'
+        )
+        logging.info(f"[Reminder] Перше нагадування додано на {first_reminder}")
+    else:
+        logging.info(f"[Reminder] Поточна дата {now} пізніше ніж {first_reminder} — перше нагадування не додано.")
+
     from apscheduler.events import EVENT_JOB_EXECUTED
 
     def reschedule_next_month(event):
@@ -471,6 +478,7 @@ def main():
     scheduler.add_listener(reschedule_next_month, EVENT_JOB_EXECUTED)
 
 
+######################################################################################
 
 
 

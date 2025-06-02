@@ -68,5 +68,5 @@ def get_next_reminder_date():
 # Функція для отримання дати запуску першого нагадування цього місяця
 def get_this_month_reminder_date():
     now = datetime.now(timezone('Europe/Kiev'))
-    first_day_of_month = datetime(now.year, now.month, 1, 10, 38, tzinfo=timezone('Europe/Kiev'))
+    first_day_of_month = datetime(now.year, now.month, 1, 11, 5, tzinfo=timezone('Europe/Kiev'))
     return get_next_workday(first_day_of_month)
