@@ -51,7 +51,6 @@ async def send_reminder_to_all_users():
     for user in users:
         try:
             await bot.send_message(chat_id=user['telegram_id'], text=message)
-            logging.info(f"Нагадування відправлено користувачу: {user['telegram_name']}")
         except Exception as e:
             logging.error(f"Помилка при відправці повідомлення користувачу {user['telegram_name']}: {e}")
 
@@ -61,7 +60,7 @@ def get_next_reminder_date():
     first_day_of_next_month = datetime(
         now.year + (now.month // 12),
         (now.month % 12) + 1,
-        1, 11, 18, tzinfo=timezone('Europe/Kiev')
+        1, 9, 10, tzinfo=timezone('Europe/Kiev')
     )
     return get_next_workday(first_day_of_next_month)
 
@@ -69,7 +68,7 @@ def get_next_reminder_date():
 def get_this_month_reminder_date():
     now = datetime.now(timezone('Europe/Kiev'))
     kyiv = timezone('Europe/Kiev')
-    first_day_of_month_naive = datetime(now.year, now.month, 1, 11, 18)
+    first_day_of_month_naive = datetime(now.year, now.month, 1, 9, 10)
     first_day_of_month = kyiv.localize(first_day_of_month_naive)
 
 
