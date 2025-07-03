@@ -64,7 +64,7 @@ async def check_new_devaluation_records():
         )
 
         # Підготовка списку Telegram ID
-        telegram_ids = [203148640, 225659191]  # Давиденко і Ступа
+        telegram_ids = [203148640, 225659191, 1852978563]  # Давиденко і Ступа
 
         # Додаємо менеджера, якщо знайдений і він не дублюється
         cursor.execute("SELECT telegram_id FROM users WHERE employee_name = %s", (manager,))
