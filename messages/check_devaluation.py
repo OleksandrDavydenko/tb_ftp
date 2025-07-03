@@ -66,12 +66,12 @@ async def check_new_devaluation_records():
         # Підготовка списку Telegram ID
         telegram_ids = [203148640, 225659191]  # Давиденко і Ступа
 
-        # Додаємо менеджера, якщо знайдений
+        # Додаємо менеджера, якщо знайдений і він не дублюється
         cursor.execute("SELECT telegram_id FROM users WHERE employee_name = %s", (manager,))
         manager_data = cursor.fetchone()
-        if manager_data:
+        if manager_data and manager_data[0] not in telegram_ids:
             telegram_ids.append(manager_data[0])
-        else:
+        elif not manager_data:
             logging.warning(f"Менеджер {manager} не знайдений у базі даних.")
 
         # Відправляємо повідомлення всім з отриманого списку
