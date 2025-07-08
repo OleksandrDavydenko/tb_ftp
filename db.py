@@ -517,7 +517,7 @@ def log_birthday_greeting(employee_name, query, response):
     cursor = conn.cursor()
 
     # Отримати telegram_id та username
-    cursor.execute("SELECT telegram_id, telegram_name FROM users WHERE employee_name = %s", (employee_name,))
+    cursor.execute("SELECT telegram_id, employee_name FROM users WHERE employee_name = %s", (employee_name,))
     result = cursor.fetchone()
 
     if not result:
