@@ -16,7 +16,7 @@ from messages.sync_payments import sync_payments
 from auth import is_phone_number_in_power_bi
 from db import add_telegram_user, get_user_joined_at, get_user_status, get_employee_name, log_user_action, get_user_by_telegram_id
 from auth import verify_and_add_user 
-from messages.reminder import send_reminder_to_all_users, get_this_month_reminder_date, get_next_reminder_date, daily_first_workday_check
+from messages.reminder import daily_first_workday_check
 from messages.check_devaluation import check_new_devaluation_records
 from messages.sync_devaluation import sync_devaluation_data
 from messages.birthday_greetings import send_birthday_greetings  
