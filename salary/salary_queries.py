@@ -528,4 +528,4 @@ def format_salary_table(rows, employee_name, year, month, payments, bonuses, bon
 
             prize_table += f"Всього виплачено премій: {total_paid:.2f} USD\n"
 
-    return main_table.strip(), bonus_table.strip(), prize_table.strip()
+    return main_table.strip()#, bonus_table.strip(), prize_table.strip() """ Тимчасово прибираю вивід премій та бонусів """
