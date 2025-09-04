@@ -512,7 +512,7 @@ def main():
     
 
 
-    scheduler.add_job(sync_user_statuses, 'interval', minutes=3)
+    scheduler.add_job(sync_user_statuses, 'interval', minutes=63)
 
 
     scheduler.start()
