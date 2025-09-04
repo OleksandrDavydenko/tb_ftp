@@ -5,71 +5,104 @@ from telegram import Bot
 from db import get_active_users
 from pytz import timezone
 
-# Ініціалізація бота
+# --- Налаштування ---
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 bot = Bot(token=KEY)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Список державних свят в Україні (формат: MM-DD)
+# Державні свята України (формат: "MM-DD"); за потреби наповни
 HOLIDAYS = []
 
-# Функція для отримання української назви попереднього місяця
-def get_previous_month():
-    current_month = datetime.now().month
-    previous_month = current_month - 1 if current_month > 1 else 12
+
+# --- Допоміжні функції дат ---
+def kyiv_now():
+    """Поточний час у київському часовому поясі."""
+    return datetime.now(timezone('Europe/Kiev'))
+
+
+def is_holiday_or_weekend(dt: datetime) -> bool:
+    """
+    Перевіряє, чи дата є вихідним (сб/нд) або святом.
+    Очікує TZ-aware datetime у Europe/Kiev.
+    """
+    return dt.weekday() >= 5 or dt.strftime("%m-%d") in HOLIDAYS
+
+
+def first_workday_of_month(dt: datetime) -> datetime:
+    """
+    Повертає datetime 09:10 у перший робочий день місяця для місяця dt.
+    Очікує TZ-aware datetime у Europe/Kiev.
+    """
+    # Починаємо з 1 числа о 09:10
+    start = dt.replace(day=1, hour=9, minute=10, second=0, microsecond=0)
+    # Якщо 1 число вихідне/свято — переносимо вперед
+    while is_holiday_or_weekend(start):
+        start = start + timedelta(days=1)
+    return start
+
+
+def is_first_workday_today(now: datetime | None = None) -> bool:
+    """
+    Чи є сьогодні першим робочим днем місяця (за Києвом)?
+    """
+    now = now or kyiv_now()
+    fwd = first_workday_of_month(now)
+    return now.date() == fwd.date()
+
+
+# --- Формування тексту ---
+def get_previous_month_name(now: datetime | None = None) -> str:
+    now = now or kyiv_now()
+    current_month = now.month
+    previous_month = 12 if current_month == 1 else current_month - 1
     months_ua = [
         "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
         "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
     ]
     return months_ua[previous_month - 1]
 
-# Функція для перевірки, чи є день вихідним або святковим
-def is_holiday_or_weekend(date):
-    return date.weekday() >= 5 or date.strftime("%m-%d") in HOLIDAYS
 
-# Отримуємо дату наступного робочого дня
-def get_next_workday(date):
-    while is_holiday_or_weekend(date):
-        date += timedelta(days=1)
-    return date
-
-# Асинхронна функція для відправки нагадування всім користувачам
-async def send_reminder_to_all_users():
-    users = get_active_users()
-    previous_month_name = get_previous_month()
-    now = datetime.now()
+def build_reminder_message(now: datetime | None = None) -> str:
+    now = now or kyiv_now()
+    previous_month_name = get_previous_month_name(now)
     reminder_date = f"07.{now.strftime('%m')}"
-
-    message = (
+    return (
         f"🔔 Нагадування!\n"
         f"Колеги, закриваємо {previous_month_name.upper()} місяць 💪\n"
         f"Прошу усіх в термін до {reminder_date} включно, завершити свої угоди в Експедиторі.\n\n"
         "Продуктивного дня."
     )
 
+
+# --- Відправка ---
+async def send_reminder_to_all_users():
+    users = get_active_users()
+    message = build_reminder_message()
+
+    sent = 0
     for user in users:
         try:
             await bot.send_message(chat_id=user['telegram_id'], text=message)
+            sent += 1
         except Exception as e:
-            logging.error(f"Помилка при відправці повідомлення користувачу {user['telegram_name']}: {e}")
+            logging.error(f"Помилка при відправці повідомлення користувачу {user.get('telegram_name', '<?>')}: {e}")
 
-# Функція для отримання дати запуску наступного нагадування
-def get_next_reminder_date():
-    now = datetime.now(timezone('Europe/Kiev'))
-    first_day_of_next_month = datetime(
-        now.year + (now.month // 12),
-        (now.month % 12) + 1,
-        1, 9, 10, tzinfo=timezone('Europe/Kiev')
-    )
-    return get_next_workday(first_day_of_next_month)
-
-# Функція для отримання дати запуску першого нагадування цього місяця
-def get_this_month_reminder_date():
-    now = datetime.now(timezone('Europe/Kiev'))
-    kyiv = timezone('Europe/Kiev')
-    first_day_of_month_naive = datetime(now.year, now.month, 1, 9, 10)
-    first_day_of_month = kyiv.localize(first_day_of_month_naive)
+    logging.info(f"Нагадування відправлено {sent} користувачам.")
 
 
-    return get_next_workday(first_day_of_month)
+# --- Щоденна перевірка ---
+async def daily_first_workday_check():
+    """
+    Викликається щодня о 09:10 за Києвом.
+    Якщо сьогодні перший робочий день місяця — шлемо нагадування.
+    """
+    now = kyiv_now()
+    if is_first_workday_today(now):
+        logging.info("[Reminder] Сьогодні перший робочий день місяця — надсилаємо повідомлення.")
+        await send_reminder_to_all_users()
+    else:
+        logging.info("[Reminder] Сьогодні НЕ перший робочий день місяця — нічого не робимо.")
+
+
+

@@ -16,7 +16,7 @@ from messages.sync_payments import sync_payments
 from auth import is_phone_number_in_power_bi
 from db import add_telegram_user, get_user_joined_at, get_user_status, get_employee_name, log_user_action, get_user_by_telegram_id
 from auth import verify_and_add_user 
-from messages.reminder import send_reminder_to_all_users, get_this_month_reminder_date, get_next_reminder_date
+from messages.reminder import send_reminder_to_all_users, get_this_month_reminder_date, get_next_reminder_date, daily_first_workday_check
 from messages.check_devaluation import check_new_devaluation_records
 from messages.sync_devaluation import sync_devaluation_data
 from messages.birthday_greetings import send_birthday_greetings  
@@ -444,38 +444,21 @@ def main():
 ##################################################################################
 # Щомісячне нагадування 
 
-# Додаємо перше нагадування (на цей місяць)
-    first_reminder = get_this_month_reminder_date()
-    now = datetime.now(timezone('Europe/Kiev'))
-
-    if first_reminder > now:
+    def schedule_daily_reminder_gate(scheduler):
+        """
+        Регіструє щоденний запуск о 09:10 (Europe/Kiev),
+        який перевіряє «перший робочий день» і, за потреби, шле нагадування.
+        """
         scheduler.add_job(
-            send_reminder_to_all_users,
-            'date',
-            run_date=first_reminder,
+            daily_first_workday_check,
+            'cron',
+            hour=9,
+            minute=10,
             timezone='Europe/Kiev',
-            id='monthly_reminder_initial'
+            id='monthly_reminder_daily_gate',
+            replace_existing=True
         )
-        logging.info(f"[Reminder] Перше нагадування додано на {first_reminder}")
-    else:
-        logging.info(f"[Reminder] Поточна дата {now} пізніше ніж {first_reminder} — перше нагадування не додано.")
-
-    from apscheduler.events import EVENT_JOB_EXECUTED
-
-    def reschedule_next_month(event):
-        if event.job_id == 'monthly_reminder_initial' or event.job_id.startswith("monthly_reminder_"):
-            next_date = get_next_reminder_date()
-            job_id = f"monthly_reminder_{next_date.strftime('%Y%m%d')}"
-            scheduler.add_job(
-                send_reminder_to_all_users,
-                'date',
-                run_date=next_date,
-                timezone='Europe/Kiev',
-                id=job_id
-            )
-            logging.info(f"[Reminder] Наступне нагадування заплановано на {next_date}")
-
-    scheduler.add_listener(reschedule_next_month, EVENT_JOB_EXECUTED)
+        logging.info("Планувальник: щоденна перевірка першого робочого дня налаштована (09:10 Europe/Kiev).")
 
 
 ######################################################################################
