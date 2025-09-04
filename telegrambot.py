@@ -444,21 +444,18 @@ def main():
 ##################################################################################
 # Щомісячне нагадування 
 
-    def schedule_daily_reminder_gate(scheduler):
-        """
-        Регіструє щоденний запуск о 09:10 (Europe/Kiev),
-        який перевіряє «перший робочий день» і, за потреби, шле нагадування.
-        """
-        scheduler.add_job(
-            daily_first_workday_check,
-            'cron',
-            hour=9,
-            minute=10,
-            timezone='Europe/Kiev',
-            id='monthly_reminder_daily_gate',
-            replace_existing=True
-        )
-        logging.info("Планувальник: щоденна перевірка першого робочого дня налаштована (09:10 Europe/Kiev).")
+    # ЩОДЕННА перевірка о 09:10 за Києвом:
+    scheduler.add_job(
+        daily_first_workday_check,
+        'cron',
+        hour=9,
+        minute=10,
+        timezone='Europe/Kiev',
+        id='monthly_reminder_daily_gate',
+        replace_existing=True
+    )
+    logging.info("Планувальник: щоденна перевірка першого робочого дня налаштована (09:10 Europe/Kiev).")
+
 
 
 ######################################################################################
