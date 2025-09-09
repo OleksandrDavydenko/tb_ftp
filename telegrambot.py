@@ -468,8 +468,8 @@ def main():
     scheduler.add_job(
         store_exchange_rates,
         'cron',
-        hour=10,
-        minute=10,
+        hour=11,
+        minute=59,
         timezone=kyiv_timezone,
         id='daily_exchange_rates',
     )
