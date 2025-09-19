@@ -29,9 +29,11 @@ from messages.oneTimeMessages.update4 import send_message_to_users
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart, handle_overdue_debt
+
 from salary.salary_handlers import (
     show_salary_years, show_salary_months, show_salary_details,
-    show_salary_menu, show_bonuses_placeholder
+    show_salary_menu,
+    show_bonuses_years, show_bonuses_months, send_bonuses_excel
 )
 
 from employee_analytics.analytics_handler import (
@@ -257,8 +259,9 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         elif text == "💼 Оклад":
             context.user_data['menu'] = 'salary_years'
             await show_salary_years(update, context)
-        elif text == "🎁 Відомість Бонуси":
-            await show_bonuses_placeholder(update, context)
+        elif text in ("🎁 Відомість Бонуси", "Відомість Бонуси"):
+            context.user_data['menu'] = 'bonuses_years'
+            await show_bonuses_years(update, context)
         elif text == "📊 Аналітика":
             await show_analytics_options(update, context)
         elif text == "🧾 Кадровий облік":
@@ -360,6 +363,10 @@ async def handle_back_navigation(update: Update, context: CallbackContext) -> No
         await show_salary_menu(update, context)
     elif menu == 'salary_menu':
         await show_main_menu(update, context)
+    elif menu == 'bonuses_months':
+        await show_bonuses_years(update, context)
+    elif menu == 'bonuses_years':
+        await show_salary_menu(update, context)
 
     # Аналітика
     elif menu == 'analytics_years':
@@ -398,6 +405,9 @@ async def handle_year_choice(update: Update, context: CallbackContext) -> None:
 
     if current_menu == 'salary_years':
         await show_salary_months(update, context)
+    elif current_menu == 'bonuses_years':
+        await show_bonuses_months(update, context)
+
     elif context.user_data.get('analytics_type') == 'monthly':
         await show_analytics_months(update, context)
     elif context.user_data.get('analytics_type') == 'yearly':
@@ -410,6 +420,8 @@ async def handle_month_choice(update: Update, context: CallbackContext) -> None:
 
     if current_menu == 'salary_months':
         await show_salary_details(update, context)
+    elif current_menu == 'bonuses_months':
+        await send_bonuses_excel(update, context)
     else:
         await show_monthly_analytics(update, context)
 

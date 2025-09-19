@@ -4,6 +4,10 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 import logging
 
+import os
+import shutil
+from .bonuses_report import generate_excel 
+
 from .salary_queries import (
     get_salary_data,
     get_salary_payments,
@@ -50,13 +54,6 @@ async def show_salary_menu(update: Update, context: CallbackContext) -> None:
     )
 
 
-async def show_bonuses_placeholder(update: Update, context: CallbackContext) -> None:
-    await update.message.reply_text("📑 Функціонал у розробці…")
-    kb = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-    await update.message.reply_text(
-        "Виберіть опцію:",
-        reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)
-    )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -77,8 +74,101 @@ async def show_salary_months(update: Update, context: CallbackContext) -> None:
     context.user_data["menu"] = "salary_months"
     await update.message.reply_text("Оберіть місяць:", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
 
+
+
 # ──────────────────────────────────────────────────────────────────────────────
-# Показ розрахункового листа
+# Відомість Бонуси: вибір року/місяця та відправка Excel
+# ──────────────────────────────────────────────────────────────────────────────
+async def show_bonuses_years(update: Update, context: CallbackContext) -> None:
+    current_year = datetime.datetime.now().year
+    years = [str(y) for y in range(2025, current_year + 1)]
+    kb = [[KeyboardButton(y)] for y in years] + [[KeyboardButton("Назад")]]
+    context.user_data["menu"] = "bonuses_years"
+    await update.message.reply_text(
+        "Оберіть рік (Відомість Бонуси):",
+        reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True)
+    )
+
+async def show_bonuses_months(update: Update, context: CallbackContext) -> None:
+    kb = [[KeyboardButton(m)] for m in MONTHS_UA]
+    kb.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
+    context.user_data["menu"] = "bonuses_months"
+    await update.message.reply_text(
+        "Оберіть місяць (Відомість Бонуси):",
+        reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True)
+    )
+
+async def send_bonuses_excel(update: Update, context: CallbackContext) -> None:
+    employee = context.user_data.get("employee_name")
+    year     = context.user_data.get("selected_year")
+    month    = context.user_data.get("selected_month")
+
+    # валідація вибору
+    if not (employee and year and month):
+        await update.message.reply_text("Помилка: спочатку оберіть рік та місяць.")
+        return
+
+    month_num = MONTHS_MAP.get(month)
+    if month_num is None:
+        await update.message.reply_text("Невідомий місяць.")
+        return
+
+    period_ym = f"{year}-{month_num:02d}"
+    wait_msg = await update.message.reply_text("⏳ Формую відомість бонусів…")
+
+    xlsx_path = None
+    try:
+        # 1) Генеруємо тимчасовий файл у /tmp (Heroku-friendly)
+        xlsx_path = generate_excel(employee, period_ym)
+
+        # якщо генератор повернув None або шлях не існує — немає нарахувань
+        if not xlsx_path or not os.path.exists(xlsx_path):
+            await update.message.reply_text(
+                f"ℹ️ У вас відсутні нарахування бонусів за {month} {year}."
+            )
+            return
+
+        # 2) Надсилаємо файл
+        with open(xlsx_path, "rb") as f:
+            await update.message.reply_document(
+                document=f,
+                filename=os.path.basename(xlsx_path),
+                caption=f"Відомість бонусів • {employee} • {period_ym}"
+            )
+
+    except ValueError as e:
+        # generate_excel може підняти ValueError, якщо даних немає
+        await update.message.reply_text(
+            f"ℹ️ У вас відсутні нарахування бонусів за {month} {year}."
+        )
+        return
+
+    except Exception as e:
+        logging.exception("Помилка генерації бонусів")
+        await update.message.reply_text(f"❌ Не вдалося сформувати файл: {e}")
+        return
+
+    finally:
+        # 3) Прибираємо тимчасові файли/папки
+        try:
+            if xlsx_path:
+                tmp_dir = os.path.dirname(xlsx_path)
+                if os.path.isdir(tmp_dir):
+                    shutil.rmtree(tmp_dir, ignore_errors=True)
+        except Exception:
+            pass
+
+        # 4) Прибираємо повідомлення “формую…”
+        try:
+            if wait_msg:
+                await context.bot.delete_message(update.effective_chat.id, wait_msg.message_id)
+        except Exception:
+            pass
+
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Показ розрахункового листа ОКЛАД
 # ──────────────────────────────────────────────────────────────────────────────
 async def show_salary_details(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")

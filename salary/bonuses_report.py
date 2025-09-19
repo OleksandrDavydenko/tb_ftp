@@ -65,7 +65,7 @@ def _fmt_date_series(s: pd.Series) -> pd.Series:
     return d.dt.strftime("%d.%m.%Y")
 
 def build_excel(df: pd.DataFrame, employee: str, period_ym: str, path_dir: str) -> str:
-    import xlsxwriter
+    #import xlsxwriter
 
     cur_mask  = df["RecordType"].fillna("").str.contains("Поточ", case=False)
     prev_mask = ~cur_mask
@@ -314,6 +314,10 @@ def generate_excel(employee: str, period_ym: str) -> str:
     token = get_power_bi_token()
     raw   = query_bonuses_details(token, employee, period_ym)
     df    = to_dataframe(raw)
+
+    # 🔹 Перевірка: якщо немає жодних рядків
+    if df.empty:
+        return None
 
     # впорядкування (не обов'язково)
     preferred = [
