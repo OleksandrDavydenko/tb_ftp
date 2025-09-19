@@ -205,7 +205,7 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
 
     # --- 1️⃣ основна таблиця (обов'язково)
     main_msg = (
-        heading("Розрахунковий лист") +
+        heading("Оклад/KPI") +
         f"Співробітник: {employee}\n" +
         f"Період: {month_name} {year}\n\n" +
         code_block(main_table)

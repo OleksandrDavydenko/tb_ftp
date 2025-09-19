@@ -326,8 +326,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         elif text.startswith("/analytics"):
             await show_analytics_options(update, context)
         elif text.startswith("/salary"):
-            context.user_data['menu'] = 'salary_years'
-            await show_salary_years(update, context)
+            await show_salary_menu(update, context)
         elif text.startswith("/menu"):
             await show_main_menu(update, context)
         elif text.startswith("/hr"):
