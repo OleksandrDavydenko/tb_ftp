@@ -24,7 +24,7 @@ from messages.birthday_greetings import send_birthday_greetings
 #from messages.oneTimeMessages.update2 import send_message_to_users
 #from messages.oneTimeMessages.update3 import send_message_to_users
 #from messages.oneTimeMessages.update4 import send_message_to_users
-from messages.oneTimeMessages.update5 import send_message_to_users
+#from messages.oneTimeMessages.update5 import send_message_to_users
 
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -455,7 +455,7 @@ def main():
     set_bot_menu_sync(app)
 
     scheduler.add_job(check_new_payments, 'interval', seconds=1000)
-    scheduler.add_job(sync_payments, 'interval', seconds=800)
+    scheduler.add_job(sync_payments, 'interval', seconds=1800)
     # scheduler.add_job(check_new_devaluation_records, 'interval', seconds=10800)
     scheduler.add_job(check_new_devaluation_records, 'cron', hour=11, minute=10, timezone='Europe/Kiev') # Перевірка нових записів девальвації щодня о 10:20
     scheduler.add_job(sync_devaluation_data, 'interval', seconds=10600)  # Додаємо нову синхронізацію девальваційних даних
@@ -481,15 +481,6 @@ def main():
 
 ################################################################################
 
-    scheduler.add_job(
-        send_message_to_users,
-        'cron',
-        hour=16,
-        minute=50,
-        timezone='Europe/Kiev',
-        id='update5_message',
-        replace_existing=True
-    )
 
 
 
