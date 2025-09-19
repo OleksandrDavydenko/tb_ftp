@@ -29,7 +29,11 @@ from messages.oneTimeMessages.update4 import send_message_to_users
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart, handle_overdue_debt
-from salary.salary_handlers import show_salary_years, show_salary_months, show_salary_details
+from salary.salary_handlers import (
+    show_salary_years, show_salary_months, show_salary_details,
+    show_salary_menu, show_bonuses_placeholder
+)
+
 from employee_analytics.analytics_handler import (
     show_analytics_options, show_analytics_years, show_analytics_months, 
     show_monthly_analytics, show_yearly_chart_for_parameter
@@ -55,7 +59,7 @@ def set_bot_menu_sync(app):
     commands = [
         BotCommand("menu", "🏠 Головне меню"),
         BotCommand("debt", "📉 Дебіторська заборгованість"),
-        BotCommand("salary", "💼 Розрахунковий лист"),
+        BotCommand("salary", "💼 Зарплата"),
         BotCommand("analytics", "📊 Аналітика"),
         BotCommand("hr", "🧾 Кадровий облік"),
         BotCommand("info", "ℹ️ Інформація")
@@ -190,7 +194,7 @@ def get_main_menu_keyboard():
     """Генерує клавіатуру головного меню"""
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📊 Аналітика"), KeyboardButton(text="💼 Розрахунковий лист")],
+            [KeyboardButton(text="📊 Аналітика"), KeyboardButton(text="💼 Зарплата")],
             [KeyboardButton(text="📉 Дебіторська заборгованість"), KeyboardButton(text="🧾 Кадровий облік")],
             [KeyboardButton(text="ℹ️ Інформація")]
         ],
@@ -248,9 +252,13 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         # 🔹 Головні розділи
         if text == "📉 Дебіторська заборгованість":
             await show_debt_options(update, context)
-        elif text == "💼 Розрахунковий лист":
+        elif text == "💼 Зарплата":
+            await show_salary_menu(update, context)
+        elif text == "Оклад":
             context.user_data['menu'] = 'salary_years'
             await show_salary_years(update, context)
+        elif text == "Відомість Бонуси":
+            await show_bonuses_placeholder(update, context)
         elif text == "📊 Аналітика":
             await show_analytics_options(update, context)
         elif text == "🧾 Кадровий облік":
@@ -349,6 +357,8 @@ async def handle_back_navigation(update: Update, context: CallbackContext) -> No
     if menu == 'salary_months':
         await show_salary_years(update, context)
     elif menu == 'salary_years':
+        await show_salary_menu(update, context)
+    elif menu == 'salary_menu':
         await show_main_menu(update, context)
 
     # Аналітика
@@ -507,7 +517,7 @@ def main():
     # ✅ Додаємо обробники для всіх команд
     
     app.add_handler(CommandHandler("debt", show_debt_options))
-    app.add_handler(CommandHandler("salary", show_salary_years))
+    app.add_handler(CommandHandler("salary", show_salary_menu))
     app.add_handler(CommandHandler("analytics", show_analytics_options))
     app.add_handler(CommandHandler("info", show_help_menu))
 
@@ -516,7 +526,7 @@ def main():
 
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     
-    app.add_handler(MessageHandler(filters.Regex("^(📉 Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|💼 Розрахунковий лист|ℹ️ Інформація|💱 Курс валют|Перевірка девальвації|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод|Протермінована дебіторська заборгованість|📘 Довідка|🧾 Кадровий облік|🗓 Залишки відпусток|🕓 Відпрацьовані дні)$"), handle_main_menu))
+    app.add_handler(MessageHandler(filters.Regex("^(📉 Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|💼 Зарплата|Оклад|Відомість Бонуси|ℹ️ Інформація|💱 Курс валют|Перевірка девальвації|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод|Протермінована дебіторська заборгованість|📘 Довідка|🧾 Кадровий облік|🗓 Залишки відпусток|🕓 Відпрацьовані дні)$"), handle_main_menu))
 
     #app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_main_menu))
 
