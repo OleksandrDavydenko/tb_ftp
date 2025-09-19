@@ -23,8 +23,8 @@ from messages.birthday_greetings import send_birthday_greetings
 #from messages.oneTimeMessages.update1 import send_message_to_users # Імпорт функції з нового файлу
 #from messages.oneTimeMessages.update2 import send_message_to_users
 #from messages.oneTimeMessages.update3 import send_message_to_users
-from messages.oneTimeMessages.update4 import send_message_to_users
-
+#from messages.oneTimeMessages.update4 import send_message_to_users
+from messages.oneTimeMessages.update5 import send_message_to_users
 
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -481,7 +481,15 @@ def main():
 
 ################################################################################
 
-
+    scheduler.add_job(
+        send_message_to_users,
+        'cron',
+        hour=16,
+        minute=50,
+        timezone='Europe/Kiev',
+        id='update5_message',
+        replace_existing=True
+    )
 
 
 
