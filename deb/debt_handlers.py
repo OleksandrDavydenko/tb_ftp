@@ -46,7 +46,13 @@ async def handle_overdue_debt(update: Update, context: CallbackContext) -> None:
     # Додаємо кнопки "Назад" і "Головне меню"
     back_button = KeyboardButton("Назад")
     main_menu_button = KeyboardButton("Головне меню")
-    reply_markup = ReplyKeyboardMarkup([[back_button, main_menu_button]], one_time_keyboard=True)
+    
+
+    reply_markup = ReplyKeyboardMarkup(
+        [[back_button, main_menu_button]],
+        one_time_keyboard=True,
+        resize_keyboard=True
+    )
 
     # Відправляємо кнопки
     await update.message.reply_text("Натисніть 'Назад' або 'Головне меню':", reply_markup=reply_markup)
