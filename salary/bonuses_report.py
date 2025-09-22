@@ -11,6 +11,7 @@ from auth import get_power_bi_token
 
 DATASET_ID = os.getenv("PBI_DATASET_ID", "8b80be15-7b31-49e4-bc85-8b37a0d98f1c")
 
+# ---------- Power BI queries ----------
 def query_bonuses_details(token: str, employee: str, period_ym: str) -> dict:
     emp_escaped = employee.replace('"', '""')
     dax = f"""
@@ -30,6 +31,35 @@ FILTER(
     r.raise_for_status()
     return r.json()
 
+def query_bonuses_table(token: str, employee: str, period_ym: str) -> dict:
+    """
+    Повертає таблицю з полями: Employee, Date, Sanction, BonusCorrection (+ штучна колонка PeriodYM)
+    """
+    emp_escaped = employee.replace('"', '""')
+    dax = f"""
+EVALUATE
+FILTER(
+  ADDCOLUMNS(
+    SELECTCOLUMNS(
+      BonusesTable,
+      "Employee", BonusesTable[Employee],
+      "Date", BonusesTable[Date],
+      "Sanction", BonusesTable[Sanction],
+      "BonusCorrection", BonusesTable[BonusCorrection]
+    ),
+    "PeriodYM", FORMAT([Date], "yyyy-MM")
+  ),
+  [Employee] = "{emp_escaped}" && [PeriodYM] = "{period_ym}"
+)
+"""
+    url = f"https://api.powerbi.com/v1.0/myorg/datasets/{DATASET_ID}/executeQueries"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    payload = {"queries": [{"query": dax}], "serializerSettings": {"includeNulls": True}}
+    r = requests.post(url, headers=headers, json=payload)
+    r.raise_for_status()
+    return r.json()
+
+# ---------- helpers ----------
 def to_dataframe(result_json: dict) -> pd.DataFrame:
     results = result_json.get("results", [])
     tables  = results[0].get("tables", []) if results else []
@@ -53,6 +83,8 @@ def to_dataframe(result_json: dict) -> pd.DataFrame:
     def clean(col: str) -> str:
         if col.startswith("BonusesDetails[") and col.endswith("]"):
             return col[len("BonusesDetails["):-1]
+        if col.startswith("BonusesTable[") and col.endswith("]"):
+            return col[len("BonusesTable["):-1]
         return col.strip("[]")
 
     records = [{clean(k): v for k, v in rec.items()} for rec in records]
@@ -64,8 +96,11 @@ def _fmt_date_series(s: pd.Series) -> pd.Series:
     d = d.mask(bad)
     return d.dt.strftime("%d.%m.%Y")
 
-def build_excel(df: pd.DataFrame, employee: str, period_ym: str, path_dir: str) -> str:
-    #import xlsxwriter
+# ---------- Excel builder ----------
+def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
+                sanction_sum: float, correction_sum: float,
+                path_dir: str) -> str:
+    # import xlsxwriter
 
     cur_mask  = df["RecordType"].fillna("").str.contains("Поточ", case=False)
     prev_mask = ~cur_mask
@@ -74,8 +109,8 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str, path_dir: str) 
     rm = df["ManagerRoleWithSales"].fillna("").str.lower()
 
     sales_mask   = r.str.contains("сейл") | rm.str.contains("sales", regex=False)
-    ops_mgr_mask = (r.str.contains(r"операт|операц")) & (~r.str.contains("процент"))
-    ops_pct_mask = r.str.contains("процент") | rm.str.contains("percent", regex=False)
+    ops_mgr_mask = (r.str_contains(r"операт|операц") if hasattr(r, "str_contains") else r.str.contains(r"операт|операц")) & (~r.str.contains("процент"))
+    ops_pct_mask = (r.str_contains("процент") if hasattr(r, "str_contains") else r.str.contains("процент")) | rm.str.contains("percent", regex=False)
 
     def fnum(x):
         try: return float(x)
@@ -90,20 +125,41 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str, path_dir: str) 
         to_cur  = round(cur["ToPay"].map(fnum).sum(), 2)
         to_prev = round(prv["ToPay"].map(fnum).sum(), 2)
         unpaid  = round(accrual - to_cur, 2)
-        curr    = allr["Currency"].iloc[0] if "Currency" in allr and allr["Currency"].nunique()==1 \
-                  else (df["Currency"].iloc[0] if "Currency" in df else "")
+
+        if "Currency" in allr and not allr["Currency"].dropna().empty:
+            curr = allr["Currency"].dropna().iloc[0]
+        elif "Currency" in df and not df["Currency"].dropna().empty:
+            curr = df["Currency"].dropna().iloc[0]
+        else:
+            curr = ""
+
         return [employee, descr, accrual, to_cur, to_prev, unpaid, curr]
 
+    # базові 3 рядки
     summary_rows = [
         agg_row("Оперативний менеджер", ops_mgr_mask),
         agg_row("Процент оперативний",  ops_pct_mask),
         agg_row("Сейлс",                sales_mask),
     ]
-    total_accrual = sum(r[2] for r in summary_rows)
-    total_cur     = sum(r[3] for r in summary_rows)
-    total_prev    = sum(r[4] for r in summary_rows)
+
+    # додаткові рядки — Штраф та Конкурс 10%
+    sanction_sum   = round(float(sanction_sum or 0), 2)
+    correction_sum = round(float(correction_sum or 0), 2)
+
+    currency_val = ""
+    if "Currency" in df and not df["Currency"].dropna().empty:
+        currency_val = df["Currency"].dropna().iloc[0]
+
+    if abs(sanction_sum) != 0:
+        summary_rows.append([employee, "Штраф",       sanction_sum,   sanction_sum,   0.0, 0.0, currency_val])
+    if abs(correction_sum) != 0:
+        summary_rows.append([employee, "Конкурс 10%", correction_sum, correction_sum, 0.0, 0.0, currency_val])
+
+    total_accrual = round(sum(r[2] for r in summary_rows), 2)
+    total_cur     = round(sum(r[3] for r in summary_rows), 2)
+    total_prev    = round(sum(r[4] for r in summary_rows), 2)
     total_unpaid  = round(total_accrual - total_cur, 2)
-    currency_val  = summary_rows[0][6] or (df["Currency"].iloc[0] if "Currency" in df else "")
+    currency_val  = summary_rows[0][6] if summary_rows and summary_rows[0][6] else currency_val
 
     def make_section(dfs: pd.DataFrame, title: str, prev: bool):
         base_cols = [
@@ -125,8 +181,10 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str, path_dir: str) 
             elif "ProfitDiference" in dfs.columns:
                 out["Курсова різниця"] = pd.to_numeric(dfs["ProfitDiference"], errors="coerce").round(2)
             if "NewBonus" in dfs.columns:
-                out["Новий бонус"] = pd.to_numeric(dfs["NewBonus"].astype(str).str.replace(",", ".", regex=False),
-                                                   errors="coerce")
+                out["Новий бонус"] = pd.to_numeric(
+                    dfs["NewBonus"].astype(str).str.replace(",", ".", regex=False),
+                    errors="coerce"
+                )
 
         for dcol in ["Дата завершення", "Дата оплати", "Період"]:
             if dcol in out.columns:
@@ -239,7 +297,7 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str, path_dir: str) 
 
         def xwrite(ws, r, c, v, fmt=None):
             try:
-                if pd.isna(v) or (isinstance(v, float) and (math.isnan(v) or math.isinf(v))):
+                if v is None or pd.isna(v) or (isinstance(v, float) and (math.isnan(v) or math.isinf(v))):
                     v = None
             except Exception:
                 v = None
@@ -307,17 +365,39 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str, path_dir: str) 
 
     return fname
 
+# ---------- main API ----------
 def generate_excel(employee: str, period_ym: str) -> str:
     """
     Повертає шлях до тимчасового xlsx-файлу. Видаляти файл ПІСЛЯ відправки!
     """
     token = get_power_bi_token()
-    raw   = query_bonuses_details(token, employee, period_ym)
-    df    = to_dataframe(raw)
 
-    # 🔹 Перевірка: якщо немає жодних рядків
-    if df.empty:
+    # Деталі бонусів
+    raw_details = query_bonuses_details(token, employee, period_ym)
+    df_details  = to_dataframe(raw_details)
+
+    if df_details.empty:
         return None
+
+    # BonusesTable: санкції/корекції
+    raw_tbl = query_bonuses_table(token, employee, period_ym)
+    df_tbl  = to_dataframe(raw_tbl)
+
+    if df_tbl.empty:
+        sanction_sum = 0.0
+        correction_sum = 0.0
+    else:
+        # У Sanction можуть бути числа/None; у BonusCorrection — рядки з комою
+        sanction_sum = round(pd.to_numeric(df_tbl.get("Sanction"), errors="coerce").fillna(0).sum(), 2)
+        if "BonusCorrection" in df_tbl.columns:
+            correction_sum = round(
+                pd.to_numeric(
+                    df_tbl["BonusCorrection"].astype(str).str.replace(",", ".", regex=False),
+                    errors="coerce"
+                ).fillna(0).sum(), 2
+            )
+        else:
+            correction_sum = 0.0
 
     # впорядкування (не обов'язково)
     preferred = [
@@ -327,10 +407,9 @@ def generate_excel(employee: str, period_ym: str) -> str:
         "ExchangeRateDifference","NewBonus","PercentValue","Bonus","PercentPaid",
         "ToPay","NotPayYet","PayDate","RecordType"
     ]
-    if not df.empty:
-        cols = [c for c in preferred if c in df.columns] + [c for c in df.columns if c not in preferred]
-        df = df[cols]
+    cols = [c for c in preferred if c in df_details.columns] + [c for c in df_details.columns if c not in preferred]
+    df_details = df_details[cols]
 
     temp_dir = tempfile.mkdtemp(prefix="bonuses_")
-    out_file = build_excel(df, employee, period_ym, path_dir=temp_dir)
+    out_file = build_excel(df_details, employee, period_ym, sanction_sum, correction_sum, path_dir=temp_dir)
     return out_file
