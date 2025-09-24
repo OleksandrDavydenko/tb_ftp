@@ -44,7 +44,8 @@ MONTHS_MAP = {name: idx + 1 for idx, name in enumerate(MONTHS_UA)}
 # ──────────────────────────────────────────────────────────────────────────────
 async def show_salary_menu(update: Update, context: CallbackContext) -> None:
     kb = [
-        [KeyboardButton("💼 Оклад"), KeyboardButton("🎁 Відомість Бонуси")],
+        [KeyboardButton("💼 Оклад"), [KeyboardButton("💰 Бонуси")],    
+        KeyboardButton("🎁 Відомість Бонуси")],                 
         [KeyboardButton("Головне меню")],
     ]
     context.user_data["menu"] = "salary_menu"
@@ -54,6 +55,14 @@ async def show_salary_menu(update: Update, context: CallbackContext) -> None:
     )
 
 
+
+
+
+async def show_bonuses_stub(update: Update, context: CallbackContext) -> None:
+    context.user_data["menu"] = "bonuses_stub"
+    await update.message.reply_text("🎁 Розділ «Бонуси» — функціонал у розробці. Слідкуйте за оновленнями!")
+    nav = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
+    await update.message.reply_text("Виберіть опцію:", reply_markup=ReplyKeyboardMarkup(nav, one_time_keyboard=True, resize_keyboard=True))
 
 
 # ──────────────────────────────────────────────────────────────────────────────
