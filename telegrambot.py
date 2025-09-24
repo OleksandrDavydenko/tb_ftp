@@ -20,7 +20,8 @@ from messages.reminder import daily_first_workday_check
 from messages.check_devaluation import check_new_devaluation_records
 from messages.sync_devaluation import sync_devaluation_data
 from messages.birthday_greetings import send_birthday_greetings  
-from salary.salary_handlers import show_bonuses_stub, show_lead_prizes_stub
+
+
 
 #from messages.oneTimeMessages.update1 import send_message_to_users # Імпорт функції з нового файлу
 #from messages.oneTimeMessages.update2 import send_message_to_users
@@ -35,7 +36,9 @@ from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_hi
 from salary.salary_handlers import (
     show_salary_years, show_salary_months, show_salary_details,
     show_salary_menu,
-    show_bonuses_years, show_bonuses_months, send_bonuses_excel
+    show_bonuses_years, show_bonuses_months, send_bonuses_excel,
+    show_bonusmsg_years, show_bonusmsg_months, send_bonuses_message,   # ⟵ ДОДАНО
+    show_lead_prizes_stub                                              # ⟵ якщо ще не імпортовано
 )
 
 from employee_analytics.analytics_handler import (
@@ -262,7 +265,8 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
             context.user_data['menu'] = 'salary_years'
             await show_salary_years(update, context)
         elif text == "💰 Бонуси":
-            await show_bonuses_stub(update, context)
+            context.user_data['menu'] = 'bonusmsg_years'
+            await show_bonusmsg_years(update, context)
         elif text == "👑 Премії керівників":
             await show_lead_prizes_stub(update, context)
 
@@ -377,6 +381,11 @@ async def handle_back_navigation(update: Update, context: CallbackContext) -> No
         await show_bonuses_years(update, context)
     elif menu == 'bonuses_years':
         await show_salary_menu(update, context)
+    elif menu == 'bonusmsg_months':
+        await show_bonusmsg_years(update, context)
+    elif menu == 'bonusmsg_years':
+        await show_salary_menu(update, context)
+
 
     # Аналітика
     elif menu == 'analytics_years':
@@ -417,7 +426,8 @@ async def handle_year_choice(update: Update, context: CallbackContext) -> None:
         await show_salary_months(update, context)
     elif current_menu == 'bonuses_years':
         await show_bonuses_months(update, context)
-
+    elif current_menu == 'bonusmsg_years':
+        await show_bonusmsg_months(update, context)
     elif context.user_data.get('analytics_type') == 'monthly':
         await show_analytics_months(update, context)
     elif context.user_data.get('analytics_type') == 'yearly':
@@ -432,6 +442,8 @@ async def handle_month_choice(update: Update, context: CallbackContext) -> None:
         await show_salary_details(update, context)
     elif current_menu == 'bonuses_months':
         await send_bonuses_excel(update, context)
+    elif current_menu == 'bonusmsg_months':
+        await send_bonuses_message(update, context)
     else:
         await show_monthly_analytics(update, context)
 
