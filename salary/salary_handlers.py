@@ -44,9 +44,9 @@ MONTHS_MAP = {name: idx + 1 for idx, name in enumerate(MONTHS_UA)}
 # ──────────────────────────────────────────────────────────────────────────────
 async def show_salary_menu(update: Update, context: CallbackContext) -> None:
     kb = [
-        [KeyboardButton("💼 Оклад"), KeyboardButton("💰 Бонуси")],   # ← один рядок, дві кнопки
-        [KeyboardButton("🎁 Відомість Бонуси")],                    # ← окремий рядок
-        [KeyboardButton("Головне меню")],                           # ← окремий рядок
+        [KeyboardButton("💼 Оклад"), KeyboardButton("💰 Бонуси")],
+        [KeyboardButton("🎁 Відомість Бонуси"), KeyboardButton("👑 Премії керівників")],  # ← додано
+        [KeyboardButton("Головне меню")],
     ]
     context.user_data["menu"] = "salary_menu"
     await update.message.reply_text(
@@ -54,10 +54,16 @@ async def show_salary_menu(update: Update, context: CallbackContext) -> None:
         reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)
     )
 
-
-
-
-
+# Заглушка для «Премії керівників»
+async def show_lead_prizes_stub(update: Update, context: CallbackContext) -> None:
+    context.user_data["menu"] = "lead_prizes_stub"
+    await update.message.reply_text("👑 Розділ «Премії керівників» — функціонал у розробці. Слідкуйте за оновленнями!")
+    nav = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
+    await update.message.reply_text(
+        "Виберіть опцію:",
+        reply_markup=ReplyKeyboardMarkup(nav, one_time_keyboard=True, resize_keyboard=True)
+    )
+# Заглушка для «Відомість Бонуси»
 
 async def show_bonuses_stub(update: Update, context: CallbackContext) -> None:
     context.user_data["menu"] = "bonuses_stub"
