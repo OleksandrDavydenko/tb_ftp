@@ -7,6 +7,7 @@ import logging
 import os
 import shutil
 from .bonuses_report import generate_excel 
+from .bonuses_message import build_bonus_message_for_period
 
 from .salary_queries import (
     get_salary_data,
@@ -66,11 +67,39 @@ async def show_lead_prizes_stub(update: Update, context: CallbackContext) -> Non
 # Заглушка для «Відомість Бонуси»
 
 async def show_bonuses_stub(update: Update, context: CallbackContext) -> None:
+    """Надсилає повідомлення про бонуси за обраний період.
+       Якщо період не обрано – просить спочатку вибрати рік та місяць (через «💼 Оклад»)."""
     context.user_data["menu"] = "bonuses_stub"
-    await update.message.reply_text("🎁 Розділ «Бонуси» — функціонал у розробці. Слідкуйте за оновленнями!")
-    nav = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-    await update.message.reply_text("Виберіть опцію:", reply_markup=ReplyKeyboardMarkup(nav, one_time_keyboard=True, resize_keyboard=True))
 
+    employee = context.user_data.get("employee_name")
+    year = context.user_data.get("selected_year")
+    month_name = context.user_data.get("selected_month")
+
+    # Мапа місяців
+    MONTHS_UA = [
+        "Січень","Лютий","Березень","Квітень","Травень","Червень",
+        "Липень","Серпень","Вересень","Жовтень","Листопад","Грудень",
+    ]
+    MONTHS_MAP = {name: idx + 1 for idx, name in enumerate(MONTHS_UA)}
+
+    if not (employee and year and month_name):
+        await update.message.reply_text(
+            "ℹ️ Щоб побачити бонуси, спочатку оберіть рік і місяць у розділі «💼 Оклад», а потім знову натисніть «💰 Бонуси»."
+        )
+    else:
+        month = MONTHS_MAP.get(month_name)
+        try:
+            text = build_bonus_message_for_period(employee, int(year), int(month))
+        except Exception as e:
+            text = f"❌ Не вдалося завантажити бонуси: {e}"
+        await update.message.reply_text(text)
+
+    # Навігація
+    nav = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
+    await update.message.reply_text(
+        "Виберіть опцію:",
+        reply_markup=ReplyKeyboardMarkup(nav, one_time_keyboard=True, resize_keyboard=True)
+    )
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Меню вибору року / місяця
