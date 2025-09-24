@@ -82,7 +82,7 @@ def build_bonus_message(df: pd.DataFrame, employee: str, period_date: datetime) 
     df["AmountCt"] = pd.to_numeric(df.get("AmountCt", 0), errors="coerce").fillna(0.0)
     df["DocumentNumber"] = df.get("DocumentNumber", "").astype(str).str.strip()
 
-    # ===== Нарахування (кредит) =====
+    # ===== Нарахування =====
     acc = df[df["AmountCt"] != 0].copy()
     acc_dt = acc["RegistrDate"].fillna(acc["Subconto2Period"])
     acc["Y"] = acc_dt.dt.year
@@ -91,13 +91,13 @@ def build_bonus_message(df: pd.DataFrame, employee: str, period_date: datetime) 
     acc["Doc"] = acc["DocumentNumber"]
 
     accr_group = (
-        acc.groupby(["Y","M","Label","Doc"], dropna=False)["AmountCt"]
+        acc.groupby(["Y", "M", "Label", "Doc"], dropna=False)["AmountCt"]
            .sum().round(2).reset_index(name="Sum")
-           .sort_values(["Y","M","Doc"], kind="stable")
+           .sort_values(["Y", "M", "Doc"], kind="stable")
     )
     total_accrual = float(accr_group["Sum"].sum()) if not accr_group.empty else 0.0
 
-    # ===== Виплати (дебет) — беремо усі суми, включно з від’ємними =====
+    # ===== Виплати =====
     pay = df[df["AmountDt"] != 0].copy()
     pay["DateDT"] = pay["RegistrDate"]
     pay["Date"]   = pay["DateDT"].dt.strftime("%d.%m.%Y")
@@ -119,15 +119,30 @@ def build_bonus_message(df: pd.DataFrame, employee: str, period_date: datetime) 
     lines = []
     lines.append(f"📊 Бонуси за {title_month} {title_year} — {employee}.")
     lines.append("")
+
+    # --- Нарахування ---
     lines.append("📝 Нарахування:")
     if accr_group.empty:
         lines.append("• (немає даних)")
     else:
-        for _, r in accr_group.iterrows():
+        # головний період
+        main_rows = accr_group[(accr_group["Y"] == year) & (accr_group["M"] == month)]
+        corr_rows = accr_group[~((accr_group["Y"] == year) & (accr_group["M"] == month))]
+
+        for _, r in main_rows.iterrows():
             lines.append(f"• {r['Label']} — Док. {r['Doc']} → {fmt_num(r['Sum'])}")
+
+        if not corr_rows.empty:
+            lines.append("")
+            lines.append("🔄 Коригування:")
+            for _, r in corr_rows.iterrows():
+                lines.append(f"• {r['Label']} — Док. {r['Doc']} → {fmt_num(r['Sum'])}")
+
     lines.append(f"✅ Всього нараховано: {fmt_num(total_accrual)}")
     lines.append("")
-    lines.append("💵 Виплата бонусів:")
+
+    # --- Виплати ---
+    lines.append("💵 Виплата бонусів по закритій дебіторці:")
     if pay_group.empty:
         lines.append("• (виплат не було)")
     else:
@@ -136,7 +151,9 @@ def build_bonus_message(df: pd.DataFrame, employee: str, period_date: datetime) 
     lines.append(f"🥇 Всього виплачено: {fmt_num(total_paid)}")
     lines.append("")
     lines.append(f"📌 Невиплачений залишок: {fmt_num(unpaid)}")
+
     return "\n".join(lines)
+
 
 # ---- Головна точка виклику з бота ----
 def build_bonus_message_for_period(employee: str, year: int, month: int) -> str:
