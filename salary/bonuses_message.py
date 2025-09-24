@@ -116,6 +116,9 @@ def build_bonus_message(df: pd.DataFrame, employee: str, period_date: datetime) 
     title_month = ua_month_name(period_date.month)
     title_year  = period_date.year
 
+    year = period_date.year
+    month = period_date.month
+
     lines = []
     lines.append(f"📊 Бонуси за {title_month} {title_year} — {employee}.")
     lines.append("")
