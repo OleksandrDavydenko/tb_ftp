@@ -44,15 +44,16 @@ MONTHS_MAP = {name: idx + 1 for idx, name in enumerate(MONTHS_UA)}
 # ──────────────────────────────────────────────────────────────────────────────
 async def show_salary_menu(update: Update, context: CallbackContext) -> None:
     kb = [
-        [KeyboardButton("💼 Оклад"), [KeyboardButton("💰 Бонуси")],    
-        KeyboardButton("🎁 Відомість Бонуси")],                 
-        [KeyboardButton("Головне меню")],
+        [KeyboardButton("💼 Оклад"), KeyboardButton("💰 Бонуси")],   # ← один рядок, дві кнопки
+        [KeyboardButton("🎁 Відомість Бонуси")],                    # ← окремий рядок
+        [KeyboardButton("Головне меню")],                           # ← окремий рядок
     ]
     context.user_data["menu"] = "salary_menu"
     await update.message.reply_text(
         "Оберіть розділ:",
         reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)
     )
+
 
 
 
