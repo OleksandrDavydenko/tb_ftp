@@ -10,30 +10,57 @@ TEMP_DIR = 'temp'
 if not os.path.exists(TEMP_DIR):
     os.makedirs(TEMP_DIR)
 
+
+def _has_debt(debt_data) -> bool:
+    if not debt_data:
+        return False
+    try:
+        total = sum(float(row.get('[Sum_$]', 0) or 0) for row in debt_data)
+        return total > 0
+    except Exception:
+        return False
+
 # Функція для вибору між таблицею, гістограмою, діаграмою та кнопкою "Назад"
 async def show_debt_options(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'debt_options'
     phone_number = context.user_data.get('phone_number')
     found, employee_name, _ = is_phone_number_in_power_bi(phone_number)
 
-    if found:
-        debt_data = get_user_debt_data(employee_name)
-        if debt_data:
-            total_debt = sum(float(row.get('[Sum_$]', 0)) for row in debt_data if row.get('[Sum_$]', 0))
-            await update.message.reply_text(f"Загальна сума дебіторки для {employee_name}: {total_debt:.2f} USD")
-        else:
-            await update.message.reply_text(f"Немає даних для {employee_name}.")
-    
-    table_button = KeyboardButton(text="Таблиця")
-    histogram_button = KeyboardButton(text="Гістограма")
-    pie_chart_button = KeyboardButton(text="Діаграма")
-    overdue_button = KeyboardButton("Протермінована дебіторська заборгованість")
-    back_button = KeyboardButton(text="Назад")
-    custom_keyboard = [[table_button, histogram_button, pie_chart_button], [overdue_button], [back_button]]
-    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
-    await update.message.reply_text("Оберіть, що хочете зробити:", reply_markup=reply_markup)
+    if not found:
+        # якщо користувача не знайдено — одразу головне меню
+        reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Головне меню")]],
+                                           one_time_keyboard=True, resize_keyboard=True)
+        await update.message.reply_text("Доступ заборонено. Поверніться в головне меню.",
+                                        reply_markup=reply_markup)
+        return
 
+    debt_data = get_user_debt_data(employee_name)
+    if _has_debt(debt_data):
+        total_debt = sum(float(row.get('[Sum_$]', 0) or 0) for row in debt_data)
+        await update.message.reply_text(
+            f"Загальна сума дебіторки для {employee_name}: {total_debt:.2f} USD"
+        )
 
+        table_button = KeyboardButton("Таблиця")
+        histogram_button = KeyboardButton("Гістограма")
+        pie_chart_button = KeyboardButton("Діаграма")
+        overdue_button = KeyboardButton("Протермінована дебіторська заборгованість")
+        back_button = KeyboardButton("Назад")
+
+        custom_keyboard = [
+            [table_button, histogram_button, pie_chart_button],
+            [overdue_button],
+            [back_button]
+        ]
+        reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
+        await update.message.reply_text("Оберіть, що хочете зробити:", reply_markup=reply_markup)
+    else:
+        # НІЯКИХ «Таблиця/Діаграма» — лише повідомлення + Головне меню
+        reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Головне меню")]],
+                                           one_time_keyboard=True, resize_keyboard=True)
+        await update.message.reply_text(f"ℹ️ У {employee_name} немає дебіторської заборгованості.",
+                                        reply_markup=reply_markup)
+        return
 
 
 # Обробка натискання кнопки "Протермінована дебіторська заборгованість"
@@ -69,6 +96,13 @@ async def show_debt_details(update: Update, context: CallbackContext) -> None:
     phone_number = context.user_data['phone_number']
     found, employee_name, _ = is_phone_number_in_power_bi(phone_number)
     debt_data = get_user_debt_data(employee_name)
+
+    if not _has_debt(debt_data):
+        reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Головне меню")]],
+                                           one_time_keyboard=True, resize_keyboard=True)
+        await update.message.reply_text(f"ℹ️ Немає даних по дебіторці для {employee_name}.",
+                                        reply_markup=reply_markup)
+        return
 
     if debt_data:
         response = f"📋 *Дебіторка для {employee_name}:*\n\n"
@@ -118,6 +152,13 @@ async def show_debt_histogram(update: Update, context: CallbackContext):
     found, employee_name, _ = is_phone_number_in_power_bi(phone_number)
     debt_data = get_user_debt_data(employee_name)
 
+    if not _has_debt(debt_data):
+        reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Головне меню")]],
+                                           one_time_keyboard=True, resize_keyboard=True)
+        await update.message.reply_text(f"ℹ️ Немає даних по дебіторці для {employee_name}.",
+                                        reply_markup=reply_markup)
+        return
+
     if debt_data:
         file_path = generate_debt_graph(debt_data, employee_name, TEMP_DIR)
         try:
@@ -144,6 +185,13 @@ async def show_debt_pie_chart(update: Update, context: CallbackContext):
     phone_number = context.user_data['phone_number']
     found, employee_name, _ = is_phone_number_in_power_bi(phone_number)
     debt_data = get_user_debt_data(employee_name)
+
+    if not _has_debt(debt_data):
+        reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Головне меню")]],
+                                           one_time_keyboard=True, resize_keyboard=True)
+        await update.message.reply_text(f"ℹ️ Немає даних по дебіторці для {employee_name}.",
+                                        reply_markup=reply_markup)
+        return
 
     if debt_data:
         file_path = generate_pie_chart(debt_data, employee_name, TEMP_DIR)
