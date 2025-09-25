@@ -62,9 +62,10 @@ def fetch_3330(employee: str, period_date: datetime) -> pd.DataFrame:
     dax = f"""
 EVALUATE
 FILTER(
-    '3330',
-    '3330'[Subconto1Emp] = "{emp_escaped}"
-    && '3330'[Subconto2Period] = DATE({y},{m},{d})
+    '3330/3320',
+    '3330/3320'[Subconto1Emp] = "{emp_escaped}"
+    && '3330/3320'[Subconto2Period] = DATE({y},{m},{d})
+    && '3330/3320'[AccountCode] = 3330
 )
 """
     return _to_dataframe(_exec_dax(token, dax))
