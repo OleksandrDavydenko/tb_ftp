@@ -38,7 +38,7 @@ from salary.salary_handlers import (
     show_salary_menu,
     show_bonuses_years, show_bonuses_months, send_bonuses_excel,
     show_bonusmsg_years, show_bonusmsg_months, send_bonuses_message,   # ⟵ ДОДАНО
-    show_lead_prizes_stub                                              # ⟵ якщо ще не імпортовано
+    show_leadprize_years, show_leadprize_months, send_leadprizes_message                                             # ⟵ якщо ще не імпортовано
 )
 
 from employee_analytics.analytics_handler import (
@@ -268,7 +268,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
             context.user_data['menu'] = 'bonusmsg_years'
             await show_bonusmsg_years(update, context)
         elif text == "👑 Премії керівників":
-            await show_lead_prizes_stub(update, context)
+            await show_leadprize_years(update, context)
 
 
 
@@ -385,6 +385,11 @@ async def handle_back_navigation(update: Update, context: CallbackContext) -> No
         await show_bonusmsg_years(update, context)
     elif menu == 'bonusmsg_years':
         await show_salary_menu(update, context)
+    elif menu == 'leadprize_months':
+        await show_leadprize_years(update, context)
+    elif menu == 'leadprize_years':
+        await show_salary_menu(update, context)
+
 
 
     # Аналітика
@@ -432,6 +437,8 @@ async def handle_year_choice(update: Update, context: CallbackContext) -> None:
         await show_analytics_months(update, context)
     elif context.user_data.get('analytics_type') == 'yearly':
         await show_parameter_selection(update, context)
+    elif current_menu == 'leadprize_years':
+        await show_leadprize_months(update, context)
 
 async def handle_month_choice(update: Update, context: CallbackContext) -> None:
     selected_month = update.message.text
@@ -444,8 +451,12 @@ async def handle_month_choice(update: Update, context: CallbackContext) -> None:
         await send_bonuses_excel(update, context)
     elif current_menu == 'bonusmsg_months':
         await send_bonuses_message(update, context)
+    elif current_menu == 'leadprize_months':
+        await send_leadprizes_message(update, context)
+
     else:
         await show_monthly_analytics(update, context)
+    
 
 async def show_parameter_selection(update: Update, context: CallbackContext) -> None:
     parameter_buttons = [

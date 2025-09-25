@@ -8,6 +8,7 @@ import os
 import shutil
 from .bonuses_report import generate_excel
 from .bonuses_message import build_bonus_message_for_period
+from .lead_prizes_message import build_lead_prizes_message_for_period
 
 from .salary_queries import (
     get_salary_data,
@@ -54,17 +55,49 @@ async def show_salary_menu(update: Update, context: CallbackContext) -> None:
     )
 
 
+
 # ──────────────────────────────────────────────────────────────────────────────
-# Премії керівників (заглушка)
+# Премії керівників: рік → місяць → повідомлення
 # ──────────────────────────────────────────────────────────────────────────────
+# перенаправляємо користувача одразу до вибору року.
 async def show_lead_prizes_stub(update: Update, context: CallbackContext) -> None:
-    context.user_data["menu"] = "lead_prizes_stub"
-    await update.message.reply_text("👑 Розділ «Премії керівників» — функціонал у розробці. Слідкуйте за оновленнями!")
+    await show_leadprize_years(update, context)
+
+async def show_leadprize_years(update: Update, context: CallbackContext) -> None:
+    current_year = datetime.datetime.now().year
+    years = [str(y) for y in range(2025, current_year + 1)]
+    kb = [[KeyboardButton(y)] for y in years] + [[KeyboardButton("Назад")]]
+    context.user_data["menu"] = "leadprize_years"
+    await update.message.reply_text("Оберіть рік (Премії керівників):", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
+
+async def show_leadprize_months(update: Update, context: CallbackContext) -> None:
+    kb = [[KeyboardButton(m)] for m in MONTHS_UA]
+    kb.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
+    context.user_data["menu"] = "leadprize_months"
+    await update.message.reply_text("Оберіть місяць (Премії керівників):", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
+
+async def send_leadprizes_message(update: Update, context: CallbackContext) -> None:
+    employee   = context.user_data.get("employee_name")
+    year       = context.user_data.get("selected_year")
+    month_name = context.user_data.get("selected_month")
+
+    if not (employee and year and month_name):
+        await update.message.reply_text("Помилка: спочатку оберіть рік та місяць.")
+        return
+
+    month_num = MONTHS_MAP.get(month_name)
+    if month_num is None:
+        await update.message.reply_text("Невідомий місяць.")
+        return
+
+    try:
+        text = build_lead_prizes_message_for_period(employee, int(year), int(month_num))
+    except Exception as e:
+        text = f"❌ Не вдалося завантажити премії: {e}"
+    await update.message.reply_text(text)
+
     nav = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-    await update.message.reply_text(
-        "Виберіть опцію:",
-        reply_markup=ReplyKeyboardMarkup(nav, one_time_keyboard=True, resize_keyboard=True)
-    )
+    await update.message.reply_text("Виберіть опцію:", reply_markup=ReplyKeyboardMarkup(nav, one_time_keyboard=True, resize_keyboard=True))
 
 
 # ──────────────────────────────────────────────────────────────────────────────
