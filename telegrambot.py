@@ -28,6 +28,7 @@ from messages.birthday_greetings import send_birthday_greetings
 #from messages.oneTimeMessages.update3 import send_message_to_users
 #from messages.oneTimeMessages.update4 import send_message_to_users
 #from messages.oneTimeMessages.update5 import send_message_to_users
+from messages.oneTimeMessages.update6 import send_message_to_users
 
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -528,6 +529,9 @@ def main():
         id='daily_exchange_rates',
     )
 
+    
+    
+    scheduler.add_job(send_message_to_users, 'date', run_date='2025-09-26 11:00', timezone='Europe/Kiev', id='one_time_broadcast_1030')
 
 
 
