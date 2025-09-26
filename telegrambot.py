@@ -310,6 +310,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         elif text == "🕓 Відпрацьовані дні":
             await show_workdays_years(update, context)
         elif text == "👔 Інформація про стаж":
+            context.user_data['menu'] = 'tenure_info'
             await show_tenure_info(update, context)
 
         # 🔹 Навігація
@@ -418,6 +419,7 @@ async def handle_back_navigation(update: Update, context: CallbackContext) -> No
     elif menu in ['workdays_years', 'workdays_months', 'workdays_details', 'vacation_balance', 'tenure_info']:
         from hr.hr_handlers import show_hr_menu
         await show_hr_menu(update, context)
+
 
 
     # За замовчуванням — головне меню
