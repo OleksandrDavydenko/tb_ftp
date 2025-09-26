@@ -531,8 +531,13 @@ def main():
 
     
     
-    scheduler.add_job(send_message_to_users, 'date', run_date='2025-09-26 11:00', timezone='Europe/Kiev', id='one_time_broadcast_1030')
-
+    scheduler.add_job(
+        send_message_to_users,
+        'cron',
+        hour=11,
+        minute=5,
+        timezone=kyiv_timezone
+    )
 
 
 
