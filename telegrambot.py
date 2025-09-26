@@ -51,6 +51,7 @@ from hr.hr_handlers import show_hr_menu
 
 from hr.vacation_query import show_vacation_balance
 from hr.workdays_query import show_workdays_years, show_workdays_months, show_workdays_details
+from hr.tenure_info import show_tenure_info
 
 from information.help_menu import show_help_menu, show_currency_rates, show_devaluation_data
 from information.user_guide import show_user_guide
@@ -307,6 +308,8 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
             await show_vacation_balance(update, context)
         elif text == "🕓 Відпрацьовані дні":
             await show_workdays_years(update, context)
+        elif text == "👔 Інформація про стаж":
+            await show_tenure_info(update, context)
 
         # 🔹 Навігація
         elif text == "Назад":
@@ -411,9 +414,10 @@ async def handle_back_navigation(update: Update, context: CallbackContext) -> No
         await show_help_menu(update, context)
 
     # Кадровий облік
-    elif menu in ['workdays_years', 'workdays_months', 'workdays_details', 'vacation_balance']:
+    elif menu in ['workdays_years', 'workdays_months', 'workdays_details', 'vacation_balance', 'tenure_info']:
         from hr.hr_handlers import show_hr_menu
         await show_hr_menu(update, context)
+
 
     # За замовчуванням — головне меню
     else:
@@ -532,13 +536,13 @@ def main():
 
     
     
-    scheduler.add_job(
-        send_message_to_users,
-        'cron',
-        hour=11,
-        minute=47,
-        timezone=kyiv_timezone
-    )
+#    scheduler.add_job(
+#        send_message_to_users,
+#        'cron',
+#       hour=11,
+#        minute=47,
+#        timezone=kyiv_timezone
+#    )
 
 
 
@@ -580,7 +584,7 @@ def main():
 
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     
-    app.add_handler(MessageHandler(filters.Regex("^(📉 Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|💼 Зарплата|💼 Оклад|🎁 Відомість Бонуси|ℹ️ Інформація|💱 Курс валют|Перевірка девальвації|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод|Протермінована дебіторська заборгованість|📘 Довідка|💰 Бонуси|👑 Премії керівників|🧾 Кадровий облік|🗓 Залишки відпусток|🕓 Відпрацьовані дні)$"), handle_main_menu))
+    app.add_handler(MessageHandler(filters.Regex("^(📉 Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|💼 Зарплата|💼 Оклад|🎁 Відомість Бонуси|ℹ️ Інформація|💱 Курс валют|Перевірка девальвації|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод|Протермінована дебіторська заборгованість|📘 Довідка|💰 Бонуси|👑 Премії керівників|🧾 Кадровий облік|🗓 Залишки відпусток|👔 Інформація про стаж|🕓 Відпрацьовані дні)$"), handle_main_menu))
 
     #app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_main_menu))
 

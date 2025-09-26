@@ -1,6 +1,8 @@
+# hr_handlers.py
 from telegram import Update, KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import CallbackContext
 from .vacation_query import show_vacation_balance
+from .tenure_info import show_tenure_info   
 
 # Меню кадрового обліку
 async def show_hr_menu(update: Update, context: CallbackContext) -> None:
@@ -8,6 +10,7 @@ async def show_hr_menu(update: Update, context: CallbackContext) -> None:
     keyboard = [
         [KeyboardButton("🗓 Залишки відпусток")],
         [KeyboardButton("🕓 Відпрацьовані дні")],
+        [KeyboardButton("👔 Інформація про стаж")],  
         [KeyboardButton("Головне меню")]
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
