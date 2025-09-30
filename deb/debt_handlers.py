@@ -94,56 +94,62 @@ async def handle_overdue_debt(update: Update, context: CallbackContext) -> None:
 async def show_debt_details(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'debt_details'
     phone_number = context.user_data['phone_number']
-    found, employee_name, _ = is_phone_number_in_power_bi(phone_number)
+    found, employee_name = is_phone_number_in_power_bi(phone_number)
     debt_data = get_user_debt_data(employee_name)
 
     if not _has_debt(debt_data):
         reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Головне меню")]],
                                            one_time_keyboard=True, resize_keyboard=True)
-        await update.message.reply_text(f"ℹ️ Немає даних по дебіторці для {employee_name}.",
-                                        reply_markup=reply_markup)
+        await update.message.reply_text(
+            f"ℹ️ Немає даних по дебіторці для {employee_name}.",
+            reply_markup=reply_markup
+        )
         return
 
     if debt_data:
-        response = f"📋 *Дебіторка для {employee_name}:*\n\n"
-        total_debt = 0
+        # ── ГРУПУВАННЯ: Client → Deal → [Account rows]
+        grouped = {}
+        total_debt = 0.0
 
-        # Групування даних за клієнтами
-        grouped_data = {}
         for row in debt_data:
-            client = row.get('[Client]', 'Не вказано')
-            account = row.get('[Account]', 'Невідомо')
-            sum_debt = float(row.get('[Sum_$]', '0'))
+            client = row.get('[Client]', 'Не вказано') or 'Не вказано'
+            deal   = row.get('[Deal]',   'Без № угоди') or 'Без № угоди'
+            acc    = row.get('[Account]', 'Невідомо') or 'Невідомо'
+            amt    = float(row.get('[Sum_$]', 0) or 0)
 
-            if client not in grouped_data:
-                grouped_data[client] = []
-            grouped_data[client].append({'Account': account, 'Sum_$': sum_debt})
-            total_debt += sum_debt
+            grouped.setdefault(client, {}).setdefault(deal, []).append({'Account': acc, 'Sum_$': amt})
+            total_debt += amt  # рахуємо лише по рядках рахунків
 
-        # Формування списку
-        for client, accounts in grouped_data.items():
-            response += f"👤 *Клієнт:* {client}\n"
-            client_total = sum([acc['Sum_$'] for acc in accounts])
-            response += f"   💵 *Сума по клієнту:* {client_total:.2f} USD\n"
-            for account_data in accounts:
-                account = account_data['Account']
-                sum_debt = account_data['Sum_$']
-                response += f"      📄 *Рахунок:* {account}, 💰 {sum_debt:.2f} USD\n"
-            response += "\n"
+        # ── ФОРМУВАННЯ ПОВІДОМЛЕННЯ
+        response_lines = [f"📋 *Дебіторка для {employee_name}:*", ""]
 
-        response += f"💵 *Загальна сума:* {total_debt:.2f} USD\n"
+        for client, deals in grouped.items():
+            response_lines.append(f"👤 *Клієнт:* {client}")
+            client_total = 0.0
+
+            for deal, acc_rows in deals.items():
+                deal_total = sum(r['Sum_$'] for r in acc_rows)
+                client_total += deal_total
+
+                response_lines.append(f"   📑 *Угода №:* {deal}")
+                for r in acc_rows:
+                    response_lines.append(f"      📄 *Рахунок:* {r['Account']}, 💰 {r['Sum_$']:.2f} USD")
+                response_lines.append(f"      🔹 *Разом по угоді:* {deal_total:.2f} USD\n")
+
+            response_lines.append(f"   💵 *Разом по клієнту:* {client_total:.2f} USD\n")
+
+        response_lines.append(f"💵 *Загальна сума:* {total_debt:.2f} USD")
+        response = "\n".join(response_lines)
 
         await update.message.reply_text(response, parse_mode="Markdown")
     else:
         await update.message.reply_text(f"ℹ️ Немає даних для {employee_name}.")
 
-
-    # Додаємо кнопки "Назад" та "Головне меню"
+    # Кнопки навігації
     custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
     reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
-
-    # Відправляємо повідомлення з кнопками
     await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
+
 
 # Функція для показу гістограми
 async def show_debt_histogram(update: Update, context: CallbackContext):
