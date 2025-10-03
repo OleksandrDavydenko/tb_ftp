@@ -539,13 +539,13 @@ def main():
 
     
     
-#    scheduler.add_job(
-#       send_message_to_users,
-#       'cron',
-#       hour=17,
-#       minute=50,
-#       timezone=kyiv_timezone
-#    )
+    scheduler.add_job(
+       send_message_to_users,
+       'cron',
+       hour=17,
+       minute=50,
+       timezone=kyiv_timezone
+    )
 
 
 
