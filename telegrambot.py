@@ -542,8 +542,8 @@ def main():
 #    scheduler.add_job(
 #       send_message_to_users,
 #       'cron',
-#       hour=8,
-#       minute=5,
+#       hour=17,
+#       minute=50,
 #       timezone=kyiv_timezone
 #    )
 
