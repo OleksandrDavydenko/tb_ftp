@@ -1,199 +1,252 @@
-import re
-import requests
 import os
-from db import add_telegram_user, get_user_status, get_employee_name, delete_user_payments, update_user_joined_at  # Імпортуємо функцію перевірки статусу
-from datetime import datetime
+import re
 import logging
+from datetime import datetime, timezone
+import requests
 
+from db import (
+    add_telegram_user,
+    get_user_status,
+    get_employee_name,
+    delete_user_payments,
+    update_user_joined_at,
+)
 
-# Функція для нормалізації номера телефону (залишає лише останні 9 цифр)
-def normalize_phone_number(phone_number):
+# ---------------------------
+# НОРМАЛІЗАЦІЯ НОМЕРІВ
+# ---------------------------
+def normalize_phone_number(phone_number: str) -> str:
     """
-    Нормалізує телефонний номер:
-    - Видаляє всі нецифрові символи.
-    - Додає код країни, якщо його немає.
+    Приводить номер до формату для порівнянь: лише цифри (без '+').
+    UA: 0XXXXXXXXX/380XXXXXXXXX/XXXXXXXXX → 380XXXXXXXXX
+    Інші міжнародні: лиш цифри.
     """
-    if not phone_number:  # Перевіряємо, чи не None
+    if not phone_number:
         return ""
-    digits = re.sub(r'\D', '', phone_number)  # Залишаємо лише цифри
-    if len(digits) == 9:  # Якщо номер без коду країни
-        return f"380{digits}"
-    elif len(digits) == 12 and digits.startswith("380"):  # Якщо номер із кодом країни
-        return digits
-    elif len(digits) == 10 and digits.startswith("0"):  # Якщо номер починається з "0"
+    digits = re.sub(r"\D", "", str(phone_number))
+
+    if len(digits) == 10 and digits.startswith("0"):
         return f"380{digits[1:]}"
-    else:
+    if len(digits) == 9:
+        return f"380{digits}"
+    if len(digits) == 12 and digits.startswith("380"):
         return digits
+    return digits
 
 
-# Отримання токену Power BI
-def get_power_bi_token():
-    client_id = '706d72b2-a9a2-4d90-b0d8-b08f58459ef6'
-    username = 'od@ftpua.com'
-    password = os.getenv('PASSWORD')
-    url = 'https://login.microsoftonline.com/common/oauth2/token'
-    
-    body = {
-        'grant_type': 'password',
-        'resource': 'https://analysis.windows.net/powerbi/api',
-        'client_id': client_id,
-        'username': username,
-        'password': password
-    }
-    
-    response = requests.post(url, data=body, headers={'Content-Type': 'application/x-www-form-urlencoded'})
-    
-    if response.status_code == 200:
-        return response.json().get('access_token')
-    else:
-        print(f"Error getting token: {response.status_code}, {response.text}")
+# ---------------------------
+# POWER BI TOKEN
+# ---------------------------
+def get_power_bi_token() -> str | None:
+    client_id = os.getenv("PBI_CLIENT_ID", "706d72b2-a9a2-4d90-b0d8-b08f58459ef6")
+    username = os.getenv("PBI_USERNAME", "od@ftpua.com")
+    password = os.getenv("PASSWORD")
+    if not password:
+        logging.error("❌ Не задано PASSWORD у змінних оточення.")
         return None
 
-# Перевірка номера телефону в Power BI
-def is_phone_number_in_power_bi(phone_number):
-    """
-    Перевіряє, чи є телефонний номер у Power BI
-    """
-    token = get_power_bi_token()
-    if not token:
-        logging.error("❌ Не вдалося отримати токен Power BI.")
-        return False, None, None
-
-    dataset_id = '8b80be15-7b31-49e4-bc85-8b37a0d98f1c'
-    power_bi_url = f'https://api.powerbi.com/v1.0/myorg/datasets/{dataset_id}/executeQueries'
-    headers = {
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json'
+    url = "https://login.microsoftonline.com/common/oauth2/token"
+    body = {
+        "grant_type": "password",
+        "resource": "https://analysis.windows.net/powerbi/api",
+        "client_id": client_id,
+        "username": username,
+        "password": password,
     }
 
-    query_data = {
-        "queries": [
-            {
-                "query": f"""
-                    EVALUATE 
+    try:
+        resp = requests.post(url, data=body, headers={"Content-Type": "application/x-www-form-urlencoded"}, timeout=30)
+        if resp.status_code == 200:
+            return resp.json().get("access_token")
+        logging.error(f"❌ Error getting token: {resp.status_code}, {resp.text}")
+    except Exception as e:
+        logging.exception(f"❌ Exception getting PBI token: {e}")
+    return None
+
+
+# ---------------------------
+# POWER BI HELPERS
+# ---------------------------
+PBI_DATASET_ID = os.getenv("PBI_DATASET_ID", "8b80be15-7b31-49e4-bc85-8b37a0d98f1c")
+PBI_EXEC_URL = f"https://api.powerbi.com/v1.0/myorg/datasets/{PBI_DATASET_ID}/executeQueries"
+PBI_HEADERS_BASE = {"Content-Type": "application/json"}
+
+def _pbi_post(query_obj: dict) -> dict | None:
+    token = get_power_bi_token()
+    if not token:
+        return None
+    headers = {**PBI_HEADERS_BASE, "Authorization": f"Bearer {token}"}
+    try:
+        resp = requests.post(PBI_EXEC_URL, headers=headers, json=query_obj, timeout=60)
+        if resp.status_code == 200:
+            return resp.json()
+        logging.error(f"❌ Помилка Power BI {resp.status_code}: {resp.text}")
+    except Exception as e:
+        logging.exception(f"❌ Виняток при зверненні до Power BI: {e}")
+    return None
+
+
+def get_employee_directory_from_power_bi() -> dict[str, dict]:
+    """
+    { employee_name: { "phone": "<normalized>", "status": "<Статус>", "raw_phone": "<як у PBI>" } }
+    Якщо кілька рядків по співробітнику — беремо той, де статус "Активний".
+    """
+    query = {
+        "queries": [{
+            "query": """
+                EVALUATE
+                SELECTCOLUMNS(
+                    Employees,
+                    "Employee", Employees[Employee],
+                    "Phone", Employees[PhoneNumberTelegram],
+                    "Status", Employees[Status]
+                )
+            """
+        }],
+        "serializerSettings": {"includeNulls": True},
+    }
+
+    data = _pbi_post(query)
+    if not data:
+        return {}
+
+    rows = data.get("results", [{}])[0].get("tables", [{}])[0].get("rows", [])
+    directory: dict[str, dict] = {}
+
+    for r in rows:
+        emp = (r.get("[Employee]") or "").strip()
+        phone_raw = (r.get("[Phone]") or "").strip()
+        status = (r.get("[Status]") or "").strip()
+        phone_norm = normalize_phone_number(phone_raw) if phone_raw else ""
+
+        if emp not in directory:
+            directory[emp] = {"phone": phone_norm, "status": status, "raw_phone": phone_raw}
+        else:
+            if status == "Активний":
+                directory[emp] = {"phone": phone_norm, "status": status, "raw_phone": phone_raw}
+    return directory
+
+
+def is_phone_number_in_power_bi(phone_number: str) -> tuple[bool, str | None, str | None]:
+    """
+    Перевіряє наявність номера в PBI по конкретному номеру.
+    Повертає: (is_active, employee_name, status_from_pbi)
+    """
+    normalized = normalize_phone_number(phone_number)
+    query = {
+        "queries": [{
+            "query": f"""
+                EVALUATE
+                VAR T =
                     SELECTCOLUMNS(
                         Employees,
                         "Employee", Employees[Employee],
-                        "PhoneNumber", Employees[PhoneNumberTelegram],
+                        "Phone", Employees[PhoneNumberTelegram],
                         "Status", Employees[Status]
                     )
-                """
-            }
-        ],
-        "serializerSettings": {
-            "includeNulls": True
-        }
+                RETURN
+                    FILTER(
+                        T,
+                        SUBSTITUTE(
+                            SUBSTITUTE(
+                                SUBSTITUTE(
+                                    SUBSTITUTE(
+                                        SUBSTITUTE([Phone], " ", ""), "-", ""), "(", ""), ")", ""
+                                    ), "+", ""         -- прибираємо '+'
+                        ) = "{normalized}"
+                    )
+            """
+        }],
+        "serializerSettings": {"includeNulls": True},
     }
 
-    response = requests.post(power_bi_url, headers=headers, json=query_data)
-
-    if response.status_code == 200:
-        data = response.json()
-        rows = data['results'][0]['tables'][0].get('rows', [])
-
-        # Нормалізуємо всі номери з Power BI
-        phone_map = {
-            normalize_phone_number(row.get('[PhoneNumber]', '') or ''): (row.get('[Employee]', ''), row.get('[Status]', ''))
-            for row in rows if row.get('[PhoneNumber]')  # Фільтруємо None
-        }
-
-
-        normalized_phone_number = normalize_phone_number(phone_number)
-        logging.info(f"📞 Нормалізований номер телефону: {normalized_phone_number}")
-
-        if normalized_phone_number in phone_map:
-            employee_name, status = phone_map[normalized_phone_number]
-            logging.info(f"✅ Знайдено в Power BI: {employee_name}, Статус: {status}")
-            return status == "Активний", employee_name, status
-        else:
-            logging.warning(f"🚫 Номер телефону {normalized_phone_number} не знайдено в Power BI.")
-            return False, None, None
-    else:
-        logging.error(f"❌ Помилка запиту до Power BI: {response.status_code}, {response.text}")
+    data = _pbi_post(query)
+    if not data:
         return False, None, None
 
+    rows = data.get("results", [{}])[0].get("tables", [{}])[0].get("rows", [])
+    if not rows:
+        logging.warning(f"🚫 Номер {normalized} не знайдено в PBI.")
+        return False, None, None
 
-# Функція для перевірки користувача і запису в базу
-def verify_and_add_user(phone_number, telegram_id, telegram_name):
-    is_active, employee_name, status_from_power_bi = is_phone_number_in_power_bi(phone_number)
-    logging.info(f"📊 Дані Power BI для {phone_number}: Активний={is_active}, Ім'я={employee_name}, Статус={status_from_power_bi}")
+    row = None
+    for r in rows:
+        if (r.get("[Status]") or "").strip() == "Активний":
+            row = r
+            break
+    if row is None:
+        row = rows[0]
 
-    if not employee_name:
-        employee_name = get_employee_name(phone_number)
-        logging.info(f"ℹ️ Ім'я з бази: {employee_name}")
+    employee_name = (row.get("[Employee]") or "").strip()
+    status = (row.get("[Status]") or "").strip()
+    is_active = status == "Активний"
+    logging.info(f"✅ PBI: {employee_name} / {status} для {normalized}")
+    return is_active, employee_name or None, status or None
 
-    new_status = "active" if status_from_power_bi == "Активний" else "deleted"
+
+# ---------------------------
+# HIGH-LEVEL OPS
+# ---------------------------
+def verify_and_add_user(phone_number: str, telegram_id: int | str, telegram_name: str):
+    """
+    При логіні:
+      - перевіряємо номер у PBI
+      - при БУДЬ-ЯКІЙ зміні статусу оновлюємо joined_at
+      - додаємо/оновлюємо запис
+    """
+    is_active, employee_name_pbi, status_from_pbi = is_phone_number_in_power_bi(phone_number)
+    logging.info(
+        f"📊 PBI для {phone_number}: is_active={is_active}, employee={employee_name_pbi}, status={status_from_pbi}"
+    )
+
+    employee_name = employee_name_pbi or get_employee_name(phone_number)
+    new_status = "active" if status_from_pbi == "Активний" else "deleted"
     current_status = get_user_status(phone_number)
-    logging.info(f"🛠️ Поточний статус у БД: {current_status}, Новий статус: {new_status}")
+    logging.info(f"🛠️ БД статус: {current_status} → новий: {new_status}")
 
-    # Якщо користувач вже був "deleted", видаляємо всі платежі
+    # Якщо вже був deleted — чистимо платежі (політика безпеки)
     if current_status == "deleted":
-        logging.info(f"❌ Користувач {phone_number} вже був видалений. Видаляємо всі його платежі.")
+        logging.info(f"🧹 Видаляємо платежі для {phone_number}, бо статус був 'deleted'.")
         delete_user_payments(phone_number)
 
     if current_status != new_status:
-        # Якщо статус змінюється з "deleted" на "active", оновлюємо joined_at
-        if current_status == "deleted" and new_status == "active":
-            new_joined_at = datetime.now()
-            update_user_joined_at(phone_number, new_joined_at)
-            logging.info(f"🔄 Користувач {phone_number} повернувся в систему. Оновлено joined_at: {new_joined_at}")
+        # ОНОВЛЮЄМО joined_at ПРИ БУДЬ-ЯКІЙ ЗМІНІ СТАТУСУ
+        now_utc = datetime.now(timezone.utc)
+        update_user_joined_at(phone_number, now_utc)
+        logging.info(f"🔄 Зміна статусу. joined_at → {now_utc.isoformat()}")
 
         add_telegram_user(phone_number, telegram_id, telegram_name, employee_name, new_status)
-        logging.info(f"🔄 Статус оновлено: {phone_number} → {new_status}")
+        logging.info(f"✅ Статус оновлено: {phone_number} → {new_status}")
     else:
+        add_telegram_user(phone_number, telegram_id, telegram_name, employee_name, new_status)
         logging.info(f"✅ Статус без змін: {phone_number} → {current_status}")
 
 
-
-
-# Функція для отримання даних про дебіторку для менеджера
-def get_user_debt_data(manager_name):
-    token = get_power_bi_token()
-    if not token:
-        return None
-    
-    dataset_id = '8b80be15-7b31-49e4-bc85-8b37a0d98f1c'
-    power_bi_url = f'https://api.powerbi.com/v1.0/myorg/datasets/{dataset_id}/executeQueries'
-    headers = {
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json'
+def get_user_debt_data(manager_name: str):
+    query = {
+        "queries": [{
+            "query": f"""
+                EVALUATE 
+                SELECTCOLUMNS(
+                    FILTER(
+                        Deb,
+                        Deb[Manager] = "{manager_name}" && Deb[Inform] <> 1
+                    ),
+                    "Client", Deb[Client],
+                    "Sum_$", Deb[Sum_$],
+                    "Manager", Deb[Manager],
+                    "PlanDatePay", Deb[PlanDatePay],
+                    "Account", Deb[Account],
+                    "Deal", Deb[Deal],
+                    "AccountDate", Deb[AccountDate]
+                )
+            """
+        }],
+        "serializerSettings": {"includeNulls": True}
     }
-    
-    query_data = {
-        "queries": [
-            {
-                "query": f"""
-                    EVALUATE 
-                    SELECTCOLUMNS(
-                        FILTER(
-                            Deb,
-                            Deb[Manager] = "{manager_name}" && Deb[Inform] <> 1
-                        ),
-                        "Client", Deb[Client],
-                        "Sum_$", Deb[Sum_$],
-                        "Manager", Deb[Manager],
-                        "PlanDatePay", Deb[PlanDatePay],
-                        "Account", Deb[Account],
-                        "Deal", Deb[Deal],
-                        "AccountDate",  Deb[AccountDate]
-                    )
-                """
-            }
-        ],
-        "serializerSettings": {
-            "includeNulls": True
-        }
-    }
-    
-    response = requests.post(power_bi_url, headers=headers, json=query_data)
-    
-    if response.status_code == 200:
-        data = response.json()
-        rows = data['results'][0]['tables'][0].get('rows', [])
-        return rows
-    else:
-        print(f"Error executing query: {response.status_code}, {response.text}")
+
+    data = _pbi_post(query)
+    if not data:
         return None
-
-
-
+    rows = data.get("results", [{}])[0].get("tables", [{}])[0].get("rows", [])
+    return rows

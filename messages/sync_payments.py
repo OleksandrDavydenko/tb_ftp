@@ -4,18 +4,14 @@ import psycopg2
 import os
 import logging
 from datetime import datetime
-from auth import get_power_bi_token
+from auth import get_power_bi_token, normalize_phone_number
 from db import add_payment
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 DATABASE_URL = os.getenv('DATABASE_URL')
-#TARGET_PHONE = "380632773227"
 
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
-
-def normalize_phone_number(phone_number):
-    return phone_number[1:] if phone_number.startswith('+') else phone_number
 
 def fetch_db_payments(phone_number, payment_number):
     conn = get_db_connection()
@@ -93,17 +89,15 @@ async def sync_payments():
                                 SalaryPayment[DocDate] >= "{joined_at.strftime('%Y-%m-%d')}"
                             ),
                             "Дата платежу", SalaryPayment[DocDate],
-                            "Документ", SalaryPayment[DocNumber],
-                            "Сума UAH", SalaryPayment[SUM_UAH],
-                            "Сума USD", SalaryPayment[SUM_USD],
+                            "Документ",    SalaryPayment[DocNumber],
+                            "Сума UAH",    SalaryPayment[SUM_UAH],
+                            "Сума USD",    SalaryPayment[SUM_USD],
                             "МісяцьНарахування", SalaryPayment[МісяцьНарахування]
                         )
                     """
                 }
             ],
-            "serializerSettings": {
-                "includeNulls": True
-            }
+            "serializerSettings": { "includeNulls": True }
         }
 
         try:
@@ -122,10 +116,13 @@ async def sync_payments():
             for payment_number, payments in grouped.items():
                 bi_set = set()
                 for p in payments:
-                    amount = float(p.get("[Сума USD]", 0)) if abs(p.get("[Сума USD]", 0)) > 0 else float(p.get("[Сума UAH]", 0))
-                    currency = "USD" if abs(p.get("[Сума USD]", 0)) > 0 else "UAH"
+                    usd = float(p.get("[Сума USD]", 0) or 0)
+                    uah = float(p.get("[Сума UAH]", 0) or 0)
+                    use_usd = abs(usd) > 0
+                    amount = usd if use_usd else uah
+                    currency = "USD" if use_usd else "UAH"
                     payment_date = str(p.get("[Дата платежу]", "")).split("T")[0]
-                    accrual_month = p.get("[МісяцьНарахування]", "").strip()
+                    accrual_month = (p.get("[МісяцьНарахування]", "") or "").strip()
                     bi_set.add((f"{amount:.2f}", currency, payment_date, accrual_month))
 
                 db_set = fetch_db_payments(phone_number, payment_number)

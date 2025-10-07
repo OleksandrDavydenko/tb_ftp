@@ -497,7 +497,7 @@ def main():
 
     set_bot_menu_sync(app)
 
-    scheduler.add_job(check_new_payments, 'interval', seconds=1000)
+    #scheduler.add_job(check_new_payments, 'interval', seconds=1000)
     scheduler.add_job(sync_payments, 'interval', seconds=1800)
     # scheduler.add_job(check_new_devaluation_records, 'interval', seconds=10800)
     scheduler.add_job(check_new_devaluation_records, 'cron', hour=11, minute=10, timezone='Europe/Kiev') # Перевірка нових записів девальвації щодня о 10:20
@@ -599,7 +599,7 @@ def main():
         asyncio.run(shutdown(app, scheduler))
 
 if __name__ == '__main__':
-    #main()
+    main()
 
 
 
