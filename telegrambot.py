@@ -599,7 +599,7 @@ def main():
         asyncio.run(shutdown(app, scheduler))
 
 if __name__ == '__main__':
-    main()
+    #main()
 
 
 
