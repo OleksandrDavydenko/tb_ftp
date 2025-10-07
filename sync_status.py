@@ -31,12 +31,23 @@ def sync_user_statuses():
     deleted_users = 0
     updated_names = 0
 
-    # (1) Еталон з PBI: employee_name -> {phone, status}
+    # (1) Еталон з PBI: employee_name -> {phone (normalized), status}
     pbi_dir = get_employee_directory_from_power_bi()
     if not pbi_dir:
-        logging.warning("⚠️ Не вдалося отримати довідник з PBI. Продовжимо лише по номеру.")
+        logging.warning("⚠️ Не вдалося отримати довідник з PBI. Використаємо фолбек по одиничному запиту.")
     else:
         logging.info(f"📒 Довідник PBI завантажено: {len(pbi_dir)} співробітників.")
+
+    # Побудуємо індекс: normalized_phone -> (employee_name, status)
+    pbi_by_phone: dict[str, tuple[str, str]] = {}
+    if pbi_dir:
+        for emp, rec in pbi_dir.items():
+            np = normalize_phone_number(rec.get("phone") or "")
+            if np:
+                # Якщо раптом зустрінуться дублікати номерів у різних співробітників — залишимо перший/активний
+                prev = pbi_by_phone.get(np)
+                if not prev or rec.get("status") == "Активний":
+                    pbi_by_phone[np] = (emp, rec.get("status", ""))
 
     users = get_all_users()
 
@@ -47,7 +58,19 @@ def sync_user_statuses():
         current_employee_name = user.get("employee_name")
 
         try:
-            is_active, employee_name, status_from_pbi = is_phone_number_in_power_bi(phone_number)
+            employee_name = None
+            status_from_pbi = None
+
+            np = normalize_phone_number(phone_number)
+
+            if pbi_by_phone:
+                hit = pbi_by_phone.get(np)
+                if hit:
+                    employee_name, status_from_pbi = hit
+            else:
+                # Фолбек, якщо довідник не піднявся
+                _, employee_name, status_from_pbi = is_phone_number_in_power_bi(phone_number)
+
             new_status = "active" if status_from_pbi == "Активний" else "deleted"
 
             # Оновимо ім'я з PBI, якщо його немає або змінилось
