@@ -540,41 +540,9 @@ def log_birthday_greeting(employee_name, query, response):
 
 
 
-def mark_all_unnotified_payments_as_notified(include_nulls: bool = False) -> int:
-    """
-    Масово ставить is_notified=TRUE у payments.
-      - include_nulls=False: лише там, де is_notified=FALSE
-      - include_nulls=True:   і там, де is_notified IS NULL
-    Повертає кількість оновлених рядків.
-    """
-    sql = (
-        "UPDATE payments SET is_notified = TRUE WHERE is_notified = FALSE"
-        if not include_nulls
-        else "UPDATE payments SET is_notified = TRUE WHERE is_notified IS DISTINCT FROM TRUE"
-    )
-    conn = None
-    cur = None
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(sql)
-        updated = cur.rowcount
-        conn.commit()
-        logging.info(f"🔔 Позначено як сповіщені: {updated} платежів.")
-        return updated
-    except Exception as e:
-        if conn:
-            conn.rollback()
-        logging.exception(f"❌ Помилка масового оновлення is_notified: {e}")
-        return 0
-    finally:
-        if cur:
-            cur.close()
-        if conn:
-            conn.close()
 
 
-mark_all_unnotified_payments_as_notified()
+
 
 
 
