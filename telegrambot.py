@@ -13,7 +13,7 @@ from datetime import datetime
 
 from messages.check_payments import check_new_payments
 #from messages.sync_payments import sync_payments
-from messages.sync_payments import sync_payments_single_query as sync_payments
+from messages.sync_payments import sync_payments
 
 from auth import is_phone_number_in_power_bi
 from db import add_telegram_user, get_user_joined_at, get_user_status, get_employee_name, log_user_action, get_user_by_telegram_id
