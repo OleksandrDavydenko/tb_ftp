@@ -79,27 +79,26 @@ def _dax_escape(s: str) -> str:
 
 def _build_users_union_rows(rows: List[Tuple[str, str, datetime]]) -> str:
     """
-    Будує вираз UNION( ROW("Employee","..","JoinedAt",DATETIME(...)), ... )
-
+    Будує вираз UNION( ROW("Employee","..","JoinedAt",DATE(...)), ... )
     rows: list of tuples (phone_number, employee_name, joined_at)
     """
     row_exprs = []
     for _, emp, joined_at in rows:
         if not emp or not joined_at:
-            # пропускаємо некоректні записи
             continue
         emp_esc = _dax_escape(emp)
         dt = joined_at.date() if hasattr(joined_at, "date") else joined_at
         y, m, d = dt.year, dt.month, dt.day
+        # головна зміна: DATE замість DATETIME
         row_exprs.append(
-            f'ROW("Employee","{emp_esc}","JoinedAt",DATETIME({y},{m},{d},0,0,0))'
+            f'ROW("Employee","{emp_esc}","JoinedAt",DATE({y},{m},{d}))'
         )
     if not row_exprs:
-        # Порожня таблиця користувачів
-        return "FILTER(SalaryPayment, FALSE())"  # поверне 0 рядків
+        return "FILTER(SalaryPayment, FALSE())"
     if len(row_exprs) == 1:
         return row_exprs[0]
     return f"UNION(\n        " + ",\n        ".join(row_exprs) + "\n    )"
+
 
 
 def _build_dax_for_batch(batch_rows: List[Tuple[str, str, datetime]]) -> str:
