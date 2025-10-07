@@ -563,7 +563,7 @@ def main():
     
 
 
-    scheduler.add_job(sync_user_statuses, 'interval', minutes=90)
+    scheduler.add_job(sync_user_statuses, 'interval', minutes=5)
 
 
     scheduler.start()
