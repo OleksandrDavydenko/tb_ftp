@@ -70,17 +70,25 @@ def _dax_escape(s: str) -> str:
 
 def build_one_dax_query(active_users):
     """
-    active_users: iterable of (phone_number, employee_name, joined_at)
-    Формує один DAX, що:
-      - будує DATATABLE(Employee, JoinedAt) з активних користувачів;
-      - підтягує лише рядки SalaryPayment для цих співробітників починаючи з їх JoinedAt.
+    Формує один DAX із DATATABLE(Employee, JoinedAt) і фільтрує SalaryPayment
+    від індивідуального JoinedAt для кожного співробітника.
     """
-    # Рядки DATATABLE: { "Emp Name", DATE(YYYY,MM,DD) }
+    def _dax_escape(s: str) -> str:
+        return (s or "").replace('"', '""')
+
     rows = []
     for _, emp, joined_at in active_users:
+        if not emp or not joined_at:
+            continue
         emp_esc = _dax_escape(emp)
         dt = joined_at.date() if hasattr(joined_at, "date") else joined_at
+        # DATE(YYYY,MM,DD) ок для колонки типу DATETIME
         rows.append(f'{{ "{emp_esc}", DATE({dt.year},{dt.month},{dt.day}) }}')
+
+    if not rows:
+        return (
+            'EVALUATE SELECTCOLUMNS(SalaryPayment, "Employee", SalaryPayment[Employee])'
+        )
 
     datatable_rows = ",\n        ".join(rows)
 
@@ -89,7 +97,7 @@ EVALUATE
 VAR Users =
     DATATABLE(
         "Employee", STRING,
-        "JoinedAt", DATE,
+        "JoinedAt", DATETIME,
         {{
         {datatable_rows}
         }}
@@ -117,6 +125,7 @@ SELECTCOLUMNS(
 )
 """
     return dax
+
 
 def sync_payments_single_query():
     token = get_power_bi_token()
