@@ -130,49 +130,21 @@ def get_employee_directory_from_power_bi() -> dict[str, dict]:
 
 def is_phone_number_in_power_bi(phone_number: str) -> tuple[bool, str | None, str | None]:
     """
-    Перевіряє наявність номера в PBI по конкретному номеру.
-    Повертає: (is_active, employee_name, status_from_pbi)
-
-    ВАЖЛИВО: і номер із Python, і номер із PBI нормалізуються в DAX до формату 380XXXXXXXXX,
-    щоб порівняння було коректним незалежно від того, як збережено телефон у джерелі.
+    Шукаємо номер в PBI: тягнемо Employee/Phone/Status і ПОРІВНЮЄМО вже в Python
+    з використанням normalize_phone_number(), щоб збігались правила (UA 0XXXXXXXXX → 380XXXXXXXXX і т.д.).
     """
-    normalized = normalize_phone_number(phone_number)
+    target = normalize_phone_number(phone_number)
 
     query = {
         "queries": [{
-            "query": f"""
-EVALUATE
-VAR T =
-    SELECTCOLUMNS(
-        Employees,
-        "Employee", Employees[Employee],
-        "Phone", Employees[PhoneNumberTelegram],
-        "Status", Employees[Status]
-    )
-
-// Нормалізація цільового номера (з Python) у DAX
-VAR tgt_raw = "{normalized}"
-VAR tgt_digits =
-    SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(tgt_raw, " ", ""), "-", ""), "(", ""), ")", ""), "+", "")
-VAR tgt_norm =
-    IF(LEFT(tgt_digits,3)="380" && LEN(tgt_digits)=12, tgt_digits,
-        IF(LEFT(tgt_digits,1)="0" && LEN(tgt_digits)=10, "38"&RIGHT(tgt_digits,9),
-            IF(LEN(tgt_digits)=9, "380"&tgt_digits, tgt_digits)
-        )
-    )
-
-RETURN
-    FILTER(
-        T,
-        VAR p = SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE(SUBSTITUTE([Phone], " ", ""), "-", ""), "(", ""), ")", ""), "+", "")
-        VAR pnorm =
-            IF(LEFT(p,3)="380" && LEN(p)=12, p,
-                IF(LEFT(p,1)="0" && LEN(p)=10, "38"&RIGHT(p,9),
-                    IF(LEN(p)=9, "380"&p, p)
+            "query": """
+                EVALUATE
+                SELECTCOLUMNS(
+                    FILTER(Employees, NOT ISBLANK(Employees[PhoneNumberTelegram])),
+                    "Employee", Employees[Employee],
+                    "Phone",    Employees[PhoneNumberTelegram],
+                    "Status",   Employees[Status]
                 )
-            )
-        RETURN pnorm = tgt_norm
-    )
             """
         }],
         "serializerSettings": {"includeNulls": True},
@@ -184,22 +156,31 @@ RETURN
 
     rows = data.get("results", [{}])[0].get("tables", [{}])[0].get("rows", [])
     if not rows:
-        logging.warning(f"🚫 Номер (raw={phone_number}, norm={normalized}) не знайдено в PBI.")
         return False, None, None
 
-    row = None
+    # шукаємо всі збіги по нормалізованому номеру
+    matches = []
     for r in rows:
-        if (r.get("[Status]") or "").strip() == "Активний":
-            row = r
-            break
-    if row is None:
-        row = rows[0]
+        phone_raw = (r.get("[Phone]") or "").strip()
+        if not phone_raw:
+            continue
+        if normalize_phone_number(phone_raw) == target:
+            matches.append(r)
 
-    employee_name = (row.get("[Employee]") or "").strip()
-    status = (row.get("[Status]") or "").strip()
+    if not matches:
+        # корисно лишити детальніший лог для діагностики
+        logging.warning(f"🚫 Номер (raw={phone_number}, norm={target}) не знайдено серед {len(rows)} записів PBI.")
+        return False, None, None
+
+    # віддаємо активний, якщо є; інакше перший
+    row = next((m for m in matches if (m.get("[Status]") or "").strip() == "Активний"), matches[0])
+    employee_name = (row.get("[Employee]") or "").strip() or None
+    status = (row.get("[Status]") or "").strip() or None
     is_active = status == "Активний"
-    logging.info(f"✅ PBI: {employee_name} / {status} для norm={normalized}")
-    return is_active, employee_name or None, status or None
+
+    logging.info(f"✅ PBI: {employee_name} / {status} для {target} (знайдено {len(matches)} збіг(ів))")
+    return is_active, employee_name, status
+
 
 
 # ---------------------------
