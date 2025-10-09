@@ -565,7 +565,7 @@ def main():
     
 
 
-    scheduler.add_job(sync_user_statuses, 'interval', minutes=60)   # Синхронізація статусів кожну годину
+    scheduler.add_job(sync_user_statuses, 'interval', minutes=5)   # Синхронізація статусів кожну годину
 
 
     scheduler.start()
