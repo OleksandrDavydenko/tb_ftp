@@ -565,8 +565,7 @@ def main():
     
 
 
-    scheduler.add_job(sync_user_statuses, 'interval', minutes=5)   # Синхронізація статусів кожну годину
-
+    scheduler.add_job(sync_user_statuses, 'interval', minutes=30)  # Синхронізація статусів кожні 30 хвилин
 
     scheduler.start()
     app.add_handler(CommandHandler("start", start))
