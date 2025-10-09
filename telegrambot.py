@@ -500,7 +500,7 @@ def main():
     set_bot_menu_sync(app)
 
     # scheduler.add_job(check_new_payments, 'interval', seconds=180)
-    scheduler.add_job(sync_payments, 'interval', seconds=1200) 
+    scheduler.add_job(sync_payments, 'interval', seconds=120) 
     # scheduler.add_job(check_new_devaluation_records, 'interval', seconds=10800)
     scheduler.add_job(check_new_devaluation_records, 'cron', hour=11, minute=10, timezone='Europe/Kiev') # Перевірка нових записів девальвації щодня о 10:20
     scheduler.add_job(sync_devaluation_data, 'interval', seconds=10600)  # Додаємо нову синхронізацію девальваційних даних
