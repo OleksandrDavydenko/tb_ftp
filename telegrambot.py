@@ -43,7 +43,7 @@ from salary.salary_handlers import (
     show_salary_menu,
     show_bonuses_years, show_bonuses_months, send_bonuses_excel,
     show_bonusmsg_years, show_bonusmsg_months, send_bonuses_message,   # ⟵ ДОДАНО
-    show_leadprize_years, show_leadprize_months, send_leadprizes_message                                             # ⟵ якщо ще не імпортовано
+    show_leadprize_years, show_leadprize_months, send_leadprizes_message, show_leadprize_report_placeholder                                           # ⟵ якщо ще не імпортовано
 )
 
 from employee_analytics.analytics_handler import (
@@ -275,6 +275,9 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
             await show_bonusmsg_years(update, context)
         elif text == "👑 Премії керівників":
             await show_leadprize_years(update, context)
+        elif text == "📜 Відомість керівника":
+            await show_leadprize_report_placeholder(update, context)
+
 
 
 
@@ -398,6 +401,9 @@ async def handle_back_navigation(update: Update, context: CallbackContext) -> No
         await show_leadprize_years(update, context)
     elif menu == 'leadprize_years':
         await show_salary_menu(update, context)
+    elif menu == "leadprize_report_placeholder":
+        await show_salary_menu(update, context)
+
 
 
 
@@ -500,7 +506,7 @@ def main():
     set_bot_menu_sync(app)
 
     scheduler.add_job(check_new_payments, 'interval', seconds=180)
-    scheduler.add_job(sync_payments, 'interval', seconds=600) 
+    scheduler.add_job(sync_payments, 'interval', seconds=1200) 
     # scheduler.add_job(check_new_devaluation_records, 'interval', seconds=10800)
     scheduler.add_job(check_new_devaluation_records, 'cron', hour=11, minute=10, timezone='Europe/Kiev') # Перевірка нових записів девальвації щодня о 10:20
     scheduler.add_job(sync_devaluation_data, 'interval', seconds=10600)  # Додаємо нову синхронізацію девальваційних даних
@@ -588,7 +594,7 @@ def main():
 
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     
-    app.add_handler(MessageHandler(filters.Regex("^(📉 Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|💼 Зарплата|💼 Оклад|🎁 Відомість Бонуси|ℹ️ Інформація|💱 Курс валют|Перевірка девальвації|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод|Протермінована дебіторська заборгованість|📘 Довідка|💰 Бонуси|👑 Премії керівників|🧾 Кадровий облік|🗓 Залишки відпусток|👔 Інформація про стаж|🕓 Відпрацьовані дні)$"), handle_main_menu))
+    app.add_handler(MessageHandler(filters.Regex("^(📉 Дебіторська заборгованість|Назад|Таблиця|Гістограма|Діаграма|💼 Зарплата|💼 Оклад|🎁 Відомість Бонуси|ℹ️ Інформація|💱 Курс валют|Перевірка девальвації|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод|Протермінована дебіторська заборгованість|📘 Довідка|💰 Бонуси|👑 Премії керівників|🧾 Кадровий облік|🗓 Залишки відпусток|👔 Інформація про стаж|🕓 Відпрацьовані дні|📜 Відомість керівника)$"), handle_main_menu))
 
     #app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_main_menu))
 
