@@ -615,7 +615,7 @@ def mark_all_bonus_docs_notified():
         conn.close()
 
 
-
+mark_all_bonus_docs_notified()
 
 
 

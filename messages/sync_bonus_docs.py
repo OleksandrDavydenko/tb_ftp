@@ -1,7 +1,7 @@
 import os
 import requests
 from auth import get_power_bi_token
-from db import bulk_add_bonus_docs, get_existing_bonus_doc_numbers
+from db import bulk_add_bonus_docs
 
 DATASET_ID = os.getenv("PBI_DATASET_ID", "8b80be15-7b31-49e4-bc85-8b37a0d98f1c")
 
