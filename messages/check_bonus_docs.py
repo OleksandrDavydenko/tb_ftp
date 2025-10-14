@@ -12,6 +12,12 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 DATASET_ID = os.getenv("PBI_DATASET_ID")
 
+if not DATASET_ID:
+    logging.error("❌ PBI_DATASET_ID не встановлено у змінних середовища.")
+
+if not BOT_TOKEN:
+    logging.warning("⚠️ TELEGRAM_TOKEN порожній: повідомлення не будуть надіслані.")
+
 # Отримання не повідомлених документів
 def get_unnotified_docs():
     conn = get_db_connection()
@@ -21,17 +27,18 @@ def get_unnotified_docs():
     cursor.close()
     conn.close()
     logging.info(f"📄 Знайдено документів з is_notified = FALSE: {len(docs)}")
-    return docs
+    return docs  # [(doc_number, period), ...]
 
 # DAX-запит для отримання унікальних співробітників з документа
-def fetch_employees_for_doc(doc_number):
+def fetch_employees_for_doc(doc_number: str):
+    # ВИКОРИСТОВУЄМО ТОЧНО ТЕ, ЩО ПРАЦЮЄ У ТВОЄМУ ТЕСТІ
+    safe_doc = doc_number.replace('"', '""')
     dax = f'''
     EVALUATE
-    SUMMARIZECOLUMNS(
-        BonusesDetails[Employee],
-        FILTER(
-            BonusesDetails,
-            BonusesDetails[DocNumber] = "{doc_number}"
+    DISTINCT(
+        SELECTCOLUMNS(
+            FILTER(BonusesDetails, BonusesDetails[DocNumber] = "{safe_doc}"),
+            "Employee", BonusesDetails[Employee]
         )
     )
     '''
@@ -45,10 +52,11 @@ def fetch_employees_for_doc(doc_number):
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     payload = {"queries": [{"query": dax}], "serializerSettings": {"includeNulls": True}}
 
-    logging.info(f"📤 Надсилаю DAX-запит для документа {doc_number}...")
+    logging.info(f"📤 Надсилаю DAX для {doc_number}: {dax.strip()}")
     r = requests.post(url, headers=headers, json=payload)
 
     if r.status_code != 200:
+        # Показуємо тіло відповіді — в тесті це допомогло
         logging.error(f"❌ Power BI запит не вдався: {r.status_code} — {r.text}")
         return []
 
@@ -59,21 +67,23 @@ def fetch_employees_for_doc(doc_number):
 
         employees = set()
         for row in rows:
-            # Power BI API іноді повертає ключ без квадратних дужок
+            # Ключ може бути "Employee" або "[Employee]" або "BonusesDetails[Employee]"
             key = next((k for k in row if "Employee" in k), None)
             if key and row[key]:
-                employees.add(row[key])
+                employees.add(str(row[key]).strip())
 
-        logging.info(f"👥 Знайдені унікальні співробітники: {list(employees)}")
+        logging.info(f"👥 Знайдені унікальні співробітники для {doc_number}: {list(employees)}")
         return list(employees)
 
     except Exception as e:
         logging.error(f"❌ Помилка при обробці відповіді Power BI: {e}")
         return []
 
-
 # Надсилання повідомлення
 def send_notification(telegram_id, message):
+    if not BOT_TOKEN:
+        logging.error("❌ TELEGRAM_TOKEN відсутній — пропускаю відправку повідомлення.")
+        return
     try:
         bot = Bot(token=BOT_TOKEN)
         bot.send_message(chat_id=telegram_id, text=message, parse_mode="HTML")
@@ -93,7 +103,9 @@ def check_bonus_docs():
     logging.info(f"🟢 Активних користувачів у базі: {len(active_users)}")
 
     # Побудова мапи співробітників
-    active_map = {user["employee_name"]: user for user in active_users}
+    active_map = {str(user["employee_name"]).strip(): user for user in active_users}
+
+    docs_to_mark = []  # ✅ позначимо тільки ті документи, по яких справді надіслали повідомлення
 
     for doc_number, period in docs_to_check:
         logging.info(f"🔍 Обробка документа: {doc_number} — {period}")
@@ -108,8 +120,8 @@ def check_bonus_docs():
                 logging.warning(f"⚠️ Співробітника '{emp}' немає серед активних у БД")
 
         if not matched_users:
-            logging.warning(f"⚠️ Для документа {doc_number} не знайдено активних співробітників.")
-            continue
+            logging.warning(f"⚠️ Для документа {doc_number} не знайдено активних співробітників — статус не оновлюю.")
+            continue  # ❗ НЕ позначаємо документ notified
 
         message = (
             f"📄 Зʼявився новий документ нарахування бонусів:\n"
@@ -120,5 +132,10 @@ def check_bonus_docs():
         for user in matched_users:
             send_notification(user["telegram_id"], message)
 
-    affected = mark_bonus_docs_notified([doc[0] for doc in docs_to_check])
-    logging.info(f"✅ Оновлено статусів is_notified: {affected}")
+        docs_to_mark.append(doc_number)
+
+    if docs_to_mark:
+        affected = mark_bonus_docs_notified(docs_to_mark)
+        logging.info(f"✅ Оновлено статусів is_notified (тільки по надісланих): {affected}")
+    else:
+        logging.info("ℹ️ Жоден документ не було оновлено (не було кому надіслати).")
