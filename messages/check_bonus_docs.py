@@ -27,35 +27,50 @@ def get_unnotified_docs():
 def fetch_employees_for_doc(doc_number):
     dax = f'''
     EVALUATE
-    DISTINCT(
-        SELECTCOLUMNS(
-            FILTER(BonusesDetails, BonusesDetails[DocNumber] = "{doc_number}"),
-            "Employee", BonusesDetails[Employee]
+    SUMMARIZECOLUMNS(
+        BonusesDetails[Employee],
+        FILTER(
+            BonusesDetails,
+            BonusesDetails[DocNumber] = "{doc_number}"
         )
     )
     '''
+
     token = get_power_bi_token()
+    if not token:
+        logging.error("❌ Не вдалося отримати Power BI токен.")
+        return []
+
     url = f"https://api.powerbi.com/v1.0/myorg/datasets/{DATASET_ID}/executeQueries"
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     payload = {"queries": [{"query": dax}], "serializerSettings": {"includeNulls": True}}
 
+    logging.info(f"📤 Надсилаю DAX-запит для документа {doc_number}...")
     r = requests.post(url, headers=headers, json=payload)
+
     if r.status_code != 200:
         logging.error(f"❌ Power BI запит не вдався: {r.status_code} — {r.text}")
         return []
 
-    data = r.json()
-    rows = data["results"][0]["tables"][0].get("rows", [])
-    logging.info(f"📦 Отримано {len(rows)} рядків з Power BI для документа {doc_number}")
+    try:
+        data = r.json()
+        rows = data["results"][0]["tables"][0].get("rows", [])
+        logging.info(f"📦 Отримано {len(rows)} рядків з Power BI для документа {doc_number}")
 
-    employees = set()
-    for row in rows:
-        key = next((k for k in row if "Employee" in k), None)
-        if key and row[key]:
-            employees.add(row[key])
+        employees = set()
+        for row in rows:
+            # Power BI API іноді повертає ключ без квадратних дужок
+            key = next((k for k in row if "Employee" in k), None)
+            if key and row[key]:
+                employees.add(row[key])
 
-    logging.info(f"👥 Витягнуто унікальних співробітників з документа {doc_number}: {list(employees)}")
-    return list(employees)
+        logging.info(f"👥 Знайдені унікальні співробітники: {list(employees)}")
+        return list(employees)
+
+    except Exception as e:
+        logging.error(f"❌ Помилка при обробці відповіді Power BI: {e}")
+        return []
+
 
 # Надсилання повідомлення
 def send_notification(telegram_id, message):
