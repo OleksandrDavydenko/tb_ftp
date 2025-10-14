@@ -1,15 +1,14 @@
-# messages/check_bonus_docs.py
-
 import os
+import logging
 import requests
 from telegram import Bot
 from auth import get_power_bi_token
 from db import get_db_connection, mark_bonus_docs_notified, get_active_users
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 DATASET_ID = os.getenv("PBI_DATASET_ID")
-bot = Bot(token=BOT_TOKEN)
 
 def get_unnotified_docs():
     conn = get_db_connection()
@@ -37,6 +36,7 @@ def fetch_employees_for_doc(doc_number):
 
     r = requests.post(url, headers=headers, json=payload)
     if r.status_code != 200:
+        logging.error(f"❌ Power BI запит не вдався: {r.status_code} — {r.text}")
         return []
 
     data = r.json()
@@ -47,27 +47,22 @@ def fetch_employees_for_doc(doc_number):
         key = next((k for k in row if "Employee" in k), None)
         if key and row[key]:
             employees.add(row[key])
+
     return list(employees)
 
-def notify_employees(telegram_users, doc_number, period):
-    message = (
-        f"📄 Зʼявився новий документ нарахування бонусів:\n"
-        f"• Номер: <b>{doc_number}</b>\n"
-        f"• Період: <b>{period}</b>"
-    )
-    for user in telegram_users:
-        try:
-            bot.send_message(
-                chat_id=user['telegram_id'],
-                text=message,
-                parse_mode="HTML"
-            )
-        except Exception as e:
-            print(f"❌ Не вдалося надіслати повідомлення {user['employee_name']}: {e}")
+def send_notification(telegram_id, message):
+    try:
+        bot = Bot(token=BOT_TOKEN)
+        bot.send_message(chat_id=telegram_id, text=message, parse_mode="HTML")
+        logging.info(f"✅ Повідомлення надіслано Telegram ID: {telegram_id}")
+    except Exception as e:
+        logging.error(f"❌ Помилка при надсиланні повідомлення Telegram ID {telegram_id}: {e}")
 
-async def check_bonus_docs():
+def check_bonus_docs():
+    logging.info("📥 Перевірка нових бонус-документів...")
     docs_to_check = get_unnotified_docs()
     if not docs_to_check:
+        logging.info("ℹ️ Нових документів немає.")
         return
 
     active_users = get_active_users()
@@ -80,8 +75,18 @@ async def check_bonus_docs():
             active_map[emp] for emp in employees if emp in active_map
         ]
 
-        if matched_users:
-            notify_employees(matched_users, doc_number, period)
+        if not matched_users:
+            logging.warning(f"⚠️ Для документа {doc_number} не знайдено активних співробітників.")
+            continue
 
-    # Після повідомлення оновлюємо статус на TRUE
+        message = (
+            f"📄 Зʼявився новий документ нарахування бонусів:\n"
+            f"• Номер: <b>{doc_number}</b>\n"
+            f"• Період: <b>{period}</b>"
+        )
+
+        for user in matched_users:
+            send_notification(user["telegram_id"], message)
+
     affected = mark_bonus_docs_notified([doc[0] for doc in docs_to_check])
+    logging.info(f"✅ Оновлено статусів is_notified: {affected}")
