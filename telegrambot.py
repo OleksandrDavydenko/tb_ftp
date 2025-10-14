@@ -62,6 +62,8 @@ from information.user_guide import show_user_guide
 from messages.weekly_overdue_debts import check_overdue_debts
 from sync_status import sync_user_statuses
 from messages.sync_bonus_docs import sync_bonus_docs
+from messages.check_bonus_docs import check_bonus_docs
+
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "openAI"))
 from openAI.gpt_handler import is_known_command, get_gpt_response
@@ -571,7 +573,8 @@ def main():
 
     scheduler.add_job(send_birthday_greetings, 'cron', hour=9, minute=18, timezone='Europe/Kiev')
     
-    scheduler.add_job(sync_bonus_docs, 'interval', seconds=60)
+    scheduler.add_job(sync_bonus_docs, 'interval', seconds=180)
+    scheduler.add_job(check_bonus_docs, 'interval', minutes=6)
 
     scheduler.add_job(sync_user_statuses, 'interval', minutes=30)  # Синхронізація статусів кожні 30 хвилин
 

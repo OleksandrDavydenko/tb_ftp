@@ -611,26 +611,6 @@ def get_existing_bonus_doc_numbers():
 
 
 
-def mark_all_bonus_docs_notified():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("UPDATE bonus_docs SET is_notified = TRUE WHERE is_notified = FALSE")
-        affected = cursor.rowcount
-        conn.commit()
-        return affected
-    finally:
-        cursor.close()
-        conn.close()
-
-
-mark_all_bonus_docs_notified()
-
-
-
-
-
-
 
 
 
