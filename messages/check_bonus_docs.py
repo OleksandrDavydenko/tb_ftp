@@ -10,14 +10,17 @@ DATASET_ID = os.getenv("PBI_DATASET_ID", "8b80be15-7b31-49e4-bc85-8b37a0d98f1c")
 TG_API = f"https://api.telegram.org/bot{KEY}/sendMessage"
 
 
-# --- helpers you already have (kept unchanged/compact) ---
+# --- helpers ---
 def get_unnotified_docs():
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("SELECT doc_number, period FROM bonus_docs WHERE is_notified = FALSE")
     rows = cur.fetchall()
     cur.close(); conn.close()
+    if rows:
+        print(f"📦 Отримано {len(rows)} нових документ(ів) з БД")
     return rows
+
 
 def fetch_employees_for_doc(doc_number: str):
     safe_doc = doc_number.replace('"', '""')
@@ -43,6 +46,8 @@ def fetch_employees_for_doc(doc_number: str):
         return []
 
     rows = r.json()["results"][0]["tables"][0].get("rows", [])
+    if rows:
+        print(f"📊 Power BI повернув {len(rows)} співробітників для документа {doc_number}")
     emps = set()
     for row in rows:
         k = next((k for k in row if "Employee" in k), None)
@@ -51,7 +56,6 @@ def fetch_employees_for_doc(doc_number: str):
     return list(emps)
 
 
-# --- simple HTTP send (no extra logs) ---
 def _send(telegram_id: int | str, text: str) -> bool:
     if not KEY:
         return False
@@ -78,14 +82,15 @@ def _send(telegram_id: int | str, text: str) -> bool:
     return False
 
 
-# --- the function you asked to rewrite (only prints recipient lines) ---
+# --- main ---
 def check_bonus_docs():
     docs = get_unnotified_docs()
     if not docs:
         return
 
-    # employee_name -> user(row) with telegram_id
     active_map = {str(u["employee_name"]).strip(): u for u in get_active_users()}
+    if active_map:
+        print(f"🟢 Активних користувачів у базі: {len(active_map)}")
 
     docs_to_mark = []
 
@@ -94,7 +99,6 @@ def check_bonus_docs():
         if not employees:
             continue
 
-        # message once per doc
         msg = (
             "📄 Зʼявився новий документ нарахування бонусів:\n"
             f"• Номер: <b>{doc_number}</b>\n"
@@ -122,3 +126,4 @@ def check_bonus_docs():
 
     if docs_to_mark:
         mark_bonus_docs_notified(docs_to_mark)
+        print(f"✅ Оновлено is_notified для {len(docs_to_mark)} документ(ів)")
