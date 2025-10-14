@@ -52,7 +52,7 @@ def fetch_employees_for_doc(doc_number: str):
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     payload = {"queries": [{"query": dax}], "serializerSettings": {"includeNulls": True}}
 
-    logging.info(f"📤 Надсилаю DAX для {doc_number}: {dax.strip()}")
+    
     r = requests.post(url, headers=headers, json=payload)
 
     if r.status_code != 200:
@@ -72,7 +72,6 @@ def fetch_employees_for_doc(doc_number: str):
             if key and row[key]:
                 employees.add(str(row[key]).strip())
 
-        logging.info(f"👥 Знайдені унікальні співробітники для {doc_number}: {list(employees)}")
         return list(employees)
 
     except Exception as e:
