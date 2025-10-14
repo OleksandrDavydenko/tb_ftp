@@ -567,13 +567,14 @@ def add_bonus_doc(doc_number: str, period: str, is_notified: bool = False):
         conn.close()
 
 
-def bulk_add_bonus_docs(rows: list[tuple[str, str]]):
+def bulk_add_bonus_docs(rows):
     """
     Масово додає записи (doc_number, period) у bonus_docs з is_notified = FALSE.
     On conflict — ігнорує.
     """
     if not rows:
-        return
+        logging.info("ℹ️ bulk_add_bonus_docs: пустий список — вставляти нічого.")
+        return 0
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -583,7 +584,10 @@ def bulk_add_bonus_docs(rows: list[tuple[str, str]]):
             VALUES {args_str}
             ON CONFLICT (doc_number, period) DO NOTHING
         """)
+        inserted = cursor.rowcount  # скільки реально додалось (без конфліктів)
         conn.commit()
+        logging.info(f"🗃️ bulk_add_bonus_docs: додано нових рядків = {inserted}")
+        return inserted
     finally:
         cursor.close()
         conn.close()
