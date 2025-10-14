@@ -21,7 +21,8 @@ from auth import verify_and_add_user
 from messages.reminder import daily_first_workday_check
 from messages.check_devaluation import check_new_devaluation_records
 from messages.sync_devaluation import sync_devaluation_data
-from messages.birthday_greetings import send_birthday_greetings  
+from messages.birthday_greetings import send_birthday_greetings 
+ 
 
 
 
@@ -60,6 +61,7 @@ from information.help_menu import show_help_menu, show_currency_rates, show_deva
 from information.user_guide import show_user_guide
 from messages.weekly_overdue_debts import check_overdue_debts
 from sync_status import sync_user_statuses
+from messages.sync_bonus_docs import sync_bonus_docs
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "openAI"))
 from openAI.gpt_handler import is_known_command, get_gpt_response
@@ -569,7 +571,7 @@ def main():
 
     scheduler.add_job(send_birthday_greetings, 'cron', hour=9, minute=18, timezone='Europe/Kiev')
     
-
+    scheduler.add_job(sync_bonus_docs, 'interval', seconds=60)
 
     scheduler.add_job(sync_user_statuses, 'interval', minutes=30)  # Синхронізація статусів кожні 30 хвилин
 

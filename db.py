@@ -110,6 +110,16 @@ def create_tables():
     )
     """)
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS bonus_docs (
+        doc_number VARCHAR(50) NOT NULL,
+        period     VARCHAR(20)  NOT NULL,
+        is_notified BOOLEAN     NOT NULL DEFAULT FALSE,
+        created_at  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (doc_number, period)
+    )
+    """)
+
 
     conn.commit()
     cursor.close()
@@ -535,6 +545,49 @@ def log_birthday_greeting(employee_name, query, response):
     conn.commit()
     cursor.close()
     conn.close()
+
+
+
+
+def add_bonus_doc(doc_number: str, period: str, is_notified: bool = False):
+    """
+    Додає один запис у bonus_docs. Якщо такий DocNumber+Period вже є — ігнорує.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO bonus_docs (doc_number, period, is_notified)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (doc_number, period) DO NOTHING
+        """, (doc_number, period, is_notified))
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def bulk_add_bonus_docs(rows: list[tuple[str, str]]):
+    """
+    Масово додає записи (doc_number, period) у bonus_docs з is_notified = FALSE.
+    On conflict — ігнорує.
+    """
+    if not rows:
+        return
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        args_str = ",".join(cursor.mogrify("(%s,%s,FALSE)", r).decode("utf-8") for r in rows)
+        cursor.execute(f"""
+            INSERT INTO bonus_docs (doc_number, period, is_notified)
+            VALUES {args_str}
+            ON CONFLICT (doc_number, period) DO NOTHING
+        """)
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+
 
 
 
