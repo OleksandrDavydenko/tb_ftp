@@ -6,6 +6,56 @@ from datetime import datetime
 # Налаштовуємо logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+
+def get_employee_accounts_3330_3320(employee_name: str) -> set[str]:
+    """
+    Повертає множину кодів рахунків {'3330', '3320'} для співробітника
+    починаючи з 01.01.2025. Якщо даних немає — повертає порожню множину.
+    """
+    token = get_power_bi_token()
+    if not token:
+        logging.error("Не вдалося отримати токен Power BI.")
+        return set()
+
+    dataset_id = '8b80be15-7b31-49e4-bc85-8b37a0d98f1c'
+    url = f'https://api.powerbi.com/v1.0/myorg/datasets/{dataset_id}/executeQueries'
+    headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
+
+    dax = f"""
+    EVALUATE
+    DISTINCT(
+      SELECTCOLUMNS(
+        FILTER(
+          '3330/3320',
+          '3330/3320'[RegistrDate] >= DATE(2025,1,1)
+            && '3330/3320'[Subconto1Emp] = "{employee_name}"
+        ),
+        "AccountCode", '3330/3320'[AccountCode]
+      )
+    )
+    """
+
+    body = {"queries": [{"query": dax}], "serializerSettings": {"includeNulls": True}}
+    try:
+        r = requests.post(url, headers=headers, json=body, timeout=60)
+        r.raise_for_status()
+        rows = r.json()['results'][0]['tables'][0].get('rows', [])
+        # У Power BI значення приходять у вигляді {"[AccountCode]": 3330} або "3330"
+        codes = set()
+        for row in rows:
+            val = row.get("[AccountCode]")
+            if val is None: 
+                continue
+            code = str(val).strip()
+            # нормалізуємо до 4-значного коду
+            if code.startswith("33"):
+                codes.add(code[:4])
+        return codes
+    except Exception as e:
+        logging.exception(f"Помилка запиту до 3330/3320: {e}")
+        return set()
+
+
 # Функція для отримання нарахувань за рік і місяць
 def get_salary_data(employee_name, year, month):
     logging.info(f"Запит на отримання даних для: {employee_name}, рік: {year}, місяць: {month}")
