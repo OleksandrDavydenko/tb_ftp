@@ -509,7 +509,7 @@ def main():
 
     set_bot_menu_sync(app)
 
-    scheduler.add_job(check_new_payments, 'interval', seconds=60)
+    scheduler.add_job(check_new_payments, 'interval', seconds=180)
     scheduler.add_job(sync_payments, 'interval', seconds=1200) 
     # scheduler.add_job(check_new_devaluation_records, 'interval', seconds=10800)
     scheduler.add_job(check_new_devaluation_records, 'cron', hour=11, minute=10, timezone='Europe/Kiev') # Перевірка нових записів девальвації щодня о 10:20
@@ -574,7 +574,7 @@ def main():
     scheduler.add_job(send_birthday_greetings, 'cron', hour=9, minute=18, timezone='Europe/Kiev')
 
     # Синхронізація бонусних документів і перевірка нових документів
-    scheduler.add_job(sync_bonus_docs, 'interval', minutes=6)
+    scheduler.add_job(sync_bonus_docs, 'interval', minutes=1)
     scheduler.add_job(check_bonus_docs, 'interval', minutes=7)
     ################################################################################
 
