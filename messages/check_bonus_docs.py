@@ -98,6 +98,7 @@ def check_bonus_docs():
         logging.info("ℹ️ Нових документів немає.")
         return
 
+
     active_users = get_active_users()
     logging.info(f"🟢 Активних користувачів у базі: {len(active_users)}")
 
