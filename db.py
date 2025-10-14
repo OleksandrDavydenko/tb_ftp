@@ -632,7 +632,31 @@ def mark_bonus_docs_notified(doc_numbers):
 
 
 
+doc_number = "000000214" 
 
+def mark_bonus_doc_notified_by_number(doc_number: str) -> int:
+    """
+    Встановлює is_notified = TRUE для одного документа за його номером.
+    Повертає кількість змінених рядків (1 або 0).
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            UPDATE bonus_docs
+            SET is_notified = TRUE
+            WHERE doc_number = %s AND is_notified = FALSE
+        """, (doc_number,))
+        affected = cursor.rowcount
+        conn.commit()
+        return affected
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+mark_bonus_doc_notified_by_number(doc_number)
 
 
 

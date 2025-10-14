@@ -20,15 +20,16 @@ def get_unnotified_docs():
     return docs  # [(doc_number, period), ...]
 
 def fetch_employees_for_doc(doc_number):
-    dax = f"""
+    
+    dax = f'''
     EVALUATE
-    VALUES(
+    DISTINCT(
         SELECTCOLUMNS(
             FILTER(BonusesDetails, BonusesDetails[DocNumber] = "{doc_number}"),
             "Employee", BonusesDetails[Employee]
         )
     )
-    """
+    '''
     token = get_power_bi_token()
     url = f"https://api.powerbi.com/v1.0/myorg/datasets/{DATASET_ID}/executeQueries"
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
