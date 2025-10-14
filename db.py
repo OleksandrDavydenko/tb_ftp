@@ -609,6 +609,26 @@ def get_existing_bonus_doc_numbers():
 
 
 
+def mark_bonus_docs_notified(doc_numbers):
+    """
+    Встановлює is_notified = TRUE для вказаних номерів документів.
+    """
+    if not doc_numbers:
+        return 0
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            UPDATE bonus_docs
+            SET is_notified = TRUE
+            WHERE doc_number = ANY(%s) AND is_notified = FALSE
+        """, (list(doc_numbers),))
+        affected = cursor.rowcount
+        conn.commit()
+        return affected
+    finally:
+        cursor.close()
+        conn.close()
 
 
 
