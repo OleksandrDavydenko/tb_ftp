@@ -632,24 +632,7 @@ def mark_bonus_docs_notified(doc_numbers):
 
 
 
-doc_number = "000000214" 
 
-def reset_notified_flag(doc_number: str):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("""
-            UPDATE bonus_docs SET is_notified = FALSE WHERE doc_number = %s
-        """, (doc_number,))
-        conn.commit()
-    finally:
-        cursor.close()
-        conn.close()
-
-
-
-
-reset_notified_flag(doc_number)
 
 
 
