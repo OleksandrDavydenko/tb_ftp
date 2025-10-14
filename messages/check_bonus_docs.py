@@ -5,11 +5,14 @@ from telegram import Bot
 from auth import get_power_bi_token
 from db import get_db_connection, mark_bonus_docs_notified, get_active_users
 
+# Логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Токени
 BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 DATASET_ID = os.getenv("PBI_DATASET_ID")
 
+# Отримання не повідомлених документів
 def get_unnotified_docs():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -17,10 +20,11 @@ def get_unnotified_docs():
     docs = cursor.fetchall()
     cursor.close()
     conn.close()
-    return docs  # [(doc_number, period), ...]
+    logging.info(f"📄 Знайдено документів з is_notified = FALSE: {len(docs)}")
+    return docs
 
+# DAX-запит для отримання унікальних співробітників з документа
 def fetch_employees_for_doc(doc_number):
-    
     dax = f'''
     EVALUATE
     DISTINCT(
@@ -42,15 +46,18 @@ def fetch_employees_for_doc(doc_number):
 
     data = r.json()
     rows = data["results"][0]["tables"][0].get("rows", [])
-    employees = set()
+    logging.info(f"📦 Отримано {len(rows)} рядків з Power BI для документа {doc_number}")
 
+    employees = set()
     for row in rows:
         key = next((k for k in row if "Employee" in k), None)
         if key and row[key]:
             employees.add(row[key])
 
+    logging.info(f"👥 Витягнуто унікальних співробітників з документа {doc_number}: {list(employees)}")
     return list(employees)
 
+# Надсилання повідомлення
 def send_notification(telegram_id, message):
     try:
         bot = Bot(token=BOT_TOKEN)
@@ -59,6 +66,7 @@ def send_notification(telegram_id, message):
     except Exception as e:
         logging.error(f"❌ Помилка при надсиланні повідомлення Telegram ID {telegram_id}: {e}")
 
+# Основна функція перевірки
 def check_bonus_docs():
     logging.info("📥 Перевірка нових бонус-документів...")
     docs_to_check = get_unnotified_docs()
@@ -67,14 +75,22 @@ def check_bonus_docs():
         return
 
     active_users = get_active_users()
+    logging.info(f"🟢 Активних користувачів у базі: {len(active_users)}")
+
+    # Побудова мапи співробітників
     active_map = {user["employee_name"]: user for user in active_users}
 
     for doc_number, period in docs_to_check:
+        logging.info(f"🔍 Обробка документа: {doc_number} — {period}")
         employees = fetch_employees_for_doc(doc_number)
 
-        matched_users = [
-            active_map[emp] for emp in employees if emp in active_map
-        ]
+        matched_users = []
+        for emp in employees:
+            if emp in active_map:
+                matched_users.append(active_map[emp])
+                logging.info(f"✅ Знайдено активного співробітника: {emp}")
+            else:
+                logging.warning(f"⚠️ Співробітника '{emp}' немає серед активних у БД")
 
         if not matched_users:
             logging.warning(f"⚠️ Для документа {doc_number} не знайдено активних співробітників.")
