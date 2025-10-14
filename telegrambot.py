@@ -575,10 +575,10 @@ def main():
 
     # Синхронізація бонусних документів і перевірка нових документів
     scheduler.add_job(sync_bonus_docs, 'interval', seconds=180)
-    scheduler.add_job(check_bonus_docs, 'interval', minutes=6)
+    scheduler.add_job(check_bonus_docs, 'interval', minutes=2)
     ################################################################################
 
-    
+
     scheduler.add_job(sync_user_statuses, 'interval', minutes=30)  # Синхронізація статусів кожні 30 хвилин
 
     scheduler.start()
