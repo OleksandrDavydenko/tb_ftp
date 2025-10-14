@@ -10,7 +10,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 # Токени
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
-DATASET_ID = os.getenv("PBI_DATASET_ID")
+DATASET_ID = os.getenv("PBI_DATASET_ID", "8b80be15-7b31-49e4-bc85-8b37a0d98f1c")
+
 
 if not DATASET_ID:
     logging.error("❌ PBI_DATASET_ID не встановлено у змінних середовища.")
