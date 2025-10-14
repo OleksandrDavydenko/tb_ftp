@@ -9,13 +9,13 @@ from db import get_db_connection, mark_bonus_docs_notified, get_active_users
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Токени
-BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
+KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 DATASET_ID = os.getenv("PBI_DATASET_ID")
 
 if not DATASET_ID:
     logging.error("❌ PBI_DATASET_ID не встановлено у змінних середовища.")
 
-if not BOT_TOKEN:
+if not KEY:
     logging.warning("⚠️ TELEGRAM_TOKEN порожній: повідомлення не будуть надіслані.")
 
 # Отримання не повідомлених документів
@@ -81,11 +81,11 @@ def fetch_employees_for_doc(doc_number: str):
 
 # Надсилання повідомлення
 def send_notification(telegram_id, message):
-    if not BOT_TOKEN:
+    if not KEY:
         logging.error("❌ TELEGRAM_TOKEN відсутній — пропускаю відправку повідомлення.")
         return
     try:
-        bot = Bot(token=BOT_TOKEN)
+        bot = Bot(token=KEY)
         bot.send_message(chat_id=telegram_id, text=message, parse_mode="HTML")
         logging.info(f"✅ Повідомлення надіслано Telegram ID: {telegram_id}")
     except Exception as e:
