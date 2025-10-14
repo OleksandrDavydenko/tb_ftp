@@ -597,6 +597,15 @@ def bulk_add_bonus_docs(rows):
         cursor.close()
         conn.close()
 
+def get_existing_bonus_doc_numbers():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT doc_number FROM bonus_docs")
+        return {r[0] for r in cursor.fetchall()}
+    finally:
+        cursor.close()
+        conn.close()
 
 
 
@@ -616,6 +625,10 @@ def mark_all_bonus_docs_notified():
 
 
 mark_all_bonus_docs_notified()
+
+
+
+
 
 
 
