@@ -1,37 +1,33 @@
 import os
 import logging
+import time
 import requests
 from telegram import Bot
+from telegram.error import Forbidden, RetryAfter, TimedOut, NetworkError
+
 from auth import get_power_bi_token
 from db import get_db_connection, mark_bonus_docs_notified, get_active_users
 
-# Логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Токени
-KEY = os.getenv('TELEGRAM_BOT_TOKEN')
-DATASET_ID = '8b80be15-7b31-49e4-bc85-8b37a0d98f1c'
-
-if not DATASET_ID:
-    logging.error("❌ PBI_DATASET_ID не встановлено у змінних середовища.")
+# ✅ Єдина узгоджена змінна оточення з токеном
+KEY = os.getenv("TELEGRAM_BOT_TOKEN")
+DATASET_ID = os.getenv("PBI_DATASET_ID", "8b80be15-7b31-49e4-bc85-8b37a0d98f1c")
 
 if not KEY:
-    logging.warning("⚠️ TELEGRAM_TOKEN порожній: повідомлення не будуть надіслані.")
+    logging.warning("⚠️ TELEGRAM_BOT_TOKEN порожній — відправки не буде.")
+BOT = Bot(token=KEY) if KEY else None
 
-# Отримання не повідомлених документів
 def get_unnotified_docs():
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT doc_number, period FROM bonus_docs WHERE is_notified = FALSE")
-    docs = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    logging.info(f"📄 Знайдено документів з is_notified = FALSE: {len(docs)}")
-    return docs  # [(doc_number, period), ...]
+    cur = conn.cursor()
+    cur.execute("SELECT doc_number, period FROM bonus_docs WHERE is_notified = FALSE")
+    docs = cur.fetchall()
+    cur.close(); conn.close()
+    logging.info(f"📄 Знайдено документів з is_notified=FALSE: {len(docs)}")
+    return docs
 
-# DAX-запит для отримання унікальних співробітників з документа
 def fetch_employees_for_doc(doc_number: str):
-    # ВИКОРИСТОВУЄМО ТОЧНО ТЕ, ЩО ПРАЦЮЄ У ТВОЄМУ ТЕСТІ
     safe_doc = doc_number.replace('"', '""')
     dax = f'''
     EVALUATE
@@ -42,7 +38,6 @@ def fetch_employees_for_doc(doc_number: str):
         )
     )
     '''
-
     token = get_power_bi_token()
     if not token:
         logging.error("❌ Не вдалося отримати Power BI токен.")
@@ -52,45 +47,58 @@ def fetch_employees_for_doc(doc_number: str):
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     payload = {"queries": [{"query": dax}], "serializerSettings": {"includeNulls": True}}
 
-    
-    r = requests.post(url, headers=headers, json=payload)
-
+    r = requests.post(url, headers=headers, json=payload, timeout=60)
     if r.status_code != 200:
-        # Показуємо тіло відповіді — в тесті це допомогло
         logging.error(f"❌ Power BI запит не вдався: {r.status_code} — {r.text}")
         return []
 
-    try:
-        data = r.json()
-        rows = data["results"][0]["tables"][0].get("rows", [])
-        logging.info(f"📦 Отримано {len(rows)} рядків з Power BI для документа {doc_number}")
+    data = r.json()
+    rows = data["results"][0]["tables"][0].get("rows", [])
+    logging.info(f"📦 Отримано {len(rows)} рядків з Power BI для документа {doc_number}")
 
-        employees = set()
-        for row in rows:
-            # Ключ може бути "Employee" або "[Employee]" або "BonusesDetails[Employee]"
-            key = next((k for k in row if "Employee" in k), None)
-            if key and row[key]:
-                employees.add(str(row[key]).strip())
+    employees = set()
+    for row in rows:
+        key = next((k for k in row if "Employee" in k), None)
+        if key and row[key]:
+            employees.add(str(row[key]).strip())
+    return list(employees)
 
-        return list(employees)
+# ✅ Надсилання з retry + детальними логами та поверненням True/False
+def send_notification(telegram_id: int, message: str, retries: int = 2) -> bool:
+    if not BOT:
+        return False
 
-    except Exception as e:
-        logging.error(f"❌ Помилка при обробці відповіді Power BI: {e}")
-        return []
+    attempt = 0
+    while attempt <= retries:
+        try:
+            msg = BOT.send_message(
+                chat_id=int(telegram_id),
+                text=message,
+                parse_mode="HTML",
+                disable_notification=False  # хочемо push
+            )
+            # якщо це PTB v13 – msg об’єкт синхронний; v20 – це корутина (але в тебе вже немає warning-ів)
+            mid = getattr(msg, "message_id", None)
+            logging.info(f"✅ Надіслано {telegram_id}, message_id={mid}")
+            return True
 
-# Надсилання повідомлення
-def send_notification(telegram_id, message):
-    if not KEY:
-        logging.error("❌ TELEGRAM_TOKEN відсутній — пропускаю відправку повідомлення.")
-        return
-    try:
-        bot = Bot(token=KEY)
-        bot.send_message(chat_id=telegram_id, text=message, parse_mode="HTML")
-        logging.info(f"✅ Повідомлення надіслано Telegram ID: {telegram_id}")
-    except Exception as e:
-        logging.error(f"❌ Помилка при надсиланні повідомлення Telegram ID {telegram_id}: {e}")
+        except RetryAfter as e:
+            attempt += 1
+            wait_s = int(getattr(e, "retry_after", 2))
+            logging.warning(f"⏳ FloodWait {wait_s}s для {telegram_id} (спроба {attempt}/{retries}).")
+            time.sleep(wait_s)
+        except Forbidden as e:
+            logging.error(f"🚫 Forbidden для {telegram_id}: {e} (бот заблокований / нема /start)")
+            return False
+        except (TimedOut, NetworkError) as e:
+            attempt += 1
+            logging.warning(f"🌐 Тимчасова помилка для {telegram_id}: {e} (спроба {attempt}/{retries}).")
+            time.sleep(1)
+        except Exception as e:
+            logging.error(f"❌ Помилка відправки {telegram_id}: {e}")
+            return False
+    return False
 
-# Основна функція перевірки
 def check_bonus_docs():
     logging.info("📥 Перевірка нових бонус-документів...")
     docs_to_check = get_unnotified_docs()
@@ -98,44 +106,48 @@ def check_bonus_docs():
         logging.info("ℹ️ Нових документів немає.")
         return
 
-
     active_users = get_active_users()
     logging.info(f"🟢 Активних користувачів у базі: {len(active_users)}")
+    active_map = {str(u["employee_name"]).strip(): u for u in active_users}
 
-    # Побудова мапи співробітників
-    active_map = {str(user["employee_name"]).strip(): user for user in active_users}
-
-    docs_to_mark = []  # ✅ позначимо тільки ті документи, по яких справді надіслали повідомлення
+    docs_to_mark = []
 
     for doc_number, period in docs_to_check:
         logging.info(f"🔍 Обробка документа: {doc_number} — {period}")
         employees = fetch_employees_for_doc(doc_number)
 
-        matched_users = []
+        matched = []
         for emp in employees:
-            if emp in active_map:
-                matched_users.append(active_map[emp])
-                logging.info(f"✅ Знайдено активного співробітника: {emp}")
+            u = active_map.get(emp)
+            if u and u.get("telegram_id"):
+                matched.append(u)
+                logging.info(f"✅ Активний співробітник: {emp} → {u['telegram_id']}")
             else:
-                logging.warning(f"⚠️ Співробітника '{emp}' немає серед активних у БД")
+                logging.warning(f"⚠️ '{emp}' відсутній серед активних або без telegram_id")
 
-        if not matched_users:
-            logging.warning(f"⚠️ Для документа {doc_number} не знайдено активних співробітників — статус не оновлюю.")
-            continue  # ❗ НЕ позначаємо документ notified
+        if not matched:
+            logging.warning(f"⚠️ {doc_number}: немає кому надіслати — статус не оновлюю.")
+            continue
 
         message = (
-            f"📄 Зʼявився новий документ нарахування бонусів:\n"
+            "📄 Зʼявився новий документ нарахування бонусів:\n"
             f"• Номер: <b>{doc_number}</b>\n"
             f"• Період: <b>{period}</b>"
         )
 
-        for user in matched_users:
-            send_notification(user["telegram_id"], message)
+        sent_any = False
+        for tg_id in {m["telegram_id"] for m in matched}:   # унікальні ID
+            ok = send_notification(tg_id, message)
+            sent_any = sent_any or ok
+            time.sleep(0.03)  # легкий тротлінг
 
-        docs_to_mark.append(doc_number)
+        if sent_any:
+            docs_to_mark.append(doc_number)
+        else:
+            logging.warning(f"⚠️ {doc_number}: усі відправки невдалі — статус не оновлюю.")
 
     if docs_to_mark:
         affected = mark_bonus_docs_notified(docs_to_mark)
-        logging.info(f"✅ Оновлено статусів is_notified (тільки по надісланих): {affected}")
+        logging.info(f"✅ Оновлено is_notified по надісланих документах: {affected}")
     else:
-        logging.info("ℹ️ Жоден документ не було оновлено (не було кому надіслати).")
+        logging.info("ℹ️ Жоден документ не оновлено (успішних відправок не було).")
