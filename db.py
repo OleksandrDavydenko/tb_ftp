@@ -112,13 +112,20 @@ def create_tables():
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS bonus_docs (
-        doc_number VARCHAR(50) NOT NULL,
-        period     VARCHAR(20)  NOT NULL,
+        doc_number  VARCHAR(50) NOT NULL,
+        period      VARCHAR(20) NOT NULL,
         is_notified BOOLEAN     NOT NULL DEFAULT FALSE,
         created_at  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (doc_number, period)
     )
     """)
+
+    # Унікальність саме за номером документа
+    cursor.execute("""
+    CREATE UNIQUE INDEX IF NOT EXISTS ux_bonus_docs_doc_number
+    ON bonus_docs (doc_number)
+    """)
+
 
 
     conn.commit()
@@ -569,11 +576,10 @@ def add_bonus_doc(doc_number: str, period: str, is_notified: bool = False):
 
 def bulk_add_bonus_docs(rows):
     """
-    Масово додає записи (doc_number, period) у bonus_docs з is_notified = FALSE.
-    On conflict — ігнорує.
+    Додає (doc_number, period) лише для нових doc_number.
+    Використовує ON CONFLICT (doc_number) DO NOTHING, щоб не чіпати існуючі.
     """
     if not rows:
-        logging.info("ℹ️ bulk_add_bonus_docs: пустий список — вставляти нічого.")
         return 0
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -582,16 +588,31 @@ def bulk_add_bonus_docs(rows):
         cursor.execute(f"""
             INSERT INTO bonus_docs (doc_number, period, is_notified)
             VALUES {args_str}
-            ON CONFLICT (doc_number, period) DO NOTHING
+            ON CONFLICT (doc_number) DO NOTHING
         """)
-        inserted = cursor.rowcount  # скільки реально додалось (без конфліктів)
+        inserted = cursor.rowcount
         conn.commit()
-        logging.info(f"🗃️ bulk_add_bonus_docs: додано нових рядків = {inserted}")
         return inserted
     finally:
         cursor.close()
         conn.close()
 
+
+
+
+
+
+def mark_all_bonus_docs_notified():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE bonus_docs SET is_notified = TRUE WHERE is_notified = FALSE")
+        affected = cursor.rowcount
+        conn.commit()
+        return affected
+    finally:
+        cursor.close()
+        conn.close()
 
 
 
