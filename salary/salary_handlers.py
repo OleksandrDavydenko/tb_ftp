@@ -20,6 +20,8 @@ from .salary_queries import (
     get_employee_accounts_3330_3320
 )
 
+from utils.name_aliases import display_name
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Константи
 # ──────────────────────────────────────────────────────────────────────────────
@@ -109,6 +111,7 @@ async def show_leadprize_months(update: Update, context: CallbackContext) -> Non
 
 async def send_leadprizes_message(update: Update, context: CallbackContext) -> None:
     employee   = context.user_data.get("employee_name")
+    nice = display_name(employee)
     year       = context.user_data.get("selected_year")
     month_name = context.user_data.get("selected_month")
 
@@ -125,7 +128,7 @@ async def send_leadprizes_message(update: Update, context: CallbackContext) -> N
         text = build_lead_prizes_message_for_period(employee, int(year), int(month_num))
     except Exception as e:
         text = f"❌ Не вдалося завантажити премії: {e}"
-    await update.message.reply_text(text)
+    await update.message.reply_text(f"Співробітник: {nice}\n\n{text}")
 
     nav = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
     await update.message.reply_text("Виберіть опцію:", reply_markup=ReplyKeyboardMarkup(nav, one_time_keyboard=True, resize_keyboard=True))
@@ -151,6 +154,7 @@ async def show_bonusmsg_months(update: Update, context: CallbackContext) -> None
 
 async def send_bonuses_message(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
+    nice = display_name(employee)
     year = context.user_data.get("selected_year")
     month_name = context.user_data.get("selected_month")
 
@@ -167,7 +171,7 @@ async def send_bonuses_message(update: Update, context: CallbackContext) -> None
         text = build_bonus_message_for_period(employee, int(year), int(month_num))
     except Exception as e:
         text = f"❌ Не вдалося завантажити бонуси: {e}"
-    await update.message.reply_text(text)
+    await update.message.reply_text(f"Співробітник: {nice}\n\n{text}")
 
     nav = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
     await update.message.reply_text("Виберіть опцію:", reply_markup=ReplyKeyboardMarkup(nav, one_time_keyboard=True, resize_keyboard=True))
@@ -199,6 +203,7 @@ async def show_bonuses_months(update: Update, context: CallbackContext) -> None:
 
 async def send_bonuses_excel(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
+    nice = display_name(employee)
     year = context.user_data.get("selected_year")
     month = context.user_data.get("selected_month")
 
@@ -225,7 +230,7 @@ async def send_bonuses_excel(update: Update, context: CallbackContext) -> None:
             await update.message.reply_document(
                 document=f,
                 filename=os.path.basename(xlsx_path),
-                caption=f"Відомість бонусів • {employee} • {period_ym}"
+                caption=f"Відомість бонусів • {nice} • {period_ym}"
             )
     except ValueError:
         await update.message.reply_text(f"ℹ️ У вас відсутні нарахування бонусів за {month} {year}.")
@@ -269,6 +274,7 @@ async def show_salary_months(update: Update, context: CallbackContext) -> None:
 
 async def show_salary_details(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
+    nice = display_name(employee)
     year = context.user_data.get("selected_year")
     month_name = context.user_data.get("selected_month")
 
@@ -308,7 +314,7 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
         if bonus_table and "Нарахування бонусів відсутні" not in bonus_table:
             bonus_msg = (
                 heading("Бонуси") +
-                f"Співробітник: {employee}\n" +
+                f"Співробітник: {nice}\n" +
                 f"Період: {month_name} {year}\n\n" +
                 code_block(bonus_table)
             )

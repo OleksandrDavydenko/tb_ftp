@@ -3,6 +3,9 @@ import logging
 from auth import get_power_bi_token
 from datetime import datetime
 
+
+from utils.name_aliases import display_name 
+
 # Налаштовуємо logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
