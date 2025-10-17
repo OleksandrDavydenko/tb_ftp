@@ -8,6 +8,7 @@ import requests
 import tempfile
 from datetime import datetime
 from auth import get_power_bi_token
+from utils.name_aliases import display_name
 
 DATASET_ID = os.getenv("PBI_DATASET_ID", "8b80be15-7b31-49e4-bc85-8b37a0d98f1c")
 
@@ -101,6 +102,7 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
                 sanction_sum: float, correction_sum: float,
                 path_dir: str) -> str:
     # import xlsxwriter
+    nice = display_name(employee)  # псевдо лише для відображення
 
     cur_mask  = df["RecordType"].fillna("").str.contains("Поточ", case=False)
     prev_mask = ~cur_mask
@@ -133,7 +135,7 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
         else:
             curr = ""
 
-        return [employee, descr, accrual, to_cur, to_prev, unpaid, curr]
+        return [nice, descr, accrual, to_cur, to_prev, unpaid, curr]
 
     # базові 3 рядки
     summary_rows = [
@@ -151,9 +153,9 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
         currency_val = df["Currency"].dropna().iloc[0]
 
     if abs(sanction_sum) != 0:
-        summary_rows.append([employee, "Штраф",       sanction_sum,   sanction_sum,   0.0, 0.0, currency_val])
+        summary_rows.append([nice, "Штраф",       sanction_sum,   sanction_sum,   0.0, 0.0, currency_val])
     if abs(correction_sum) != 0:
-        summary_rows.append([employee, "Конкурс 10%", correction_sum, correction_sum, 0.0, 0.0, currency_val])
+        summary_rows.append([nice, "Конкурс 10%", correction_sum, correction_sum, 0.0, 0.0, currency_val])
 
     total_accrual = round(sum(r[2] for r in summary_rows), 2)
     total_cur     = round(sum(r[3] for r in summary_rows), 2)
@@ -172,6 +174,11 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
             ("PayDate","Дата оплати"),
         ]
         out = pd.DataFrame({dst: dfs.get(src) for src, dst in base_cols})
+
+        if "Менеджер" in out.columns:
+            out["Менеджер"] = out["Менеджер"].apply(
+                lambda v: display_name(v) if isinstance(v, str) else v
+            )
 
         if prev:
             if "Period" in dfs.columns:        out["Період"] = dfs["Period"]
@@ -217,6 +224,11 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
         }
         out = pd.DataFrame({c: (dfs[src_map[c]] if src_map.get(c) in dfs.columns else pd.NA) for c in cols_order})
 
+        if "Менеджер" in out.columns:
+            out["Менеджер"] = out["Менеджер"].apply(
+                lambda v: display_name(v) if isinstance(v, str) else v
+            )
+
         if "ExchangeRateDifference" in dfs.columns:
             out["Курсова різниця"] = pd.to_numeric(dfs["ExchangeRateDifference"], errors="coerce").round(2)
         elif "ProfitDiference" in dfs.columns:
@@ -250,6 +262,11 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
             "Новий бонус":"NewBonus",
         }
         out = pd.DataFrame({c: (dfs[src_map[c]] if src_map.get(c) in dfs.columns else pd.NA) for c in cols_order})
+
+        if "Менеджер" in out.columns:
+            out["Менеджер"] = out["Менеджер"].apply(
+                lambda v: display_name(v) if isinstance(v, str) else v
+            )
 
         if "ExchangeRateDifference" in dfs.columns:
             out["Курсова різниця"] = pd.to_numeric(dfs["ExchangeRateDifference"], errors="coerce").round(2)
@@ -285,7 +302,8 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
         if vals: docnum = vals[0]
     safe_doc = re.sub(r"[^A-Za-z0-9_\-]+", "", docnum) if docnum else "NO_DOC"
 
-    fname = os.path.join(path_dir, f"BonusesDetails_Report_{employee}_{period_ym}_{safe_doc}.xlsx")
+    safe_nice = re.sub(r"[^A-Za-z0-9_\-]+", "", display_name(employee))
+    fname = os.path.join(path_dir, f"BonusesDetails_Report_{safe_nice}_{period_ym}_{safe_doc}.xlsx")
     if os.path.exists(fname):
         os.remove(fname)
 
