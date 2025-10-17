@@ -189,7 +189,8 @@ async def show_debt_histogram(update: Update, context: CallbackContext):
         return
 
     if debt_data:
-        file_path = generate_debt_graph(debt_data, employee_name, TEMP_DIR)
+        nice_name = display_name(employee_name)
+        file_path = generate_debt_graph(debt_data, nice_name, TEMP_DIR)
         try:
             with open(file_path, 'rb') as graph_file:
                 await update.message.reply_photo(photo=InputFile(graph_file), caption="Гістограма дебіторки.")
@@ -225,7 +226,8 @@ async def show_debt_pie_chart(update: Update, context: CallbackContext):
         return
 
     if debt_data:
-        file_path = generate_pie_chart(debt_data, employee_name, TEMP_DIR)
+        nice_name = display_name(employee_name)
+        file_path = generate_pie_chart(debt_data, nice_name, TEMP_DIR)
         try:
             with open(file_path, 'rb') as graph_file:
                 await update.message.reply_photo(photo=InputFile(graph_file), caption="Секторна діаграма дебіторки.")

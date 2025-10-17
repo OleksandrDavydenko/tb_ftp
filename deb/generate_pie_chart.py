@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
+
 def generate_pie_chart(debt_data, user_name, temp_dir):
     # Перетворюємо список словників у DataFrame
     debtors_df = pd.DataFrame(debt_data)
@@ -39,6 +40,7 @@ def generate_pie_chart(debt_data, user_name, temp_dir):
     plt.tight_layout()
 
     # Збереження графіка в тимчасовій папці
+    
     file_path = os.path.join(temp_dir, 'debt_pie_chart.png')
     plt.savefig(file_path)
     plt.close()
