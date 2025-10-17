@@ -64,6 +64,8 @@ from sync_status import sync_user_statuses
 from messages.sync_bonus_docs import sync_bonus_docs
 from messages.check_bonus_docs import check_bonus_docs
 
+from utils.name_aliases import display_name
+
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "openAI"))
 from openAI.gpt_handler import is_known_command, get_gpt_response
@@ -167,9 +169,10 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
                 'employee_name': employee_name
             })
 
+            nice_name = display_name(context.user_data['employee_name'])
 
             await update.message.reply_text(
-                f"✅ Вітаємо, {employee_name}! Доступ надано.\n\n"
+                f"✅ Вітаємо, {nice_name}! Доступ надано.\n\n"
                 "Ви можете скористатися меню для перегляду фінансових даних або отримати відповідь на своє запитання.\n\n"
                 "💡 Щоб скористатися меню, просто оберіть потрібний розділ.\n"
                 "💬 Якщо у вас є запитання щодо фінансів – просто наберіть його у повідомленні, і я допоможу вам знайти відповідь."
