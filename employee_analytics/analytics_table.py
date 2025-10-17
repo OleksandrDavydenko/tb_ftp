@@ -1,6 +1,8 @@
 import requests
 import logging
 from auth import get_power_bi_token
+from utils.name_aliases import display_name
+
 
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -66,9 +68,10 @@ def get_income_data(employee_name, role, year, month):
 
 # Функція для форматування таблиці аналітики для одного співробітника
 def format_analytics_table(income_data, employee_name, month, year):
+    nice_name = display_name(employee_name)
     # Форматування заголовка таблиці
     formatted_date = f"{month.lower()} {year} р."
-    table = f"Аналітика {employee_name} за {formatted_date}:\n"
+    table = f"Аналітика {nice_name} за {formatted_date}:\n"
     table += "-" * 30 + "\n"
     table += f"{'Показник':<20}{'Сума USD':<10}\n"
     table += "-" * 30 + "\n"
