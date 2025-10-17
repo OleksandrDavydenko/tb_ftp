@@ -111,7 +111,6 @@ async def show_leadprize_months(update: Update, context: CallbackContext) -> Non
 
 async def send_leadprizes_message(update: Update, context: CallbackContext) -> None:
     employee   = context.user_data.get("employee_name")
-    nice = display_name(employee)
     year       = context.user_data.get("selected_year")
     month_name = context.user_data.get("selected_month")
 
@@ -128,7 +127,7 @@ async def send_leadprizes_message(update: Update, context: CallbackContext) -> N
         text = build_lead_prizes_message_for_period(employee, int(year), int(month_num))
     except Exception as e:
         text = f"❌ Не вдалося завантажити премії: {e}"
-    await update.message.reply_text(f"Співробітник: {nice}\n\n{text}")
+    await update.message.reply_text(text)
 
     nav = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
     await update.message.reply_text("Виберіть опцію:", reply_markup=ReplyKeyboardMarkup(nav, one_time_keyboard=True, resize_keyboard=True))
@@ -154,7 +153,6 @@ async def show_bonusmsg_months(update: Update, context: CallbackContext) -> None
 
 async def send_bonuses_message(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
-    nice = display_name(employee)
     year = context.user_data.get("selected_year")
     month_name = context.user_data.get("selected_month")
 
@@ -171,7 +169,7 @@ async def send_bonuses_message(update: Update, context: CallbackContext) -> None
         text = build_bonus_message_for_period(employee, int(year), int(month_num))
     except Exception as e:
         text = f"❌ Не вдалося завантажити бонуси: {e}"
-    await update.message.reply_text(f"Співробітник: {nice}\n\n{text}")
+    await update.message.reply_text(text)
 
     nav = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
     await update.message.reply_text("Виберіть опцію:", reply_markup=ReplyKeyboardMarkup(nav, one_time_keyboard=True, resize_keyboard=True))
@@ -304,7 +302,7 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
 
     main_msg = (
         heading("Оклад/KPI") +
-        f"Співробітник: {employee}\n" +
+        f"Співробітник: {nice}\n" +
         f"Період: {month_name} {year}\n\n" +
         code_block(main_table)
     )
@@ -330,7 +328,7 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
         if prize_table:
             prize_msg = (
                 heading("Премії") +
-                f"Співробітник: {employee}\n" +
+                f"Співробітник: {nice}\n" +
                 f"Період: {month_name} {year}\n\n" +
                 code_block(prize_table)
             )

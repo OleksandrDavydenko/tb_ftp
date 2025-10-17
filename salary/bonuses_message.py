@@ -4,6 +4,8 @@ import requests
 from datetime import datetime
 from auth import get_power_bi_token
 
+from utils.name_aliases import display_name
+
 # ==== Налаштування Power BI ====
 DATASET_ID = '8b80be15-7b31-49e4-bc85-8b37a0d98f1c'
 PBI_URL = f'https://api.powerbi.com/v1.0/myorg/datasets/{DATASET_ID}/executeQueries'
@@ -121,7 +123,8 @@ def build_bonus_message(df: pd.DataFrame, employee: str, period_date: datetime) 
     month = period_date.month
 
     lines = []
-    lines.append(f"📊 Бонуси за {title_month} {title_year} — {employee}.")
+    nice_name = display_name(employee)
+    lines.append(f"📊 Бонуси за {title_month} {title_year} — {nice_name}.")
     lines.append("")
 
     # --- Нарахування ---
