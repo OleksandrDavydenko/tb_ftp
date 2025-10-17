@@ -148,7 +148,9 @@ async def send_overdue_debts_by_request(update, context):
         await update.message.reply_text("❗ Вас не знайдено в базі користувачів.")
         return
 
+
     manager_name = user_data['employee_name']
+    nice_manager = display_name(manager_name)   # ← псевдонім лише для виводу
     debts = get_user_debt_data(manager_name)
 
     if debts:
@@ -172,7 +174,7 @@ async def send_overdue_debts_by_request(update, context):
                 })
 
         if overdue_debts:
-            message = f"📋 *Протермінована дебіторська заборгованість для {manager_name}:*\n\n"
+            message = f"📋 *Протермінована дебіторська заборгованість для {nice_manager}:*\n\n"
             for overdue in overdue_debts:
                 message += (
                     f"▫️ *Клієнт:* {overdue['Client']}\n"
