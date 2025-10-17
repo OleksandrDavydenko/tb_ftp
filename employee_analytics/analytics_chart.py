@@ -7,6 +7,9 @@ import logging
 from datetime import datetime
 import pytz
 
+
+from utils.name_aliases import display_name
+
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -14,6 +17,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 async def show_yearly_chart_for_parameter(update: Update, context: CallbackContext, employee_name: str, year: str, parameter: str):
     # Повідомлення користувачу про очікування
     await update.message.reply_text("Зачекайте, будь ласка. Це може зайняти деякий час...")
+    nice_name = display_name(employee_name)
 
     # Місяці для отримання даних та побудови графіка
     months = [
@@ -55,7 +59,7 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
 
     # Перевірка на випадок, якщо всі значення рівні нулю
     if all(value == 0 for value in monthly_values):
-        await update.message.reply_text(f"Для {employee_name} немає інформації за {year} рік.", reply_markup=reply_markup)
+        await update.message.reply_text(f"Для {nice_name} немає інформації за {year} рік.", reply_markup=reply_markup)
         logging.info(f"Немає даних для графіка {parameter.lower()} для {employee_name} за {year} рік.")
         return
 
@@ -67,9 +71,12 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
     for i, value in enumerate(monthly_values):
         plt.annotate(f"{value:.2f}", (months[i], monthly_values[i]), textcoords="offset points", xytext=(0, 10), ha='center')
 
-    plt.title(f"Аналітика {parameter.lower()} {employee_name} за {year} рік")
+    plt.title(f"Аналітика {parameter.lower()} {nice_name} за {year} рік")
     plt.xlabel("Місяці")
-    plt.ylabel(f"{parameter} (USD)" if parameter not in ["Кількість угод", "Маржинальність"] else parameter)
+    plt.ylabel(
+        "Маржинальність (%)" if parameter == "Маржинальність"
+        else (parameter if parameter == "Кількість угод" else f"{parameter} (USD)")
+    )
     plt.xticks(rotation=45)
     plt.grid()
     plt.legend()
