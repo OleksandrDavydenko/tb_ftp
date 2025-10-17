@@ -5,6 +5,8 @@ from db import get_active_users
 from auth import get_user_debt_data
 import os
 import asyncio
+from utils.name_aliases import display_name
+
 
 # Налаштування Telegram Bot Token
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -80,8 +82,9 @@ async def check_overdue_debts():
 
             if overdue_debts:
                 try:
+                    nice_manager = display_name(manager_name)  # показуємо псевдонім
                     # Формування повідомлення
-                    message = f"📋 *Звіт про протерміновану дебіторську заборгованість*\n\n*Менеджер*: {manager_name}\n\n"
+                    message = f"📋 *Звіт про протерміновану дебіторську заборгованість*\n\n*Менеджер*: {nice_manager}\n\n"
                     message += "Ваші протерміновані рахунки:\n\n"
 
                     for overdue in overdue_debts:
