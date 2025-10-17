@@ -121,7 +121,7 @@ async def show_debt_details(update: Update, context: CallbackContext) -> None:
     if not _has_debt(debt_data):
         reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Головне меню")]],
                                            one_time_keyboard=True, resize_keyboard=True)
-        display_name = display_name(employee_name)
+        nice_name  = display_name(employee_name)
         await update.message.reply_text(f"ℹ️ Немає даних по дебіторці для {nice_name}.", reply_markup=reply_markup)
         return
 
@@ -183,7 +183,8 @@ async def show_debt_histogram(update: Update, context: CallbackContext):
     if not _has_debt(debt_data):
         reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Головне меню")]],
                                            one_time_keyboard=True, resize_keyboard=True)
-        await update.message.reply_text(f"ℹ️ Немає даних по дебіторці для {employee_name}.",
+        nice_name = display_name(employee_name)
+        await update.message.reply_text(f"ℹ️ Немає даних по дебіторці для {nice_name}.",
                                         reply_markup=reply_markup)
         return
 
@@ -196,7 +197,8 @@ async def show_debt_histogram(update: Update, context: CallbackContext):
         except FileNotFoundError:
             await update.message.reply_text("Графік не був створений через відсутність даних.")
     else:
-        await update.message.reply_text(f"Немає даних для {employee_name}.")
+        nice_name = display_name(employee_name)
+        await update.message.reply_text(f"Немає даних для {nice_name}.")
 
     # Додаємо кнопки "Назад" та "Головне меню"
     custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
@@ -217,7 +219,8 @@ async def show_debt_pie_chart(update: Update, context: CallbackContext):
     if not _has_debt(debt_data):
         reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Головне меню")]],
                                            one_time_keyboard=True, resize_keyboard=True)
-        await update.message.reply_text(f"ℹ️ Немає даних по дебіторці для {employee_name}.",
+        nice_name = display_name(employee_name)
+        await update.message.reply_text(f"ℹ️ Немає даних по дебіторці для {nice_name}.",
                                         reply_markup=reply_markup)
         return
 
@@ -230,7 +233,8 @@ async def show_debt_pie_chart(update: Update, context: CallbackContext):
         except FileNotFoundError:
             await update.message.reply_text("Діаграма не була створена через відсутність даних.")
     else:
-        await update.message.reply_text(f"Немає даних для {employee_name}.")
+        nice_name = display_name(employee_name)
+        await update.message.reply_text(f"Немає даних для {nice_name}.")
 
     # Додаємо кнопки "Назад" та "Головне меню"
     custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
