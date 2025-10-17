@@ -5,6 +5,8 @@ from auth import is_phone_number_in_power_bi, get_user_debt_data
 from .generate_debt_graph import generate_debt_graph
 from .generate_pie_chart import generate_pie_chart
 from messages.weekly_overdue_debts import send_overdue_debts_by_request  # Імпорт функції для конкретного користувача
+from utils.name_aliases import display_name
+
 
 TEMP_DIR = 'temp'
 if not os.path.exists(TEMP_DIR):
@@ -37,8 +39,11 @@ async def show_debt_options(update: Update, context: CallbackContext) -> None:
     debt_data = get_user_debt_data(employee_name)
     if _has_debt(debt_data):
         total_debt = sum(float(row.get('[Sum_$]', 0) or 0) for row in debt_data)
+
+        nice_name = display_name(employee_name)
+
         await update.message.reply_text(
-            f"Загальна сума дебіторки для {employee_name}: {total_debt:.2f} USD"
+            f"Загальна сума дебіторки для {nice_name}: {total_debt:.2f} USD"
         )
 
         table_button = KeyboardButton("Таблиця")
@@ -58,7 +63,8 @@ async def show_debt_options(update: Update, context: CallbackContext) -> None:
         # НІЯКИХ «Таблиця/Діаграма» — лише повідомлення + Головне меню
         reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Головне меню")]],
                                            one_time_keyboard=True, resize_keyboard=True)
-        await update.message.reply_text(f"ℹ️ У {employee_name} немає дебіторської заборгованості.",
+        nice_name = display_name(employee_name)
+        await update.message.reply_text(f"ℹ️ У {nice_name} немає дебіторської заборгованості.",
                                         reply_markup=reply_markup)
         return
 
@@ -115,7 +121,8 @@ async def show_debt_details(update: Update, context: CallbackContext) -> None:
     if not _has_debt(debt_data):
         reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Головне меню")]],
                                            one_time_keyboard=True, resize_keyboard=True)
-        await update.message.reply_text(f"ℹ️ Немає даних по дебіторці для {employee_name}.", reply_markup=reply_markup)
+        display_name = display_name(employee_name)
+        await update.message.reply_text(f"ℹ️ Немає даних по дебіторці для {nice_name}.", reply_markup=reply_markup)
         return
 
     # ── ГРУПУВАННЯ: Client → Deal → [Account rows]
@@ -131,8 +138,9 @@ async def show_debt_details(update: Update, context: CallbackContext) -> None:
         grouped.setdefault(client, {}).setdefault(deal, []).append({'Account': acc, 'Sum_$': amt})
         total_debt += amt
 
+    nice_name = display_name(employee_name)
     # ── Формування повідомлення у стилі «Компактний список»
-    lines = [f"📋 *Дебіторка для {employee_name}:*", ""]
+    lines = [f"📋 *Дебіторка для {nice_name}:*", ""]
 
     for client, deals in grouped.items():
         # попередньо порахуємо суми по угодах
