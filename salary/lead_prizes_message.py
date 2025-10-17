@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 from datetime import datetime
 from auth import get_power_bi_token
+from utils.name_aliases import display_name
 
 # ==== Power BI ====
 DATASET_ID = "8b80be15-7b31-49e4-bc85-8b37a0d98f1c"
@@ -76,8 +77,9 @@ FILTER(
 
 # ---- Формування повідомлення ----
 def build_lead_prizes_message(df: pd.DataFrame, employee: str, period_date: datetime) -> str:
+    nice = display_name(employee)  # ← псевдонім лише для тексту
     if df.empty:
-        return f"Для {employee} за {period_date:%m.%Y} даних не знайдено."
+        return f"Для {nice} за {period_date:%m.%Y} даних не знайдено."
 
     # типи
     for col in ["RegistrDate", "Subconto2Period"]:
@@ -128,7 +130,7 @@ def build_lead_prizes_message(df: pd.DataFrame, employee: str, period_date: date
 
     # ---- Рендер тексту ----
     lines = []
-    lines.append(f"🏆 Премії керівників за {title_month} {title_year} — {employee}.")
+    lines.append(f"🏆 Премії керівників за {title_month} {title_year} — {nice}.")
     lines.append("")
     lines.append("📝 Нарахування:")
     if accr_group.empty or main_rows.empty and corr_rows.empty:
