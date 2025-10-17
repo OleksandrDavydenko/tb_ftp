@@ -111,8 +111,9 @@ async def start(update: Update, context: CallbackContext) -> None:
             'telegram_name': update.message.from_user.first_name,
             'employee_name': employee_name
         })
+        nice_name = display_name(context.user_data['employee_name'])
 
-        await update.message.reply_text(f"👋 Вітаємо, {employee_name}! Доступ надано.")
+        await update.message.reply_text(f"👋 Вітаємо, {nice_name}! Доступ надано.")
         await show_main_menu(update, context)
 
     else:
