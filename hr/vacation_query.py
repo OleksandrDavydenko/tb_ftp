@@ -8,7 +8,7 @@ from datetime import datetime
 from utils.name_aliases import display_name
 
 async def show_vacation_balance(update: Update, context: CallbackContext) -> None:
-    context.user_data['menu'] = 'hr_main'
+    context.user_data['menu'] = 'vacation_balance'
     employee_name = context.user_data.get('employee_name')
 
     if not employee_name:
