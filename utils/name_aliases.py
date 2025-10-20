@@ -1,15 +1,15 @@
 # utils/name_aliases.py
 NAME_ALIAS = {
     "Боковий Максим": "Maxim Boyko",
-    "Кристина Зотова": "Кристи Андреева",
+    "Зотова Христина": "Кристи Андреева",
     "Антонов Артемій": "Andrii Himanov",
-    "Олександр Ткачов": "Kovalenko Stanislav",
+    "Ткачов Олександр": "Kovalenko Stanislav",
     "Жученко Олександр": "Aleksandr Lafayett",
-    "Людмила Вовк": "Liudmyla Makievska",
+    "Вовк Людмила": "Liudmyla Makievska",
     "Панько Олександр": "Alex Glebov",
     "Ковальчук Олександра": "Оlexa Kovach",
     "Кубрак Ольга": "Lara Green",
-    "Ястребов Олександр": "Алекс Мазур",
+    "Ястрєбов Олександр": "Алекс Мазур",
 }
 
 def display_name(src: str) -> str:
