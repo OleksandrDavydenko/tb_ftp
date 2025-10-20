@@ -5,6 +5,8 @@ import requests
 import logging
 from datetime import datetime
 
+from utils.name_aliases import display_name
+
 async def show_vacation_balance(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'hr_main'
     employee_name = context.user_data.get('employee_name')
@@ -70,10 +72,11 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
     total_remaining = sum(float(row.get('[Remaining]', 0)) for row in rows)
 
     today = datetime.now().strftime('%d.%m.%Y')
+    nice_name = display_name(employee_name)
     message = (
 
         f"📅 Станом на {today} дату, пропорційно відпрацьованому часу.\n"
-        f"🧑 {employee_name}\n"
+        f"🧑 {nice_name}\n"
         f"📌 Залишок відпустки: {total_remaining:.1f} днів"
     )
 
