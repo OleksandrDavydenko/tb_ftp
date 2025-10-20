@@ -8,6 +8,8 @@ from datetime import date, datetime
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 
+from utils.name_aliases import display_name
+
 # --- Параметри Power BI (ROPC) ---
 CLIENT_ID  = os.getenv("PBI_CLIENT_ID",  "706d72b2-a9a2-4d90-b0d8-b08f58459ef6")
 USERNAME   = os.getenv("PBI_USERNAME",   "od@ftpua.com")
@@ -116,8 +118,9 @@ def _build_message(row: pd.Series) -> str:
         if d or not parts: parts.append(f"{d} дн.")
         tenure_text = " ".join(parts)
 
+    nice_name = display_name(row.get("Employee","—"))
     lines = []
-    lines.append(f"👤 Співробітник: {row.get('Employee','—')}")
+    lines.append(f"👤 Співробітник: {nice_name}")
     lines.append(f"🏢 Відділ: {row.get('LastDepartment','—')}")
     lines.append(f"🆔 Код: {row.get('Code','—')}")
     lines.append(f"📱 Telegram: {row.get('PhoneNumberTelegram','—')}")

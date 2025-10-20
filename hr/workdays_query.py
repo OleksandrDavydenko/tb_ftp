@@ -5,6 +5,8 @@ from auth import get_power_bi_token
 import requests
 import logging
 
+from utils.name_aliases import display_name
+
 
 async def show_workdays_years(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'workdays_years'
@@ -111,9 +113,11 @@ async def show_workdays_details(update: Update, context: CallbackContext) -> Non
         return
 
     row = rows[0]
+
+    nice_name = display_name(employee_name)
     message = (
         f"📅 Період: {row['[Period]'][:10]}\n"
-        f"👤 Працівник: {employee_name}\n"
+        f"👤 Працівник: {nice_name}\n"
         f"📊 Всього днів: {row['[TotalDays]']}\n"
         f"📆 Робочі дні: {row['[WorkDays]']}\n"
         f"🛌 Вихідні дні: {row['[WeekendDays]']}\n"
