@@ -60,6 +60,7 @@ from hr.workdays_query import show_workdays_years, show_workdays_months, show_wo
 from hr.tenure_info import show_tenure_info
 
 from information.help_menu import show_help_menu, show_currency_rates, show_devaluation_data
+from information.changelog import show_changelog
 from information.user_guide import show_user_guide
 from messages.weekly_overdue_debts import check_overdue_debts
 from sync_status import sync_user_statuses
@@ -309,6 +310,8 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
             await show_devaluation_data(update, context)
         elif text == "📘 Довідка":
             await show_user_guide(update, context)
+        elif text == "🧾 Опис змін":
+            await show_changelog(update, context)
 
         # 🔹 Підменю дебіторки
         elif text == "Таблиця":
