@@ -1,44 +1,56 @@
 # information/changelog.py
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
-import os
 
-CHANGELOG_FILE = "data/changelog.txt"
+# ✏️ Редагуй цей список: дата + короткі пункти
+CHANGELOG_ENTRIES = [
+    ("21.10.2025", [
+        "Додано розділ «Опис змін» у меню Інформація.",
+        "Кнопки «Назад» та «Головне меню» стали компактними (в один ряд).",
+        "Додано розділ «Перевірка девальвації».",
+    ]),
+    ("20.10.2025", [
+        "Оновлено формат розрахункового листа.",
+        "Покращено логування запитів до Power BI.",
+    ]),
+]
 
-def _ensure_file():
-    os.makedirs("data", exist_ok=True)
-    if not os.path.exists(CHANGELOG_FILE):
-        with open(CHANGELOG_FILE, "w", encoding="utf-8") as f:
-            f.write("")
+def _build_changelog_text() -> str:
+    """Формує HTML-текст з CHANGELOG_ENTRIES (нові зверху)."""
+    if not CHANGELOG_ENTRIES:
+        # Якщо порожньо — показуємо базову інформацію
+        return (
+            "🆕 <b>Опис змін</b>\n\n"
+            "<b>21.10.2025</b>\n"
+            "• Додано розділ «Опис змін» у меню Інформація.\n"
+            "• Кнопки «Назад» та «Головне меню» — компактні в один ряд.\n"
+        )
 
-def _send_long_text(update: Update, text: str, chunk=3900):
-    # ділимо на частини з запасом до 4096 символів
-    while text:
-        part = text[:chunk]
-        cut = part.rfind("\n")
-        if 0 < cut < len(part):
-            part = part[:cut]
-        update.message.reply_text(part)
-        text = text[len(part):].lstrip("\n")
+    blocks = []
+    for date, items in CHANGELOG_ENTRIES:
+        lines = "\n".join(f"• {item}" for item in items)
+        blocks.append(f"<b>{date}</b>\n{lines}")
+    return "🆕 <b>Опис змін</b>\n\n" + "\n\n".join(blocks)
 
 async def show_changelog(update: Update, context: CallbackContext) -> None:
     """
-    Показує вміст data/changelog.txt (нові записи — зверху, як ти його напишеш).
+    Відображає changelog з цього файлу. Кнопки «Назад» і «Головне меню» — маленькі і поруч.
     """
-    _ensure_file()
-    with open(CHANGELOG_FILE, "r", encoding="utf-8") as f:
-        content = f.read().strip()
+    text = _build_changelog_text()
 
-    if not content:
-        await update.message.reply_text("ℹ️ Поки що немає записів про оновлення.")
-    else:
-        # якщо довге — відправляємо частинами
-        if len(content) > 3900:
-            _send_long_text(update, content)
-        else:
-            await update.message.reply_text(content)
+    # якщо текст дуже довгий — ділимо на частини (ліміт ~4096)
+    while text:
+        part = text[:3900]
+        cut = part.rfind("\n")
+        if 0 < cut < len(part):
+            part = part[:cut]
+        await update.message.reply_text(part, parse_mode="HTML")
+        text = text[len(part):].lstrip("\n")
 
-    back = KeyboardButton("Назад")
-    main = KeyboardButton("Головне меню")
-    reply_markup = ReplyKeyboardMarkup([[back, main]], one_time_keyboard=True)
+    # компактні кнопки в один ряд
+    reply_markup = ReplyKeyboardMarkup(
+        [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+    )
     await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
