@@ -18,8 +18,13 @@ from .salary_queries import (
     format_salary_table,
     get_bonus_payments,
     get_prize_payments,
-    get_employee_accounts_3330_3320
+    get_employee_accounts_3330_3320,
+    # ↓↓↓ додати
+    get_available_years_salary, get_available_months_salary,
+    get_available_years_bonuses, get_available_months_bonuses,
+    get_available_years_prizes,  get_available_months_prizes,
 )
+
 
 from utils.name_aliases import display_name
 
@@ -319,18 +324,33 @@ async def send_bonuses_excel(update: Update, context: CallbackContext) -> None:
 # Показ розрахункового листа ОКЛАД
 # ──────────────────────────────────────────────────────────────────────────────
 async def show_salary_years(update: Update, context: CallbackContext) -> None:
-    current_year = datetime.datetime.now().year
-    years = [str(y) for y in range(2025, current_year + 1)]
+    employee = context.user_data.get("employee_name")
+    years = get_available_years_salary(employee) if employee else []
+    if not years:
+        kb = [[KeyboardButton("Назад")], [KeyboardButton("Головне меню")]]
+        context.user_data["menu"] = "salary_years"
+        await update.message.reply_text("ℹ️ Немає даних по окладу.", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
+        return
     kb = [[KeyboardButton(y)] for y in years] + [[KeyboardButton("Назад")]]
     context.user_data["menu"] = "salary_years"
     await update.message.reply_text("Оберіть рік:", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
 
 
+
 async def show_salary_months(update: Update, context: CallbackContext) -> None:
-    kb = [[KeyboardButton(m)] for m in MONTHS_UA]
+    employee = context.user_data.get("employee_name")
+    year = context.user_data.get("selected_year")
+    months = get_available_months_salary(employee, year) if (employee and year) else []
+    if not months:
+        kb = [[KeyboardButton("Назад")], [KeyboardButton("Головне меню")]]
+        context.user_data["menu"] = "salary_months"
+        await update.message.reply_text("ℹ️ Немає місяців з даними за цей рік.", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
+        return
+    kb = [[KeyboardButton(m)] for m in months]
     kb.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
     context.user_data["menu"] = "salary_months"
     await update.message.reply_text("Оберіть місяць:", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
+
 
 
 async def show_salary_details(update: Update, context: CallbackContext) -> None:

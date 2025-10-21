@@ -10,6 +10,156 @@ from utils.name_aliases import display_name
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# КОРОТКІ ЗАПИТИ ДЛЯ ПОБУДОВИ СПИСКІВ РОКІВ/МІСЯЦІВ
+# ──────────────────────────────────────────────────────────────────────────────
+
+MONTHS_UA = ["Січень","Лютий","Березень","Квітень","Травень","Червень",
+             "Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"]
+
+def _pbi_exec(query: str):
+    token = get_power_bi_token()
+    if not token:
+        logging.error("PBI token missing")
+        return []
+    dataset_id = '8b80be15-7b31-49e4-bc85-8b37a0d98f1c'
+    url = f'https://api.powerbi.com/v1.0/myorg/datasets/{dataset_id}/executeQueries'
+    headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
+    body = {"queries": [{"query": query}], "serializerSettings": {"includeNulls": True}}
+    r = requests.post(url, headers=headers, json=body, timeout=60)
+    if r.status_code != 200:
+        logging.error(f"PBI {r.status_code}: {r.text}")
+        return []
+    return r.json()['results'][0]['tables'][0].get('rows', [])
+
+# --- ОКЛАД / ЗП (employee salary + salary payments(character='salary'))
+def get_available_years_salary(employee_name: str) -> list[str]:
+    dax = f"""
+EVALUATE
+UNION(
+  SELECTCOLUMNS(FILTER(EmployeeSalary, EmployeeSalary[Employee] = "{employee_name}"),
+                "Y", YEAR(EmployeeSalary[Date])),
+  SELECTCOLUMNS(
+    FILTER(SalaryPayment, SalaryPayment[Employee] = "{employee_name}" && LOWER(SalaryPayment[character]) = "salary"),
+    "Y", YEAR(DATEVALUE(SalaryPayment[МісяцьНарахування]))
+  )
+)
+"""
+    rows = _pbi_exec(dax)
+    years = sorted({int(r.get("[Y]", 0)) for r in rows if r.get("[Y]")})
+    return [str(y) for y in years]
+
+def get_available_months_salary(employee_name: str, year: str) -> list[str]:
+    dax = f"""
+EVALUATE
+UNION(
+  SELECTCOLUMNS(
+    FILTER(EmployeeSalary,
+      EmployeeSalary[Employee] = "{employee_name}" && YEAR(EmployeeSalary[Date]) = {year}),
+    "M", MONTH(EmployeeSalary[Date])
+  ),
+  SELECTCOLUMNS(
+    FILTER(SalaryPayment,
+      SalaryPayment[Employee] = "{employee_name}" &&
+      LOWER(SalaryPayment[character]) = "salary" &&
+      YEAR(DATEVALUE(SalaryPayment[МісяцьНарахування])) = {year}),
+    "M", MONTH(DATEVALUE(SalaryPayment[МісяцьНарахування]))
+  )
+)
+"""
+    rows = _pbi_exec(dax)
+    mm = sorted({int(r.get("[M]", 0)) for r in rows if r.get("[M]") and 1 <= int(r.get("[M]", 0)) <= 12})
+    return [MONTHS_UA[i-1] for i in mm]
+
+# --- БОНУСИ (BonusesTable + salary payments(character='bonus'))
+def get_available_years_bonuses(employee_name: str) -> list[str]:
+    dax = f"""
+EVALUATE
+UNION(
+  SELECTCOLUMNS(FILTER(BonusesTable, BonusesTable[Employee] = "{employee_name}"),
+                "Y", YEAR(BonusesTable[Date])),
+  SELECTCOLUMNS(
+    FILTER(SalaryPayment, SalaryPayment[Employee] = "{employee_name}" && LOWER(SalaryPayment[character]) = "bonus"),
+    "Y", YEAR(SalaryPayment[AccrualDateFromDoc])
+  )
+)
+"""
+    rows = _pbi_exec(dax)
+    years = sorted({int(r.get("[Y]", 0)) for r in rows if r.get("[Y]")})
+    return [str(y) for y in years]
+
+def get_available_months_bonuses(employee_name: str, year: str) -> list[str]:
+    dax = f"""
+EVALUATE
+UNION(
+  SELECTCOLUMNS(
+    FILTER(BonusesTable,
+      BonusesTable[Employee] = "{employee_name}" && YEAR(BonusesTable[Date]) = {year}),
+    "M", MONTH(BonusesTable[Date])
+  ),
+  SELECTCOLUMNS(
+    FILTER(SalaryPayment,
+      SalaryPayment[Employee] = "{employee_name}" &&
+      LOWER(SalaryPayment[character]) = "bonus" &&
+      YEAR(SalaryPayment[AccrualDateFromDoc]) = {year}),
+    "M", MONTH(SalaryPayment[AccrualDateFromDoc])
+  )
+)
+"""
+    rows = _pbi_exec(dax)
+    mm = sorted({int(r.get("[M]", 0)) for r in rows if r.get("[M]") and 1 <= int(r.get("[M]", 0)) <= 12})
+    return [MONTHS_UA[i-1] for i in mm]
+
+# --- ПРЕМІЇ КЕРІВНИКІВ (accruals у EmployeeSalary + payments(character='prize'))
+def get_available_years_prizes(employee_name: str) -> list[str]:
+    dax = f"""
+EVALUATE
+UNION(
+  SELECTCOLUMNS(
+    FILTER(EmployeeSalary,
+      EmployeeSalary[Employee] = "{employee_name}" &&
+      (EmployeeSalary[НарахованоПреміїUAH] <> 0 || EmployeeSalary[НарахованоПреміїUSD] <> 0)
+    ),
+    "Y", YEAR(EmployeeSalary[Date])
+  ),
+  SELECTCOLUMNS(
+    FILTER(SalaryPayment, SalaryPayment[Employee] = "{employee_name}" && LOWER(SalaryPayment[character]) = "prize"),
+    "Y", YEAR(SalaryPayment[AccrualDateFromDoc])
+  )
+)
+"""
+    rows = _pbi_exec(dax)
+    years = sorted({int(r.get("[Y]", 0)) for r in rows if r.get("[Y]")})
+    return [str(y) for y in years]
+
+def get_available_months_prizes(employee_name: str, year: str) -> list[str]:
+    dax = f"""
+EVALUATE
+UNION(
+  SELECTCOLUMNS(
+    FILTER(EmployeeSalary,
+      EmployeeSalary[Employee] = "{employee_name}" &&
+      YEAR(EmployeeSalary[Date]) = {year} &&
+      (EmployeeSalary[НарахованоПреміїUAH] <> 0 || EmployeeSalary[НарахованоПреміїUSD] <> 0)
+    ),
+    "M", MONTH(EmployeeSalary[Date])
+  ),
+  SELECTCOLUMNS(
+    FILTER(SalaryPayment,
+      SalaryPayment[Employee] = "{employee_name}" &&
+      LOWER(SalaryPayment[character]) = "prize" &&
+      YEAR(SalaryPayment[AccrualDateFromDoc]) = {year}),
+    "M", MONTH(SalaryPayment[AccrualDateFromDoc])
+  )
+)
+"""
+    rows = _pbi_exec(dax)
+    mm = sorted({int(r.get("[M]", 0)) for r in rows if r.get("[M]") and 1 <= int(r.get("[M]", 0)) <= 12})
+    return [MONTHS_UA[i-1] for i in mm]
+
+
+
+
 def get_employee_accounts_3330_3320(employee_name: str) -> set[str]:
     """
     Повертає множину кодів рахунків {'3330', '3320'} для співробітника
