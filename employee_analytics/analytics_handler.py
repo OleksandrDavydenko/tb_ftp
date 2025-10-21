@@ -1,7 +1,12 @@
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 import datetime
-from .analytics_table import get_income_data, format_analytics_table
+from .analytics_table import (
+    get_income_data, format_analytics_table,
+    get_available_years_analytics, get_available_months_analytics
+)
+from .analytics_chart import show_yearly_chart_for_parameter
+
 from .analytics_chart import show_yearly_chart_for_parameter
 import logging
 
@@ -19,27 +24,36 @@ async def show_analytics_options(update: Update, context: CallbackContext) -> No
 
 # Відображення років для аналітики
 async def show_analytics_years(update: Update, context: CallbackContext) -> None:
-    current_year = datetime.datetime.now().year
-    years = [str(year) for year in range(2024, current_year + 1)]
-    custom_keyboard = [[KeyboardButton(year)] for year in years]
+    employee = context.user_data.get("employee_name")
+    years = get_available_years_analytics(employee) if employee else []
+    if not years:
+        kb = [[KeyboardButton("Назад")], [KeyboardButton("Головне меню")]]
+        context.user_data['menu'] = 'analytics_years'
+        await update.message.reply_text("ℹ️ Немає доступних років аналітики.", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
+        return
+    custom_keyboard = [[KeyboardButton(y)] for y in years]
     custom_keyboard.append([KeyboardButton("Назад")])
     reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
-
     context.user_data['menu'] = 'analytics_years'
     await update.message.reply_text("Оберіть рік:", reply_markup=reply_markup)
 
+
 # Відображення місяців для помісячної аналітики
 async def show_analytics_months(update: Update, context: CallbackContext) -> None:
-    months = [
-        "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
-        "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
-    ]
-    custom_keyboard = [[KeyboardButton(month)] for month in months]
+    employee = context.user_data.get("employee_name")
+    year = context.user_data.get("selected_year")
+    months = get_available_months_analytics(employee, year) if (employee and year) else []
+    if not months:
+        kb = [[KeyboardButton("Назад")], [KeyboardButton("Головне меню")]]
+        context.user_data['menu'] = 'analytics_months'
+        await update.message.reply_text("ℹ️ Немає доступних місяців за обраний рік.", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
+        return
+    custom_keyboard = [[KeyboardButton(m)] for m in months]
     custom_keyboard.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
     reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
-
     context.user_data['menu'] = 'analytics_months'
     await update.message.reply_text("Оберіть місяць:", reply_markup=reply_markup)
+
 
 # Відображення аналітики за місяць
 async def show_monthly_analytics(update: Update, context: CallbackContext) -> None:

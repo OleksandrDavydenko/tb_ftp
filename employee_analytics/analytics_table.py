@@ -95,3 +95,75 @@ def format_analytics_table(income_data, employee_name, month, year):
     
     logging.info("Формування таблиці аналітики завершено.")
     return table
+
+
+
+
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# КОРОТКІ ЗАПИТИ ДЛЯ СПИСКІВ РОКІВ/МІСЯЦІВ (АНАЛІТИКА)
+# ──────────────────────────────────────────────────────────────────────────────
+
+MONTHS_UA = ["Січень","Лютий","Березень","Квітень","Травень","Червень",
+             "Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"]
+MIN_YEAR = 2025  # мінімальний рік у виборі
+
+def _pbi_exec_analytics(dax: str):
+    token = get_power_bi_token()
+    if not token:
+        logging.error("PBI token missing")
+        return []
+    dataset_id = '8b80be15-7b31-49e4-bc85-8b37a0d98f1c'
+    url = f'https://api.powerbi.com/v1.0/myorg/datasets/{dataset_id}/executeQueries'
+    headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
+    payload = {"queries": [{"query": dax}], "serializerSettings": {"includeNulls": True}}
+    r = requests.post(url, headers=headers, json=payload, timeout=60)
+    if r.status_code != 200:
+        logging.error(f"PBI {r.status_code}: {r.text}")
+        return []
+    return r.json()['results'][0]['tables'][0].get('rows', []) or []
+
+def get_available_years_analytics(employee_name: str) -> list[str]:
+    emp = employee_name.replace('"', '""')
+    dax = f"""
+EVALUATE
+UNION(
+  SELECTCOLUMNS(
+    FILTER('GrossProfitFromDeals', 'GrossProfitFromDeals'[Manager] = "{emp}" && YEAR('GrossProfitFromDeals'[RegistrDate]) >= {MIN_YEAR}),
+    "Y", YEAR('GrossProfitFromDeals'[RegistrDate])
+  ),
+  SELECTCOLUMNS(
+    FILTER('GrossProfitFromDeals', 'GrossProfitFromDeals'[Seller]  = "{emp}" && YEAR('GrossProfitFromDeals'[RegistrDate]) >= {MIN_YEAR}),
+    "Y", YEAR('GrossProfitFromDeals'[RegistrDate])
+  )
+)
+"""
+    rows = _pbi_exec_analytics(dax)
+    years = sorted({int(r.get("[Y]", 0)) for r in rows if r.get("[Y]")})
+    return [str(y) for y in years if y >= MIN_YEAR]
+
+def get_available_months_analytics(employee_name: str, year: str) -> list[str]:
+    emp = employee_name.replace('"', '""')
+    dax = f"""
+EVALUATE
+UNION(
+  SELECTCOLUMNS(
+    FILTER('GrossProfitFromDeals',
+      'GrossProfitFromDeals'[Manager] = "{emp}" &&
+      YEAR('GrossProfitFromDeals'[RegistrDate]) = {int(year)}
+    ),
+    "M", MONTH('GrossProfitFromDeals'[RegistrDate])
+  ),
+  SELECTCOLUMNS(
+    FILTER('GrossProfitFromDeals',
+      'GrossProfitFromDeals'[Seller] = "{emp}" &&
+      YEAR('GrossProfitFromDeals'[RegistrDate]) = {int(year)}
+    ),
+    "M", MONTH('GrossProfitFromDeals'[RegistrDate])
+  )
+)
+"""
+    rows = _pbi_exec_analytics(dax)
+    mm = sorted({int(r.get("[M]", 0)) for r in rows if r.get("[M]") and 1 <= int(r.get("[M]", 0)) <= 12})
+    return [MONTHS_UA[i-1] for i in mm]

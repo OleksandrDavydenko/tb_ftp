@@ -2,7 +2,7 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 import matplotlib.pyplot as plt
 from io import BytesIO
-from .analytics_table import get_income_data
+from .analytics_table import get_income_data, get_available_months_analytics
 import logging
 from datetime import datetime
 import pytz
@@ -20,11 +20,14 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
     nice_name = display_name(employee_name)
 
     # Місяці для отримання даних та побудови графіка
-    months = [
-        "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
-        "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
-    ]
+    months = get_available_months_analytics(employee_name, year) or []
     monthly_values = []
+    if not months:
+        custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
+        reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
+        await update.message.reply_text(f"Для {nice_name} немає даних за {year} рік.", reply_markup=reply_markup)
+        return
+
 
     # Визначення параметра для отримання даних
     parameter_column = {
