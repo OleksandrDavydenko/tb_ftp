@@ -27,9 +27,12 @@ async def show_analytics_years(update: Update, context: CallbackContext) -> None
     employee = context.user_data.get("employee_name")
     years = get_available_years_analytics(employee) if employee else []
     if not years:
-        kb = [[KeyboardButton("Назад")], [KeyboardButton("Головне меню")]]
+        kb = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
         context.user_data['menu'] = 'analytics_years'
-        await update.message.reply_text("ℹ️ Немає доступних років аналітики.", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
+        await update.message.reply_text(
+            "ℹ️ Немає доступних років аналітики.",
+            reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)
+        )
         return
     custom_keyboard = [[KeyboardButton(y)] for y in years]
     custom_keyboard.append([KeyboardButton("Назад")])
@@ -44,13 +47,17 @@ async def show_analytics_months(update: Update, context: CallbackContext) -> Non
     year = context.user_data.get("selected_year")
     months = get_available_months_analytics(employee, year) if (employee and year) else []
     if not months:
-        kb = [[KeyboardButton("Назад")], [KeyboardButton("Головне меню")]]
+        kb = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
         context.user_data['menu'] = 'analytics_months'
-        await update.message.reply_text("ℹ️ Немає доступних місяців за обраний рік.", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
+        await update.message.reply_text(
+            "ℹ️ Немає доступних місяців за обраний рік.",
+            reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)
+        )
         return
     custom_keyboard = [[KeyboardButton(m)] for m in months]
     custom_keyboard.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
-    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
+    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
+
     context.user_data['menu'] = 'analytics_months'
     await update.message.reply_text("Оберіть місяць:", reply_markup=reply_markup)
 
