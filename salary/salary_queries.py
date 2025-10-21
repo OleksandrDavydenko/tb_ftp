@@ -14,6 +14,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # КОРОТКІ ЗАПИТИ ДЛЯ ПОБУДОВИ СПИСКІВ РОКІВ/МІСЯЦІВ
 # ──────────────────────────────────────────────────────────────────────────────
 
+
+MIN_YEAR = 2025
+
+
 MONTHS_UA = ["Січень","Лютий","Березень","Квітень","Травень","Червень",
              "Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"]
 
@@ -47,6 +51,7 @@ UNION(
 """
     rows = _pbi_exec(dax)
     years = sorted({int(r.get("[Y]", 0)) for r in rows if r.get("[Y]")})
+    years = [y for y in years if y >= MIN_YEAR]
     return [str(y) for y in years]
 
 def get_available_months_salary(employee_name: str, year: str) -> list[str]:
@@ -86,6 +91,7 @@ UNION(
 """
     rows = _pbi_exec(dax)
     years = sorted({int(r.get("[Y]", 0)) for r in rows if r.get("[Y]")})
+    years = [y for y in years if y >= MIN_YEAR]
     return [str(y) for y in years]
 
 def get_available_months_bonuses(employee_name: str, year: str) -> list[str]:
@@ -130,6 +136,7 @@ UNION(
 """
     rows = _pbi_exec(dax)
     years = sorted({int(r.get("[Y]", 0)) for r in rows if r.get("[Y]")})
+    years = [y for y in years if y >= MIN_YEAR]
     return [str(y) for y in years]
 
 def get_available_months_prizes(employee_name: str, year: str) -> list[str]:
