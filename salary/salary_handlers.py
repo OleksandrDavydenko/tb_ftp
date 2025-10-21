@@ -48,23 +48,21 @@ MONTHS_MAP = {name: idx + 1 for idx, name in enumerate(MONTHS_UA)}
 # ──────────────────────────────────────────────────────────────────────────────
 
 async def show_salary_menu(update: Update, context: CallbackContext) -> None:
-    employee = context.user_data.get("employee_name")  # ім'я вже збережене при логіні
+    employee = context.user_data.get("employee_name")
     codes = get_employee_accounts_3330_3320(employee) if employee else set()
 
-    # Базове меню — Оклад завжди
+    # 1-й ряд — Оклад (повна ширина)
     rows = [[KeyboardButton("💼 Оклад")]]
 
-    # Якщо є 3330 → показуємо блок бонусів
+    # 2-й ряд — Бонуси + Відомість Бонуси (разом, якщо є 3330)
     if "3330" in codes:
-        rows.append([KeyboardButton("💰 Бонуси")])
-        rows.append([KeyboardButton("🎁 Відомість Бонуси")])
+        rows.append([KeyboardButton("💰 Бонуси"), KeyboardButton("🎁 Відомість Бонуси")])
 
-    # Якщо є 3320 → показуємо блок премій керівників
+    # 3-й ряд — Премії керівників + Відомість керівника (разом, якщо є 3320)
     if "3320" in codes:
-        rows.append([KeyboardButton("👑 Премії керівників")])
-        rows.append([KeyboardButton("📜 Відомість керівника")])
+        rows.append([KeyboardButton("👑 Премії керівників"), KeyboardButton("📜 Відомість керівника")])
 
-    # Якщо немає ні 3330, ні 3320 — додаткових кнопок просто не буде (залишається лише Оклад)
+    # 4-й ряд — Головне меню
     rows.append([KeyboardButton("Головне меню")])
 
     context.user_data["menu"] = "salary_menu"
@@ -72,6 +70,7 @@ async def show_salary_menu(update: Update, context: CallbackContext) -> None:
         "Оберіть розділ:",
         reply_markup=ReplyKeyboardMarkup(rows, one_time_keyboard=True, resize_keyboard=True)
     )
+
 
 
 
