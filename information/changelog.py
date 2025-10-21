@@ -9,18 +9,16 @@ CHANGELOG_ENTRIES = [
     ]),
     ("21.10.2025", [
         "Додано розділ «Опис змін» у меню Інформація.",
-        "Кнопки «Назад» та «Головне меню» стали компактними (в один ряд).",
         "Створені короткі запити та відображення лише тих років і місяців, "
         "інформація по яким існує для користувача у розділах «Аналітика» та «Зарплата».",
-        "Додано звіт керівника по нарахуванню премій (вивантаження в xslx).",
-
+        "Додано звіт керівника по нарахуванню премій (вивантаження в xlsx).",
     ]),
 ]
 
+
 def _build_changelog_text() -> str:
-    """Формує HTML-текст з CHANGELOG_ENTRIES (нові зверху)."""
+    """Формує HTML-текст з CHANGELOG_ENTRIES (нові зверху у списку)."""
     if not CHANGELOG_ENTRIES:
-        # Якщо порожньо — показуємо базову інформацію
         return (
             "🆕 <b>Опис змін</b>\n\n"
             "<b>21.10.2025</b>\n"
@@ -34,22 +32,35 @@ def _build_changelog_text() -> str:
         blocks.append(f"<b>{date}</b>\n{lines}")
     return "🆕 <b>Опис змін</b>\n\n" + "\n\n".join(blocks)
 
+
+async def _send_long_html(update: Update, html: str, limit: int = 3900) -> None:
+    """Відправляє HTML-текст. Якщо довший за ліміт — ріже по найближчому переносу рядка."""
+    if len(html) <= limit:
+        await update.message.reply_text(html, parse_mode="HTML")
+        return
+
+    start = 0
+    n = len(html)
+    while start < n:
+        end = min(start + limit, n)
+        if end < n:
+            cut = html.rfind("\n", start, end)
+            if cut == -1 or cut <= start:
+                cut = end
+        else:
+            cut = end
+        await update.message.reply_text(html[start:cut], parse_mode="HTML")
+        start = cut + (1 if cut < n and html[cut:cut+1] == "\n" else 0)
+
+
 async def show_changelog(update: Update, context: CallbackContext) -> None:
     """
-    Відображає changelog з цього файлу. Кнопки «Назад» і «Головне меню» — маленькі і поруч.
+    Відображає changelog з цього файлу.
+    Кнопки «Назад» і «Головне меню» — компактні та поруч (один ряд).
     """
     text = _build_changelog_text()
+    await _send_long_html(update, text)
 
-    # якщо текст дуже довгий — ділимо на частини (ліміт ~4096)
-    while text:
-        part = text[:3900]
-        cut = part.rfind("\n")
-        if 0 < cut < len(part):
-            part = part[:cut]
-        await update.message.reply_text(part, parse_mode="HTML")
-        text = text[len(part):].lstrip("\n")
-
-    # компактні кнопки в один ряд
     reply_markup = ReplyKeyboardMarkup(
         [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]],
         resize_keyboard=True,
