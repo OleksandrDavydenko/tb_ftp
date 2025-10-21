@@ -8,7 +8,8 @@ import os
 import shutil
 from .bonuses_report import generate_excel
 from .bonuses_message import build_bonus_message_for_period
-from .lead_prizes_message import build_lead_prizes_message_for_period
+from .lead_prizes_message import build_lead_prizes_message_for_period 
+from .lead_prizes_report import generate_hod_excel
 
 from .salary_queries import (
     get_salary_data,
@@ -75,15 +76,78 @@ async def show_salary_menu(update: Update, context: CallbackContext) -> None:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Відомість керівника — поки заглушка
+# Відомість керівника (Excel): рік → місяць → файл
 # ──────────────────────────────────────────────────────────────────────────────
-async def show_leadprize_report_placeholder(update: Update, context: CallbackContext) -> None:
-    context.user_data["menu"] = "leadprize_report_placeholder"
-    kb = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
+
+async def show_leadreport_years(update: Update, context: CallbackContext) -> None:
+    current_year = datetime.datetime.now().year
+    years = [str(y) for y in range(2025, current_year + 1)]
+    kb = [[KeyboardButton(y)] for y in years] + [[KeyboardButton("Назад")]]
+    context.user_data["menu"] = "leadreport_years"
     await update.message.reply_text(
-        "🔧 Функціонал *«Відомість керівника»* у розробці.",
-        reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True),
-        parse_mode="Markdown"
+        "Оберіть рік (Відомість керівника):",
+        reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True)
+    )
+
+async def show_leadreport_months(update: Update, context: CallbackContext) -> None:
+    kb = [[KeyboardButton(m)] for m in MONTHS_UA]
+    kb.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
+    context.user_data["menu"] = "leadreport_months"
+    await update.message.reply_text(
+        "Оберіть місяць (Відомість керівника):",
+        reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True)
+    )
+
+async def send_leadreport_excel(update: Update, context: CallbackContext) -> None:
+    head = context.user_data.get("employee_name")  # Керівник = поточний користувач
+    year = context.user_data.get("selected_year")
+    month = context.user_data.get("selected_month")
+
+    if not (head and year and month):
+        await update.message.reply_text("Помилка: спочатку оберіть рік та місяць.")
+        return
+
+    month_num = MONTHS_MAP.get(month)
+    if month_num is None:
+        await update.message.reply_text("Невідомий місяць.")
+        return
+
+    period_ym = f"{year}-{month_num:02d}"
+    wait_msg = await update.message.reply_text("⏳ Формую відомість керівника…")
+
+    xlsx_path = None
+    try:
+        xlsx_path = generate_hod_excel(head, period_ym)
+        with open(xlsx_path, "rb") as f:
+            await update.message.reply_document(
+                document=f,
+                filename=os.path.basename(xlsx_path),
+                caption=f"Відомість керівника • {head} • {period_ym}"
+            )
+    except ValueError:
+        await update.message.reply_text(f"ℹ️ Відсутні дані за {month} {year}.")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Не вдалося сформувати файл: {e}")
+    finally:
+        # приберемо тимчасову папку
+        try:
+            if xlsx_path:
+                tmp_dir = os.path.dirname(xlsx_path)
+                import shutil
+                if os.path.isdir(tmp_dir):
+                    shutil.rmtree(tmp_dir, ignore_errors=True)
+        except Exception:
+            pass
+        try:
+            if wait_msg:
+                await context.bot.delete_message(update.effective_chat.id, wait_msg.message_id)
+        except Exception:
+            pass
+
+    nav = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
+    await update.message.reply_text(
+        "Виберіть опцію:",
+        reply_markup=ReplyKeyboardMarkup(nav, one_time_keyboard=True, resize_keyboard=True)
     )
 
 
