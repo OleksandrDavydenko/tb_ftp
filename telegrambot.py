@@ -87,9 +87,15 @@ def set_bot_menu_sync(app):
         BotCommand("info", "ℹ️ Інформація")
     ]
 
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(app.bot.set_my_commands(commands))
-    loop.run_until_complete(app.bot.set_chat_menu_button(menu_button=MenuButtonCommands()))
+    try:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(app.bot.set_my_commands(commands))
+        logging.info("Команди успішно додано в меню.")
+        loop.run_until_complete(app.bot.set_chat_menu_button(menu_button=MenuButtonCommands()))
+        logging.info("Меню кнопок налаштовано.")
+    except Exception as e:
+        logging.error(f"Помилка налаштування меню: {e}")
+
 
 
 
