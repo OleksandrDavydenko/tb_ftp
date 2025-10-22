@@ -157,6 +157,7 @@ async def send_leadreport_excel(update: Update, context: CallbackContext) -> Non
         except Exception:
             pass
 
+     # Додаємо кнопки "Назад" і "Головне меню"
     nav = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
     await update.message.reply_text(
         "Виберіть опцію:",
