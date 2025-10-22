@@ -157,7 +157,7 @@ async def send_leadreport_excel(update: Update, context: CallbackContext) -> Non
         except Exception:
             pass
 
-     # Додаємо кнопки "Назад" і "Головне меню"
+      # Додаємо кнопки "Назад" і "Головне меню"
     nav = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
     await update.message.reply_text(
         "Виберіть опцію:",
@@ -374,8 +374,8 @@ async def send_bonuses_excel(update: Update, context: CallbackContext) -> None:
     await update.message.reply_text(
         "Виберіть опцію:",
         reply_markup=ReplyKeyboardMarkup(nav_kb, one_time_keyboard=True, resize_keyboard=True)
-
-
+    )
+        
 # ──────────────────────────────────────────────────────────────────────────────
 # Показ розрахункового листа ОКЛАД
 # ──────────────────────────────────────────────────────────────────────────────
