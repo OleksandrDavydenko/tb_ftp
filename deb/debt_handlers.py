@@ -90,6 +90,27 @@ async def handle_overdue_debt(update: Update, context: CallbackContext) -> None:
     # Відправляємо кнопки
     await update.message.reply_text("Натисніть 'Назад' або 'Головне меню':", reply_markup=reply_markup)
 
+def split_message(text, max_length=4096):
+     """
+     Функція для поділу довгого тексту на частини, якщо його довжина перевищує max_length.
+     """
+     parts = []
+     while len(text) > max_length:
+         split_point = text.rfind('\n', 0, max_length)
+         if split_point == -1:
+             split_point = max_length
+         parts.append(text[:split_point])
+         text = text[split_point:].strip()
+     parts.append(text)
+     return parts
+
+
+ # Розбиваємо повідомлення на частини, якщо воно занадто велике
+async def send_large_message(update, context, message):
+     parts = split_message(message)
+     for part in parts:
+         await update.message.reply_text(part, parse_mode="Markdown")
+
 
 
 
@@ -164,7 +185,14 @@ async def show_debt_details(update: Update, context: CallbackContext) -> None:
     lines.append(f"💰 Загальна сума: {fmt(total_debt)} USD")
     message = "\n".join(lines)
 
-    await update.message.reply_text(message, parse_mode="Markdown")
+    await send_large_message(update, context, message)
+
+
+
+
+
+
+
 
     # Кнопки навігації
     reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Назад"), KeyboardButton("Головне меню")]],
