@@ -3,17 +3,16 @@ import requests
 import psycopg2
 import os
 import logging
+import pandas as pd
 from datetime import datetime
 from auth import get_power_bi_token, normalize_phone_number
 from db import add_payment
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 DATABASE_URL = os.getenv('DATABASE_URL')
-#TARGET_PHONE = "380632773227"
 
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
-
 
 
 def fetch_db_payments(phone_number, payment_number):
@@ -65,6 +64,7 @@ async def sync_payments():
         'Content-Type': 'application/json'
     }
 
+    # Отримуємо активних користувачів
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -76,57 +76,66 @@ async def sync_payments():
     cursor.close()
     conn.close()
 
-    for user in users:
-        phone_number, employee_name, joined_at = user
-        phone_number = normalize_phone_number(phone_number)
-
-        query_data = {
-            "queries": [
-                {
-                    "query": f"""
-                        EVALUATE 
-                        SELECTCOLUMNS(
-                            FILTER(
-                                SalaryPayment,
-                                SalaryPayment[Employee] = "{employee_name}" &&
-                                SalaryPayment[DocDate] >= "{joined_at.strftime('%Y-%m-%d')}"
-                            ),
-                            "Дата платежу", SalaryPayment[DocDate],
-                            "Документ", SalaryPayment[DocNumber],
-                            "Сума UAH", SalaryPayment[SUM_UAH],
-                            "Сума USD", SalaryPayment[SUM_USD],
-                            "МісяцьНарахування", SalaryPayment[МісяцьНарахування]
-                        )
-                    """
-                }
-            ],
-            "serializerSettings": {
-                "includeNulls": True
+    # Одна функція для отримання всіх платежів для всіх користувачів
+    query_data = {
+        "queries": [
+            {
+                "query": """
+                    EVALUATE 
+                    SELECTCOLUMNS(
+                        SalaryPayment,
+                        "Employee", SalaryPayment[Employee],
+                        "DocDate", SalaryPayment[DocDate],
+                        "DocNumber", SalaryPayment[DocNumber],
+                        "SUM_UAH", SalaryPayment[SUM_UAH],
+                        "SUM_USD", SalaryPayment[SUM_USD],
+                        "AccrualMonth", SalaryPayment[МісяцьНарахування]
+                    )
+                """
             }
+        ],
+        "serializerSettings": {
+            "includeNulls": True
         }
+    }
 
-        try:
-            response = requests.post(power_bi_url, headers=headers, json=query_data)
-            if response.status_code != 200:
-                logging.error(f"❌ Power BI error: {response.status_code} | {response.text}")
+    try:
+        response = requests.post(power_bi_url, headers=headers, json=query_data)
+        if response.status_code != 200:
+            logging.error(f"❌ Power BI error: {response.status_code} | {response.text}")
+            return
+
+        data = response.json()
+        rows = data['results'][0]['tables'][0].get('rows', [])
+
+        # Перетворюємо дані у DataFrame
+        df = pd.DataFrame(rows)
+
+        # Обробляємо кожного користувача
+        for user in users:
+            phone_number, employee_name, joined_at = user
+            phone_number = normalize_phone_number(phone_number)
+
+            # Фільтруємо дані по конкретному користувачу
+            user_data = df[df['Employee'] == employee_name]
+
+            if user_data.empty:
+                logging.info(f"❌ Для {employee_name} не знайдено даних.")
                 continue
 
-            data = response.json()
-            rows = data['results'][0]['tables'][0].get('rows', [])
-            grouped = {}
-            for payment in rows:
-                doc = payment.get("[Документ]", "")
-                grouped.setdefault(doc, []).append(payment)
+            # Групуємо платежі за номерами документів
+            grouped = user_data.groupby('DocNumber')
 
-            for payment_number, payments in grouped.items():
+            for payment_number, payments in grouped:
                 bi_set = set()
-                for p in payments:
-                    amount = float(p.get("[Сума USD]", 0)) if abs(p.get("[Сума USD]", 0)) > 0 else float(p.get("[Сума UAH]", 0))
-                    currency = "USD" if abs(p.get("[Сума USD]", 0)) > 0 else "UAH"
-                    payment_date = str(p.get("[Дата платежу]", "")).split("T")[0]
-                    accrual_month = p.get("[МісяцьНарахування]", "").strip()
+                for _, p in payments.iterrows():
+                    amount = float(p['SUM_USD']) if abs(p['SUM_USD']) > 0 else float(p['SUM_UAH'])
+                    currency = "USD" if abs(p['SUM_USD']) > 0 else "UAH"
+                    payment_date = p['DocDate'].split("T")[0]
+                    accrual_month = p['AccrualMonth'].strip()
                     bi_set.add((f"{amount:.2f}", currency, payment_date, accrual_month))
 
+                # Порівнюємо з даними з БД
                 db_set = fetch_db_payments(phone_number, payment_number)
 
                 if bi_set != db_set:
@@ -136,6 +145,7 @@ async def sync_payments():
                 else:
                     logging.info(f"⏭️ Платіж {payment_number} для {phone_number} без змін")
 
-            logging.info(f"🔄 Синхронізовано {len(rows)} рядків для {employee_name}")
-        except Exception as e:
-            logging.error(f"❌ Помилка при обробці {employee_name}: {e}")
+            logging.info(f"🔄 Синхронізовано {len(payments)} рядків для {employee_name}")
+
+    except Exception as e:
+        logging.error(f"❌ Помилка при обробці платежів: {e}")
