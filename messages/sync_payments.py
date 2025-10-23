@@ -14,7 +14,7 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
-# Функція для отримання всіх платежів для користувача
+
 def fetch_all_db_payments():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -27,10 +27,10 @@ def fetch_all_db_payments():
     records = cursor.fetchall()
     cursor.close()
     conn.close()
-    # Повертаємо датафрейм для легшої обробки
+    # Логування отриманих даних з БД
+    logging.info(f"✅ Отримано {len(records)} записів з БД.")
     return pd.DataFrame(records, columns=['phone_number', 'employee_name', 'payment_number', 'amount', 'currency', 'payment_date', 'accrual_month'])
 
-# Функція для порівняння і синхронізації платежів
 async def async_add_payment(phone_number, amount, currency, payment_date, payment_number, accrual_month):
     try:
         add_payment(phone_number, amount, currency, payment_date, payment_number, accrual_month, False)
@@ -51,7 +51,9 @@ async def sync_payments():
         'Content-Type': 'application/json'
     }
 
-    # Одна функція для отримання всіх платежів для всіх користувачів
+    # Логування перед запитом до Power BI
+    logging.info("🔄 Відправка запиту до Power BI...")
+
     query_data = {
         "queries": [
             {
@@ -79,9 +81,8 @@ async def sync_payments():
 
     try:
         # Отримуємо дані з Power BI
-        logging.info("🔄 Відправка запиту до Power BI...")
         response = requests.post(power_bi_url, headers=headers, json=query_data)
-
+        
         if response.status_code != 200:
             logging.error(f"❌ Power BI error: {response.status_code} | {response.text}")
             return
@@ -91,6 +92,9 @@ async def sync_payments():
         df_power_bi = pd.DataFrame(rows)
         logging.info(f"✅ Отримано {len(df_power_bi)} записів з Power BI")
 
+        # Логування отриманих даних з Power BI
+        logging.debug(f"Отримані дані з Power BI: {df_power_bi.head()}")
+
         # Фільтрація даних на основі наявності 'Employee'
         df_power_bi = df_power_bi[df_power_bi['Employee'].notna() & (df_power_bi['Employee'] != '')]
         logging.info(f"✅ Після фільтрації залишилося {len(df_power_bi)} записів для обробки.")
@@ -98,9 +102,8 @@ async def sync_payments():
         # Отримуємо всі платежі з БД для порівняння
         df_db = fetch_all_db_payments()
 
-        # Логування отриманих даних
+        # Логування отриманих даних з БД
         logging.debug(f"Отримані дані з БД: {df_db.head()}")
-        logging.debug(f"Отримані дані з Power BI: {df_power_bi.head()}")
 
         # Для кожного користувача з Power BI, порівнюємо платежі
         for _, user_payment in df_power_bi.iterrows():
@@ -111,13 +114,22 @@ async def sync_payments():
             payment_date = user_payment['DocDate'].split("T")[0]
             accrual_month = user_payment['AccrualMonth'].strip()
 
+            # Логування для кожного платіжного запису
+            logging.debug(f"Обробка платіжного запису для {employee_name}, платіж №{payment_number}.")
+
             # Фільтруємо платежі по співробітнику
             db_payment = df_db[df_db['employee_name'] == employee_name]
+
+            # Логування для кожного співробітника
+            logging.debug(f"Знайдено {len(db_payment)} записів в БД для {employee_name}.")
 
             # Якщо в базі є запис для цього користувача, порівнюємо
             if not db_payment.empty:
                 db_payment_set = set(db_payment[['payment_number', 'amount', 'currency', 'payment_date', 'accrual_month']].apply(tuple, axis=1))
                 bi_payment_set = {(payment_number, f"{amount:.2f}", currency, payment_date, accrual_month)}
+
+                # Логування для порівняння
+                logging.debug(f"Порівняння даних: {db_payment_set} з {bi_payment_set}")
 
                 # Порівнюємо
                 if db_payment_set != bi_payment_set:
