@@ -108,7 +108,7 @@ async def sync_payments():
         df = pd.DataFrame(rows)
 
         # Перейменовуємо колонки для зручності
-        df.columns = df.columns.str.replace(r'[\[\]]', '', regex=True)  # Видаляємо квадратні дужки з назв колонок
+        df.columns = df.columns.str.replace(r'[\[\]]', '', regex=True)
         logging.info(f"✅ Оновлені колонки: {df.columns}")
 
         # Перевірка наявності колонки 'Employee'
@@ -117,13 +117,14 @@ async def sync_payments():
             return
 
         # Фільтруємо порожні записи в колонці Employee
-        df = df[df['Employee'].notna()]
+        df = df[df['Employee'].notna() & (df['Employee'] != '')]
 
         # Приводимо дату платежу до формату datetime
         df['Дата платежу'] = pd.to_datetime(df['Дата платежу'], errors='coerce')
 
-        # Логування отриманих даних з таблиці SalaryPayment
-        logging.info(f"✅ Датафрейм даних про платежі: {df}")
+        # Логування отриманих даних
+        logging.info(f"✅ Отримано {len(df)} записів з Power BI")
+        logging.info(f"📊 Унікальні співробітники в даних Power BI: {df['Employee'].unique()[:10]}")  # Перші 10
 
         # Отримуємо дату приєднання для кожного співробітника з таблиці users
         conn = get_db_connection()
@@ -133,62 +134,72 @@ async def sync_payments():
         cursor.close()
         conn.close()
 
-        # Створюємо датафрейм для користувачів
-        users_df = pd.DataFrame(users, columns=['Employee_name', 'Phone Number', 'Joined At'])
-        users_df['Phone Number'] = users_df['Phone Number'].apply(normalize_phone_number)
-        users_df['Joined At'] = pd.to_datetime(users_df['Joined At'], errors='coerce')  # Приводимо дату до datetime
+        # Створюємо словник для швидкого пошуку співробітників за іменем
+        users_dict = {}
+        for user in users:
+            employee_name, phone_number, joined_at = user
+            normalized_phone = normalize_phone_number(phone_number)
+            users_dict[employee_name] = {
+                'phone_number': normalized_phone,
+                'joined_at': pd.to_datetime(joined_at)
+            }
 
-        logging.info(f"✅ Датафрейм користувачів: {users_df}")
-
-        # Логування датафреймів перед обробкою
-        logging.info(f"✅ Платежі: {df}")
-        logging.info(f"✅ Користувачі: {users_df}")
+        logging.info(f"✅ Отримано {len(users_dict)} активних користувачів з БД")
+        logging.info(f"📋 Співробітники з БД: {list(users_dict.keys())[:10]}")  # Перші 10
 
         # Синхронізуємо дані для кожного співробітника
-        for _, user in users_df.iterrows():
-            employee_name = user['Employee_name']
-            phone_number = user['Phone Number']
-            joined_at = user['Joined At']
+        synced_count = 0
+        
+        for employee_name, user_info in users_dict.items():
+            phone_number = user_info['phone_number']
+            joined_at = user_info['joined_at']
 
-            # Перевірка, чи номер телефону нормалізований
             if not phone_number:
                 logging.warning(f"❌ Номер телефону для {employee_name} не нормалізований.")
                 continue
 
-            logging.info(f"❓ Для співробітника {employee_name} (номер: {phone_number}), нормалізований номер телефону: {phone_number}")
+            logging.info(f"🔍 Обробляємо співробітника: {employee_name} (тел: {phone_number})")
 
-            # Фільтруємо платежі, де дата платежу більше або дорівнює даті приєднання
-            employee_df = df[df['Employee'] == phone_number]
-            employee_df = employee_df[employee_df['Дата платежу'] >= pd.to_datetime(joined_at)]
+            # Фільтруємо платежі по ІМЕНІ співробітника та даті
+            employee_payments = df[
+                (df['Employee'] == employee_name) & 
+                (df['Дата платежу'] >= joined_at)
+            ]
 
-            # Логування, щоб перевірити фільтрацію
-            logging.info(f"❓ Платежі після фільтрації для {phone_number}: {employee_df}")
+            logging.info(f"📋 Знайдено {len(employee_payments)} платежів для {employee_name}")
 
-            if employee_df.empty:
-                logging.warning(f"❌ Немає платежів після фільтрації для {phone_number}. Пропускаємо.")
+            if employee_payments.empty:
+                logging.info(f"⏭️ Немає платежів для {employee_name} після {joined_at}")
                 continue
 
-            for _, row in employee_df.iterrows():
-                payment_number = row["Документ"]
-                amount = float(row["Сума USD"]) if abs(row["Сума USD"]) > 0 else float(row["Сума UAH"])
-                currency = "USD" if abs(row["Сума USD"]) > 0 else "UAH"
-                payment_date = str(row["Дата платежу"]).split("T")[0]
-                accrual_month = row["МісяцьНарахування"].strip()
+            # Групуємо платежі по номерам документів
+            grouped = employee_payments.groupby('Документ')
+            
+            for payment_number, group in grouped:
+                bi_set = set()
+                for _, row in group.iterrows():
+                    amount = float(row["Сума USD"]) if abs(row["Сума USD"]) > 0 else float(row["Сума UAH"])
+                    currency = "USD" if abs(row["Сума USD"]) > 0 else "UAH"
+                    payment_date = row["Дата платежу"].strftime('%Y-%m-%d') if pd.notna(row["Дата платежу"]) else ""
+                    accrual_month = str(row["МісяцьНарахування"]).strip() if pd.notna(row["МісяцьНарахування"]) else ""
+                    
+                    bi_set.add((f"{amount:.2f}", currency, payment_date, accrual_month))
 
-                # Отримуємо запис з БД
+                # Порівнюємо з даними з БД
                 db_set = fetch_db_payments(phone_number, payment_number)
-                bi_set = {(f"{amount:.2f}", currency, payment_date, accrual_month)}
-
-                # Логування порівняння наборів
-                logging.info(f"bi_set: {bi_set}")
-                logging.info(f"db_set: {db_set}")
-
+                
                 if bi_set != db_set:
+                    logging.info(f"🔄 Знайдені розбіжності для {employee_name}, платіж {payment_number}")
                     delete_payment_records(phone_number, payment_number)
                     for amount, currency, payment_date, accrual_month in bi_set:
                         await async_add_payment(phone_number, float(amount), currency, payment_date, payment_number, accrual_month)
+                    synced_count += 1
                 else:
-                    logging.info(f"⏭️ Платіж {payment_number} для {phone_number} без змін")
+                    logging.info(f"⏭️ Платіж {payment_number} для {employee_name} без змін")
+
+        logging.info(f"✅ Синхронізацію завершено. Оновлено {synced_count} платежів")
 
     except Exception as e:
         logging.error(f"❌ Помилка при обробці: {e}")
+        import traceback
+        logging.error(f"❌ Деталі помилки: {traceback.format_exc()}")
