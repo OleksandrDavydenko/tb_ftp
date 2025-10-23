@@ -83,7 +83,10 @@ async def sync_payments():
                 "query": """
                     EVALUATE 
                     SELECTCOLUMNS(
-                        SalaryPayment,
+                        FILTER(
+                            SalaryPayment,
+                            NOT(ISBLANK(SalaryPayment[Employee])) && SalaryPayment[Employee] <> ""
+                        ),
                         "Employee", SalaryPayment[Employee],
                         "DocDate", SalaryPayment[DocDate],
                         "DocNumber", SalaryPayment[DocNumber],
@@ -98,6 +101,7 @@ async def sync_payments():
             "includeNulls": True
         }
     }
+          
 
     try:
         # Отримуємо дані з Power BI
