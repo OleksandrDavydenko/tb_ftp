@@ -68,19 +68,7 @@ async def sync_payments():
         "queries": [
             {
                 "query": """
-                    EVALUATE 
-                    SELECTCOLUMNS(
-                        SalaryPayment,
-                        "Employee", SalaryPayment[Employee],
-                        "Дата платежу", SalaryPayment[DocDate],
-                        "Документ", SalaryPayment[DocNumber],
-                        "Сума UAH", SalaryPayment[SUM_UAH],
-                        "Сума USD", SalaryPayment[SUM_USD],
-                        "МісяцьНарахування", SalaryPayment[МісяцьНарахування]
-                    )
-                """
-            }
-        ],
+
         "serializerSettings": {
             "includeNulls": True
         }
