@@ -67,96 +67,80 @@ async def sync_payments():
 
     conn = get_db_connection()
     cursor = conn.cursor()
-
-    # Fetch all users (phone_number, employee_name, and joined_at)
     cursor.execute("""
         SELECT phone_number, employee_name, joined_at 
         FROM users 
         WHERE status = 'active'
     """)
     users = cursor.fetchall()
+    cursor.close()
+    conn.close()
 
-    # Ensure employee_names is not empty
-    employee_names = [user[1] for user in users if user[1]]  # Filter out any None or empty names
-    if not employee_names:
-        logging.error("❌ Не знайдено активних співробітників.")
-        return
+    for user in users:
+        phone_number, employee_name, joined_at = user
+        phone_number = normalize_phone_number(phone_number)
 
-    # Build a query to fetch all payments for all users at once
-    query_data = {
-        "queries": [
-            {
-                "query": """
-                    EVALUATE 
-                    SELECTCOLUMNS(
-                        FILTER(
-                            SalaryPayment,
-                            NOT(ISBLANK(SalaryPayment[Employee])) && SalaryPayment[Employee] <> ""
-                        ),
-                        "Employee", SalaryPayment[Employee],
-                        "DocDate", SalaryPayment[DocDate],
-                        "DocNumber", SalaryPayment[DocNumber],
-                        "SUM_UAH", SalaryPayment[SUM_UAH],
-                        "SUM_USD", SalaryPayment[SUM_USD],
-                        "AccrualMonth", SalaryPayment[МісяцьНарахування]
-                    )
-                """
+        query_data = {
+            "queries": [
+                {
+                    "query": f"""
+                        EVALUATE 
+                        SELECTCOLUMNS(
+                            FILTER(
+                                SalaryPayment,
+                                SalaryPayment[Employee] = "{employee_name}" &&
+                                SalaryPayment[DocDate] >= "{joined_at.strftime('%Y-%m-%d')}"
+                            ),
+                            "Дата платежу", SalaryPayment[DocDate],
+                            "Документ", SalaryPayment[DocNumber],
+                            "Сума UAH", SalaryPayment[SUM_UAH],
+                            "Сума USD", SalaryPayment[SUM_USD],
+                            "МісяцьНарахування", SalaryPayment[МісяцьНарахування]
+                        )
+                    """
+                }
+            ],
+            "serializerSettings": {
+                "includeNulls": True
             }
-        ],
-        "serializerSettings": {
-            "includeNulls": True
         }
-    }
 
-    try:
-        response = requests.post(power_bi_url, headers=headers, json=query_data)
-        if response.status_code != 200:
-            logging.error(f"❌ Power BI error: {response.status_code} | {response.text}")
-            return
+        try:
+            response = requests.post(power_bi_url, headers=headers, json=query_data)
+            if response.status_code != 200:
+                logging.error(f"❌ Power BI error: {response.status_code} | {response.text}")
+                continue
 
-        data = response.json()
-        rows = data['results'][0]['tables'][0].get('rows', [])
+            data = response.json()
+            rows = data['results'][0]['tables'][0].get('rows', [])
+            grouped = {}
+            for payment in rows:
+                doc = payment.get("[Документ]", "")
+                grouped.setdefault(doc, []).append(payment)
 
-        grouped = {}
-        for payment in rows:
-            employee_name = payment.get("[Employee]", "")
-            payment_number = payment.get("[DocNumber]", "")
-            amount_usd = float(payment.get("[SUM_USD]", 0))
-            amount_uah = float(payment.get("[SUM_UAH]", 0))
-            payment_date = str(payment.get("[DocDate]", "")).split("T")[0]
-            accrual_month = payment.get("[MonthAccrued]", "").strip()
+            for payment_number, payments in grouped.items():
+                bi_set = set()
+                for p in payments:
+                    amount = float(p.get("[Сума USD]", 0)) if abs(p.get("[Сума USD]", 0)) > 0 else float(p.get("[Сума UAH]", 0))
+                    currency = "USD" if abs(p.get("[Сума USD]", 0)) > 0 else "UAH"
+                    payment_date = str(p.get("[Дата платежу]", "")).split("T")[0]
+                    accrual_month = p.get("[МісяцьНарахування]", "").strip()
 
-            # Determine the currency
-            currency = "USD" if amount_usd > 0 else "UAH"
-            amount = amount_usd if currency == "USD" else amount_uah
+                    # Перевірка на порожнє значення accrual_month і заповнення його, якщо потрібно
+                    if not accrual_month:
+                        accrual_month = "Не вказано"  # або встановити дефолтне значення
 
-            # Group the payments by employee and payment number
-            grouped.setdefault(employee_name, {}).setdefault(payment_number, []).append((f"{amount:.2f}", currency, payment_date, accrual_month))
+                    bi_set.add((f"{amount:.2f}", currency, payment_date, accrual_month))
 
-        # Now iterate over grouped data and compare with database records
-        for user in users:
-            phone_number, employee_name, joined_at = user
-            phone_number = normalize_phone_number(phone_number)
+                db_set = fetch_db_payments(phone_number, payment_number)
 
-            if employee_name in grouped:
-                for payment_number, payments in grouped[employee_name].items():
-                    bi_set = set(payments)
-                    db_set = fetch_db_payments(phone_number, payment_number)
+                if bi_set != db_set:
+                    delete_payment_records(phone_number, payment_number)
+                    for amount, currency, payment_date, accrual_month in bi_set:
+                        await async_add_payment(phone_number, float(amount), currency, payment_date, payment_number, accrual_month)
+                else:
+                    logging.info(f"⏭️ Платіж {payment_number} для {phone_number} без змін")
 
-                    if bi_set != db_set:
-                        delete_payment_records(phone_number, payment_number)
-                        for amount, currency, payment_date, accrual_month in bi_set:
-                            await async_add_payment(phone_number, float(amount), currency, payment_date, payment_number, accrual_month)
-                    else:
-                        logging.info(f"⏭️ Платіж {payment_number} для {phone_number} без змін")
-
-                logging.info(f"🔄 Синхронізовано {len(grouped[employee_name])} рядків для {employee_name}")
-            else:
-                logging.warning(f"Не знайдено платіжних даних для {employee_name}")
-                
-    except Exception as e:
-        logging.error(f"❌ Помилка при синхронізації платежів: {e}")
-
-    finally:
-        cursor.close()
-        conn.close()
+            logging.info(f"🔄 Синхронізовано {len(rows)} рядків для {employee_name}")
+        except Exception as e:
+            logging.error(f"❌ Помилка при обробці {employee_name}: {e}")
