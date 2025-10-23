@@ -183,7 +183,6 @@ async def sync_payments():
                 all_employee_payments = df[df['Employee'] == employee_name]
                 if len(all_employee_payments) > 0:
                     logging.info(f"ℹ️ Увага! {employee_name} є в Power BI, але всі платежі до {joined_at}")
-                    logging.info(f"📅 Дати платежів: {all_employee_payments['Дата платежу'].unique()}")
                 continue
 
             # Групуємо платежі по номерам документів
