@@ -14,8 +14,12 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
-# Функція для отримання всіх платежів для користувача
+
 def fetch_all_db_payments():
+    """
+    Отримуємо всі платежі для всіх користувачів з бази даних.
+    Платежі зв'язуються з користувачами через телефон і ім'я співробітника.
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -27,19 +31,50 @@ def fetch_all_db_payments():
     records = cursor.fetchall()
     cursor.close()
     conn.close()
+    
     # Логування отриманих даних з БД
     logging.info(f"✅ Отримано {len(records)} записів з БД.")
+    
     return pd.DataFrame(records, columns=['phone_number', 'employee_name', 'payment_number', 'amount', 'currency', 'payment_date', 'accrual_month'])
 
-# Функція для порівняння і синхронізації платежів
+
 async def async_add_payment(phone_number, amount, currency, payment_date, payment_number, accrual_month):
+    """
+    Додає платіж в базу даних.
+    """
     try:
         add_payment(phone_number, amount, currency, payment_date, payment_number, accrual_month, False)
         logging.info(f"✅ Додано платіж: {phone_number} | {amount} {currency} | {accrual_month} | № {payment_number}")
     except Exception as e:
         logging.error(f"❌ Помилка при додаванні: {e}")
 
+
+def delete_payment_records(phone_number, payment_number):
+    """
+    Видаляє старі платіжні записи з бази даних за номером телефону і платіжним номером.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            DELETE FROM payments
+            WHERE phone_number = %s AND payment_number = %s
+        """, (phone_number, payment_number))
+        conn.commit()
+        logging.info(f"🧹 Видалено старі записи по платіжці {payment_number} для {phone_number}")
+    except Exception as e:
+        logging.error(f"❌ Помилка при видаленні: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+
 async def sync_payments():
+    """
+    Основна функція для синхронізації платежів з Power BI і базою даних.
+    Відправляє один запит до Power BI, отримує дані, порівнює їх з базою даних,
+    та синхронізує зміни.
+    """
     token = get_power_bi_token()
     if not token:
         logging.error("❌ Не вдалося отримати токен Power BI.")
@@ -83,7 +118,7 @@ async def sync_payments():
     try:
         # Отримуємо дані з Power BI
         response = requests.post(power_bi_url, headers=headers, json=query_data)
-        
+
         if response.status_code != 200:
             logging.error(f"❌ Power BI error: {response.status_code} | {response.text}")
             return
@@ -95,11 +130,6 @@ async def sync_payments():
 
         # Логування отриманих даних з Power BI
         logging.debug(f"Отримані дані з Power BI: {df_power_bi.head()}")
-
-        # Перевірка на порожні значення в полі 'Employee' та логування таких випадків
-        invalid_employees = df_power_bi[df_power_bi['Employee'].isna() | (df_power_bi['Employee'] == '')]
-        if not invalid_employees.empty:
-            logging.warning(f"❌ Знайдені некоректні записи з порожнім полем 'Employee': {invalid_employees}")
 
         # Фільтрація даних на основі наявності 'Employee'
         df_power_bi = df_power_bi[df_power_bi['Employee'].notna() & (df_power_bi['Employee'] != '')]
@@ -140,6 +170,7 @@ async def sync_payments():
                 # Порівнюємо
                 if db_payment_set != bi_payment_set:
                     logging.info(f"🔄 Зміни в платіжці {payment_number} для {employee_name}. Синхронізуємо...")
+                    delete_payment_records(user_payment['phone_number'], payment_number)  # Видаляємо старі записи перед додаванням нових
                     await async_add_payment(user_payment['phone_number'], amount, currency, payment_date, payment_number, accrual_month)
                 else:
                     logging.info(f"⏭️ Платіж {payment_number} для {employee_name} без змін.")
