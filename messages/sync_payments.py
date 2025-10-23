@@ -128,13 +128,13 @@ async def sync_payments():
         # Отримуємо дату приєднання для кожного співробітника з таблиці users
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("""SELECT phone_number, joined_at FROM users WHERE status = 'active'""")
+        cursor.execute("""SELECT employee_name, phone_number, joined_at FROM users WHERE status = 'active'""")
         users = cursor.fetchall()
         cursor.close()
         conn.close()
 
         # Створюємо датафрейм для користувачів
-        users_df = pd.DataFrame(users, columns=['Phone Number', 'Joined At'])
+        users_df = pd.DataFrame(users, columns=['Employee_name', 'Phone Number', 'Joined At'])
         users_df['Phone Number'] = users_df['Phone Number'].apply(normalize_phone_number)
         users_df['Joined At'] = pd.to_datetime(users_df['Joined At'], errors='coerce')  # Приводимо дату до datetime
 
@@ -145,16 +145,17 @@ async def sync_payments():
         logging.info(f"✅ Користувачі: {users_df}")
 
         # Синхронізуємо дані для кожного співробітника
-        for user in users:
-            phone_number, joined_at = user
-            phone_number = normalize_phone_number(phone_number)
+        for _, user in users_df.iterrows():
+            employee_name = user['Employee_name']
+            phone_number = user['Phone Number']
+            joined_at = user['Joined At']
 
             # Перевірка, чи номер телефону нормалізований
             if not phone_number:
-                logging.warning(f"❌ Номер телефону для {user} не нормалізований.")
+                logging.warning(f"❌ Номер телефону для {employee_name} не нормалізований.")
                 continue
 
-            logging.info(f"❓ Для співробітника {user}, нормалізований номер телефону: {phone_number}")
+            logging.info(f"❓ Для співробітника {employee_name} (номер: {phone_number}), нормалізований номер телефону: {phone_number}")
 
             # Фільтруємо платежі, де дата платежу більше або дорівнює даті приєднання
             employee_df = df[df['Employee'] == phone_number]
