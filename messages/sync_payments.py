@@ -83,10 +83,7 @@ async def sync_payments():
                 "query": """
                     EVALUATE 
                     SELECTCOLUMNS(
-                        FILTER(
-                            SalaryPayment,
-                            NOT(ISBLANK(SalaryPayment[Employee])) && SalaryPayment[Employee] <> ""
-                        ),
+                        SalaryPayment,
                         "Employee", SalaryPayment[Employee],
                         "DocDate", SalaryPayment[DocDate],
                         "DocNumber", SalaryPayment[DocNumber],
@@ -101,7 +98,6 @@ async def sync_payments():
             "includeNulls": True
         }
     }
-          
 
     try:
         # Отримуємо дані з Power BI
@@ -124,6 +120,10 @@ async def sync_payments():
         # Логування даних з DataFrame
         logging.debug(f"Отримані дані: {df.head()}")
 
+        # Фільтрація даних на основі наявності 'Employee'
+        df = df[df['Employee'].notna() & (df['Employee'] != '')]
+        logging.info(f"✅ Після фільтрації залишилося {len(df)} записів для обробки.")
+
         # Обробляємо кожного користувача
         for user in users:
             phone_number, employee_name, joined_at = user
@@ -143,12 +143,7 @@ async def sync_payments():
             for payment_number, payments in grouped:
                 bi_set = set()
                 for _, p in payments.iterrows():
-                    # Перевірка на наявність поля 'Employee'
-                    if 'Employee' not in p or pd.isna(p['Employee']):
-                        logging.error(f"❌ Поле 'Employee' відсутнє або пусте для платіжного запису: {p}")
-                        continue  # Пропускаємо цей запис, якщо поле 'Employee' відсутнє або пусте
-
-                    employee_name = p['Employee']
+                    employee_name = p['Employee']  # тепер ми впевнені, що воно не порожнє
                     amount = float(p['SUM_USD']) if abs(p['SUM_USD']) > 0 else float(p['SUM_UAH'])
                     currency = "USD" if abs(p['SUM_USD']) > 0 else "UAH"
                     payment_date = p['DocDate'].split("T")[0]
