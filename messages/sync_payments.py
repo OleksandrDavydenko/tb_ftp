@@ -100,16 +100,25 @@ async def sync_payments():
     }
 
     try:
+        # Отримуємо дані з Power BI
+        logging.info("🔄 Відправка запиту до Power BI...")
         response = requests.post(power_bi_url, headers=headers, json=query_data)
-        if response.status_code != 200:
+        
+        # Логування отриманого результату
+        if response.status_code == 200:
+            data = response.json()
+            logging.info(f"✅ Відповідь від Power BI: {data}")
+        else:
             logging.error(f"❌ Power BI error: {response.status_code} | {response.text}")
             return
 
-        data = response.json()
-        rows = data['results'][0]['tables'][0].get('rows', [])
-
         # Перетворюємо дані у DataFrame
+        rows = data['results'][0]['tables'][0].get('rows', [])
         df = pd.DataFrame(rows)
+        logging.info(f"✅ Отримано {len(df)} записів з Power BI")
+
+        # Логування даних з DataFrame
+        logging.debug(f"Отримані дані: {df.head()}")
 
         # Обробляємо кожного користувача
         for user in users:
@@ -118,6 +127,7 @@ async def sync_payments():
 
             # Фільтруємо дані по конкретному користувачу
             user_data = df[df['Employee'] == employee_name]
+            logging.info(f"🔄 Обробка даних для {employee_name} ({phone_number})")
 
             if user_data.empty:
                 logging.info(f"❌ Для {employee_name} не знайдено даних.")
@@ -135,10 +145,14 @@ async def sync_payments():
                     accrual_month = p['AccrualMonth'].strip()
                     bi_set.add((f"{amount:.2f}", currency, payment_date, accrual_month))
 
+                # Логування для кожного платежу
+                logging.debug(f"Платіж {payment_number} для {employee_name}: {bi_set}")
+
                 # Порівнюємо з даними з БД
                 db_set = fetch_db_payments(phone_number, payment_number)
 
                 if bi_set != db_set:
+                    logging.info(f"🔄 Дані по платіжці {payment_number} для {phone_number} змінилися.")
                     delete_payment_records(phone_number, payment_number)
                     for amount, currency, payment_date, accrual_month in bi_set:
                         await async_add_payment(phone_number, float(amount), currency, payment_date, payment_number, accrual_month)
