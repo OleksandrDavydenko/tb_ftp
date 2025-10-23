@@ -86,16 +86,19 @@ async def sync_payments():
     query_data = {
         "queries": [
             {
-                "query": f"""
-                    EVALUATE
+                "query": """
+                    EVALUATE 
                     SELECTCOLUMNS(
-
+                        FILTER(
+                            SalaryPayment,
+                            NOT(ISBLANK(SalaryPayment[Employee])) && SalaryPayment[Employee] <> ""
+                        ),
                         "Employee", SalaryPayment[Employee],
                         "DocDate", SalaryPayment[DocDate],
                         "DocNumber", SalaryPayment[DocNumber],
                         "SUM_UAH", SalaryPayment[SUM_UAH],
                         "SUM_USD", SalaryPayment[SUM_USD],
-                        "MonthAccrued", SalaryPayment[МісяцьНарахування]
+                        "AccrualMonth", SalaryPayment[МісяцьНарахування]
                     )
                 """
             }
