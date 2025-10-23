@@ -105,7 +105,13 @@ async def sync_payments():
         # Логування DataFrame
         logging.info(f"📝 Отриманий DataFrame:\n{df}")
 
-        for _, row in df.iterrows():
+        # Фільтруємо DataFrame по конкретному співробітнику
+        filtered_df = df[df['Employee'] == "Давиденко Олександр"]  # Замість "Давиденко Олександр" використовуйте потрібне ім'я
+
+        # Логування фільтрованого DataFrame
+        logging.info(f"📝 Фільтрований DataFrame для 'Давиденко Олександр':\n{filtered_df}")
+
+        for _, row in filtered_df.iterrows():
             employee_name = row["Employee"]
             payment_number = row["Документ"]
             amount_uah = float(row["Сума UAH"] or 0)
@@ -125,6 +131,6 @@ async def sync_payments():
             else:
                 logging.info(f"⏭️ Платіж {payment_number} для {TARGET_PHONE} без змін")
 
-        logging.info(f"🔄 Синхронізовано {len(rows)} рядків.")
+        logging.info(f"🔄 Синхронізовано {len(filtered_df)} рядків для 'Давиденко Олександр'")
     except Exception as e:
         logging.error(f"❌ Помилка при синхронізації: {e}")
