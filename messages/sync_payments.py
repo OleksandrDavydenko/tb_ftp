@@ -119,12 +119,19 @@ async def sync_payments():
         # Фільтруємо порожні записи в колонці Employee
         df = df[df['Employee'].notna() & (df['Employee'] != '')]
 
-        # Приводимо дату платежу до формату datetime
-        df['Дата платежу'] = pd.to_datetime(df['Дата платежу'], errors='coerce')
+        # Приводимо дату платежу до формату datetime і нормалізуємо (видаляємо час)
+        df['Дата платежу'] = pd.to_datetime(df['Дата платежу'], errors='coerce').dt.normalize()
 
         # Логування отриманих даних
         logging.info(f"✅ Отримано {len(df)} записів з Power BI")
         logging.info(f"📊 Унікальні співробітники в даних Power BI: {df['Employee'].unique()[:10]}")  # Перші 10
+        
+        # Перевіримо, чи є платежі за сьогодні
+        today = pd.Timestamp.now().normalize()
+        today_payments = df[df['Дата платежу'] == today]
+        logging.info(f"📅 Платежі за сьогодні ({today}): {len(today_payments)} записів")
+        if len(today_payments) > 0:
+            logging.info(f"📋 Співробітники з платежами за сьогодні: {today_payments['Employee'].unique()}")
 
         # Отримуємо дату приєднання для кожного співробітника з таблиці users
         conn = get_db_connection()
@@ -139,9 +146,11 @@ async def sync_payments():
         for user in users:
             employee_name, phone_number, joined_at = user
             normalized_phone = normalize_phone_number(phone_number)
+            # Нормалізуємо дату приєднання (видаляємо час)
+            joined_at_normalized = pd.to_datetime(joined_at).normalize()
             users_dict[employee_name] = {
                 'phone_number': normalized_phone,
-                'joined_at': pd.to_datetime(joined_at)
+                'joined_at': joined_at_normalized
             }
 
         logging.info(f"✅ Отримано {len(users_dict)} активних користувачів з БД")
@@ -158,18 +167,23 @@ async def sync_payments():
                 logging.warning(f"❌ Номер телефону для {employee_name} не нормалізований.")
                 continue
 
-            logging.info(f"🔍 Обробляємо співробітника: {employee_name} (тел: {phone_number})")
+            logging.info(f"🔍 Обробляємо співробітника: {employee_name} (тел: {phone_number}, приєднався: {joined_at})")
 
-            # Фільтруємо платежі по ІМЕНІ співробітника та даті
+            # Фільтруємо платежі по ІМЕНІ співробітника та даті (порівнюємо тільки дати)
             employee_payments = df[
                 (df['Employee'] == employee_name) & 
                 (df['Дата платежу'] >= joined_at)
             ]
 
-            logging.info(f"📋 Знайдено {len(employee_payments)} платежів для {employee_name}")
+            logging.info(f"📋 Знайдено {len(employee_payments)} платежів для {employee_name} після {joined_at}")
 
             if employee_payments.empty:
                 logging.info(f"⏭️ Немає платежів для {employee_name} після {joined_at}")
+                # Додатково перевіримо, чи взагалі є цей співробітник в даних Power BI
+                all_employee_payments = df[df['Employee'] == employee_name]
+                if len(all_employee_payments) > 0:
+                    logging.info(f"ℹ️ Увага! {employee_name} є в Power BI, але всі платежі до {joined_at}")
+                    logging.info(f"📅 Дати платежів: {all_employee_payments['Дата платежу'].unique()}")
                 continue
 
             # Групуємо платежі по номерам документів
@@ -187,6 +201,10 @@ async def sync_payments():
 
                 # Порівнюємо з даними з БД
                 db_set = fetch_db_payments(phone_number, payment_number)
+                
+                logging.info(f"🔍 Порівняння для {employee_name}, платіж {payment_number}:")
+                logging.info(f"   BI set: {bi_set}")
+                logging.info(f"   DB set: {db_set}")
                 
                 if bi_set != db_set:
                     logging.info(f"🔄 Знайдені розбіжності для {employee_name}, платіж {payment_number}")
