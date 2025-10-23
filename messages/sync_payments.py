@@ -76,8 +76,13 @@ async def sync_payments():
     """)
     users = cursor.fetchall()
 
+    # Ensure employee_names is not empty
+    employee_names = [user[1] for user in users if user[1]]  # Filter out any None or empty names
+    if not employee_names:
+        logging.error("❌ Не знайдено активних співробітників.")
+        return
+
     # Build a query to fetch all payments for all users at once
-    employee_names = [user[1] for user in users]  # List of employee names
     query_data = {
         "queries": [
             {
