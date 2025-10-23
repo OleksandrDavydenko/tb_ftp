@@ -89,10 +89,7 @@ async def sync_payments():
                 "query": f"""
                     EVALUATE
                     SELECTCOLUMNS(
-                        FILTER(
-                            SalaryPayment,
-                            SalaryPayment[Employee] IN ({','.join(f'"{name}"' for name in employee_names)})
-                        ),
+
                         "Employee", SalaryPayment[Employee],
                         "DocDate", SalaryPayment[DocDate],
                         "DocNumber", SalaryPayment[DocNumber],
