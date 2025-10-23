@@ -658,4 +658,4 @@ def delete_all_payments():
         conn.close()
 
 
-delete_all_payments()
+""" delete_all_payments() """
