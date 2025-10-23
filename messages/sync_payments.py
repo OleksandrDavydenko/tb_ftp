@@ -25,7 +25,6 @@ def fetch_db_payments(phone_number, payment_number):
     records = cursor.fetchall()
     cursor.close()
     conn.close()
-    logging.info(f"❓ Отримано записи з БД для {phone_number}, {payment_number}: {records}")
     return set((f"{float(r[0]):.2f}", r[1], r[2].strftime('%Y-%m-%d'), r[3].strip()) for r in records)
 
 def delete_payment_records(phone_number, payment_number):
@@ -102,9 +101,6 @@ async def sync_payments():
 
         rows = data['results'][0]['tables'][0].get('rows', [])
 
-        # Логування отриманих даних для діагностики
-        logging.info(f"✅ Отримані дані з Power BI: {rows}")
-
         if len(rows) == 0:
             logging.info("❌ Немає записів у даних.")
             return
@@ -124,8 +120,8 @@ async def sync_payments():
         # Фільтруємо порожні записи в колонці Employee
         df = df[df['Employee'].notna()]
 
-        # Виводимо датафрейм для перевірки
-        logging.info(f"✅ Датафрейм даних: {df}")
+        # Логування отриманих даних з таблиці SalaryPayment
+        logging.info(f"✅ Датафрейм даних про платежі: {df}")
 
         # Отримуємо дату приєднання для кожного співробітника з таблиці users
         conn = get_db_connection()
@@ -139,8 +135,14 @@ async def sync_payments():
         cursor.close()
         conn.close()
 
-        # Логування отриманих даних з таблиці users
-        logging.info(f"✅ Отримано дані про користувачів: {users}")
+        # Створюємо датафрейм для користувачів
+        users_df = pd.DataFrame(users, columns=['Phone Number', 'Joined At'])
+        users_df['Phone Number'] = users_df['Phone Number'].apply(normalize_phone_number)
+        logging.info(f"✅ Датафрейм користувачів: {users_df}")
+
+        # Логування датафреймів перед обробкою
+        logging.info(f"✅ Платежі: {df}")
+        logging.info(f"✅ Користувачі: {users_df}")
 
         # Синхронізуємо дані для кожного співробітника
         for user in users:
