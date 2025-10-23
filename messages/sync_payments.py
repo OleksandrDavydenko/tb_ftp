@@ -5,18 +5,14 @@ import os
 import logging
 import pandas as pd
 from datetime import datetime
-from auth import get_power_bi_token
+from auth import get_power_bi_token, normalize_phone_number
 from db import add_payment
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 DATABASE_URL = os.getenv('DATABASE_URL')
-TARGET_PHONE = "380632773227"
 
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
-
-def normalize_phone_number(phone_number):
-    return phone_number[1:] if phone_number.startswith('+') else phone_number
 
 def fetch_db_payments(phone_number, payment_number):
     conn = get_db_connection()
@@ -67,20 +63,20 @@ async def sync_payments():
         'Content-Type': 'application/json'
     }
 
-    # Формуємо запит для отримання всіх записів з SalaryPayment без фільтрів
+    # Запитуємо всі дані з таблиці SalaryPayment
     query_data = {
         "queries": [
             {
-                "query": f"""
+                "query": """
                     EVALUATE 
                     SELECTCOLUMNS(
                         SalaryPayment,
+                        "Employee", SalaryPayment[Employee],
                         "Дата платежу", SalaryPayment[DocDate],
                         "Документ", SalaryPayment[DocNumber],
                         "Сума UAH", SalaryPayment[SUM_UAH],
                         "Сума USD", SalaryPayment[SUM_USD],
-                        "МісяцьНарахування", SalaryPayment[МісяцьНарахування],
-                        "Employee", SalaryPayment[Employee]
+                        "МісяцьНарахування", SalaryPayment[МісяцьНарахування]
                     )
                 """
             }
@@ -99,38 +95,35 @@ async def sync_payments():
         data = response.json()
         rows = data['results'][0]['tables'][0].get('rows', [])
         
-        # Створюємо DataFrame
+        # Перетворюємо список в датафрейм
         df = pd.DataFrame(rows)
-        
-        # Логування DataFrame
-        logging.info(f"📝 Отриманий DataFrame:\n{df}")
 
-        # Фільтруємо DataFrame по конкретному співробітнику
-        filtered_df = df[df['Employee'] == "Давиденко Олександр"]  # Замість "Давиденко Олександр" використовуйте потрібне ім'я
+        # Фільтруємо порожні записи в колонці Employee
+        df = df[df['Employee'].notna()]
 
-        # Логування фільтрованого DataFrame
-        logging.info(f"📝 Фільтрований DataFrame для 'Давиденко Олександр':\n{filtered_df}")
+        # Виводимо датафрейм для перевірки
+        logging.info(f"✅ Датафрейм даних: {df}")
 
-        for _, row in filtered_df.iterrows():
-            employee_name = row["Employee"]
-            payment_number = row["Документ"]
-            amount_uah = float(row["Сума UAH"] or 0)
-            amount_usd = float(row["Сума USD"] or 0)
-            amount = amount_usd if abs(amount_usd) > 0 else amount_uah
-            currency = "USD" if amount_usd > 0 else "UAH"
-            payment_date = str(row["Дата платежу"]).split("T")[0]
-            accrual_month = str(row["МісяцьНарахування"]).strip()
+        # Синхронізуємо дані для кожного співробітника
+        for _, row in df.iterrows():
+            employee_name = row['Employee']
+            payment_number = row['Документ']
+            amount = float(row['Сума USD']) if abs(row['Сума USD']) > 0 else float(row['Сума UAH'])
+            currency = "USD" if abs(row['Сума USD']) > 0 else "UAH"
+            payment_date = str(row['Дата платежу']).split("T")[0]
+            accrual_month = row['МісяцьНарахування'].strip()
 
-            # Порівнюємо з БД
-            db_set = fetch_db_payments(TARGET_PHONE, payment_number)
+            # Отримуємо запис із БД
+            db_set = fetch_db_payments(normalize_phone_number(employee_name), payment_number)
+
             bi_set = {(f"{amount:.2f}", currency, payment_date, accrual_month)}
 
             if bi_set != db_set:
-                delete_payment_records(TARGET_PHONE, payment_number)
-                await async_add_payment(TARGET_PHONE, amount, currency, payment_date, payment_number, accrual_month)
+                delete_payment_records(normalize_phone_number(employee_name), payment_number)
+                for amount, currency, payment_date, accrual_month in bi_set:
+                    await async_add_payment(normalize_phone_number(employee_name), float(amount), currency, payment_date, payment_number, accrual_month)
             else:
-                logging.info(f"⏭️ Платіж {payment_number} для {TARGET_PHONE} без змін")
+                logging.info(f"⏭️ Платіж {payment_number} для {employee_name} без змін")
 
-        logging.info(f"🔄 Синхронізовано {len(filtered_df)} рядків для 'Давиденко Олександр'")
     except Exception as e:
-        logging.error(f"❌ Помилка при синхронізації: {e}")
+        logging.error(f"❌ Помилка при обробці: {e}")
