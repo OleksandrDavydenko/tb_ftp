@@ -14,7 +14,7 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
-
+# Функція для отримання всіх платежів для користувача
 def fetch_all_db_payments():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -31,6 +31,7 @@ def fetch_all_db_payments():
     logging.info(f"✅ Отримано {len(records)} записів з БД.")
     return pd.DataFrame(records, columns=['phone_number', 'employee_name', 'payment_number', 'amount', 'currency', 'payment_date', 'accrual_month'])
 
+# Функція для порівняння і синхронізації платежів
 async def async_add_payment(phone_number, amount, currency, payment_date, payment_number, accrual_month):
     try:
         add_payment(phone_number, amount, currency, payment_date, payment_number, accrual_month, False)
