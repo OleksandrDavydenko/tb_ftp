@@ -635,3 +635,27 @@ def mark_bonus_docs_notified(doc_numbers):
 
 
 
+
+
+def delete_all_payments():
+    """
+    Видаляє всі записи з таблиці payments
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM payments")
+        conn.commit()
+        deleted_count = cursor.rowcount
+        logging.info(f"🗑️ Видалено всі записи з таблиці payments. Кількість: {deleted_count}")
+        return deleted_count
+    except Exception as e:
+        logging.error(f"❌ Помилка при видаленні всіх записів: {e}")
+        conn.rollback()
+        return 0
+    finally:
+        cursor.close()
+        conn.close()
+
+
+delete_all_payments()
