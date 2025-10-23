@@ -139,6 +139,12 @@ async def sync_payments():
             for payment_number, payments in grouped:
                 bi_set = set()
                 for _, p in payments.iterrows():
+                    # Перевірка на наявність поля 'Employee'
+                    if 'Employee' not in p or pd.isna(p['Employee']):
+                        logging.error(f"❌ Поле 'Employee' відсутнє або пусте для платіжного запису: {p}")
+                        continue  # Пропускаємо цей запис, якщо поле 'Employee' відсутнє або пусте
+
+                    employee_name = p['Employee']
                     amount = float(p['SUM_USD']) if abs(p['SUM_USD']) > 0 else float(p['SUM_UAH'])
                     currency = "USD" if abs(p['SUM_USD']) > 0 else "UAH"
                     payment_date = p['DocDate'].split("T")[0]
@@ -163,3 +169,4 @@ async def sync_payments():
 
     except Exception as e:
         logging.error(f"❌ Помилка при обробці платежів: {e}")
+    logging.info("✅ Синхронізація платежів завершена.")
