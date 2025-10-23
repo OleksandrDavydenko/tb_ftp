@@ -111,6 +111,10 @@ async def sync_payments():
         # Перетворюємо список в датафрейм
         df = pd.DataFrame(rows)
 
+        # Перейменовуємо колонки для зручності
+        df.columns = df.columns.str.replace(r'[\[\]]', '', regex=True)  # Видаляємо квадратні дужки з назв колонок
+        logging.info(f"✅ Оновлені колонки: {df.columns}")
+
         # Перевірка наявності колонки 'Employee'
         if 'Employee' not in df.columns:
             logging.error("❌ Відсутня колонка 'Employee' в отриманих даних.")
