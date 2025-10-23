@@ -3,51 +3,33 @@ import requests
 import psycopg2
 import os
 import logging
-import pandas as pd
 from datetime import datetime
 from auth import get_power_bi_token, normalize_phone_number
 from db import add_payment
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 DATABASE_URL = os.getenv('DATABASE_URL')
+#TARGET_PHONE = "380632773227"
 
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
-def fetch_all_db_payments():
-    """
-    Отримуємо всі платежі для всіх користувачів з бази даних.
-    Платежі зв'язуються з користувачами через телефон і ім'я співробітника.
-    """
+
+
+def fetch_db_payments(phone_number, payment_number):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT phone_number, employee_name, payment_number, amount, currency, payment_date, accrual_month
+        SELECT amount, currency, payment_date, accrual_month
         FROM payments
-        JOIN users ON payments.phone_number = users.phone_number
-        WHERE users.status = 'active'
-    """)
+        WHERE phone_number = %s AND payment_number = %s
+    """, (phone_number, payment_number))
     records = cursor.fetchall()
     cursor.close()
     conn.close()
-    
-    logging.info(f"✅ Отримано {len(records)} записів з БД.")
-    return pd.DataFrame(records, columns=['phone_number', 'employee_name', 'payment_number', 'amount', 'currency', 'payment_date', 'accrual_month'])
-
-async def async_add_payment(phone_number, amount, currency, payment_date, payment_number, accrual_month):
-    """
-    Додає платіж в базу даних.
-    """
-    try:
-        add_payment(phone_number, amount, currency, payment_date, payment_number, accrual_month, False)
-        logging.info(f"✅ Додано платіж: {phone_number} | {amount} {currency} | {accrual_month} | № {payment_number}")
-    except Exception as e:
-        logging.error(f"❌ Помилка при додаванні: {e}")
+    return set((f"{float(r[0]):.2f}", r[1], r[2].strftime('%Y-%m-%d'), r[3].strip()) for r in records)
 
 def delete_payment_records(phone_number, payment_number):
-    """
-    Видаляє старі платіжні записи з бази даних за номером телефону і платіжним номером.
-    """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -63,12 +45,14 @@ def delete_payment_records(phone_number, payment_number):
         cursor.close()
         conn.close()
 
+async def async_add_payment(phone_number, amount, currency, payment_date, payment_number, accrual_month):
+    try:
+        add_payment(phone_number, amount, currency, payment_date, payment_number, accrual_month, False)
+        logging.info(f"✅ Додано платіж: {phone_number} | {amount} {currency} | {accrual_month} | № {payment_number}")
+    except Exception as e:
+        logging.error(f"❌ Помилка при додаванні: {e}")
+
 async def sync_payments():
-    """
-    Основна функція для синхронізації платежів з Power BI і базою даних.
-    Відправляє один запит до Power BI, отримує дані, порівнює їх з базою даних,
-    та синхронізує зміни.
-    """
     token = get_power_bi_token()
     if not token:
         logging.error("❌ Не вдалося отримати токен Power BI.")
@@ -81,29 +65,35 @@ async def sync_payments():
         'Content-Type': 'application/json'
     }
 
-    # Отримуємо всі платежі з БД для порівняння
-    df_db = fetch_all_db_payments()
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-    # Логування отриманих даних з БД
-    logging.debug(f"Отримані дані з БД: {df_db.head()}")
+    # Fetch all users (phone_number, employee_name, and joined_at)
+    cursor.execute("""
+        SELECT phone_number, employee_name, joined_at 
+        FROM users 
+        WHERE status = 'active'
+    """)
+    users = cursor.fetchall()
 
-    # Один великий запит до Power BI для всіх користувачів
+    # Build a query to fetch all payments for all users at once
+    employee_names = [user[1] for user in users]  # List of employee names
     query_data = {
         "queries": [
             {
-                "query": """
-                    EVALUATE 
+                "query": f"""
+                    EVALUATE
                     SELECTCOLUMNS(
                         FILTER(
                             SalaryPayment,
-                            NOT(ISBLANK(SalaryPayment[Employee])) && SalaryPayment[Employee] <> ""
+                            SalaryPayment[Employee] IN ({','.join(f'"{name}"' for name in employee_names)})
                         ),
                         "Employee", SalaryPayment[Employee],
                         "DocDate", SalaryPayment[DocDate],
                         "DocNumber", SalaryPayment[DocNumber],
                         "SUM_UAH", SalaryPayment[SUM_UAH],
                         "SUM_USD", SalaryPayment[SUM_USD],
-                        "AccrualMonth", SalaryPayment[МісяцьНарахування]
+                        "MonthAccrued", SalaryPayment[МісяцьНарахування]
                     )
                 """
             }
@@ -114,62 +104,54 @@ async def sync_payments():
     }
 
     try:
-        # Отримуємо дані з Power BI
-        logging.info("🔄 Відправка запиту до Power BI...")
         response = requests.post(power_bi_url, headers=headers, json=query_data)
-
         if response.status_code != 200:
             logging.error(f"❌ Power BI error: {response.status_code} | {response.text}")
             return
 
         data = response.json()
         rows = data['results'][0]['tables'][0].get('rows', [])
-        df_power_bi = pd.DataFrame(rows)
-        logging.info(f"✅ Отримано {len(df_power_bi)} записів з Power BI")
 
-        # Логування отриманих даних з Power BI
-        logging.debug(f"Отримані дані з Power BI: {df_power_bi.head()}")
+        grouped = {}
+        for payment in rows:
+            employee_name = payment.get("[Employee]", "")
+            payment_number = payment.get("[DocNumber]", "")
+            amount_usd = float(payment.get("[SUM_USD]", 0))
+            amount_uah = float(payment.get("[SUM_UAH]", 0))
+            payment_date = str(payment.get("[DocDate]", "")).split("T")[0]
+            accrual_month = payment.get("[MonthAccrued]", "").strip()
 
-        # Фільтрація даних на основі наявності 'Employee'
-        df_power_bi = df_power_bi[df_power_bi['Employee'].notna() & (df_power_bi['Employee'] != '')]
-        logging.info(f"✅ Після фільтрації залишилося {len(df_power_bi)} записів для обробки.")
+            # Determine the currency
+            currency = "USD" if amount_usd > 0 else "UAH"
+            amount = amount_usd if currency == "USD" else amount_uah
 
-        # Для кожного користувача з Power BI, порівнюємо платежі
-        for _, user_payment in df_power_bi.iterrows():
-            employee_name = user_payment['Employee']
-            payment_number = user_payment['DocNumber']
-            amount = float(user_payment['SUM_USD']) if abs(user_payment['SUM_USD']) > 0 else float(user_payment['SUM_UAH'])
-            currency = "USD" if abs(user_payment['SUM_USD']) > 0 else "UAH"
-            payment_date = user_payment['DocDate'].split("T")[0]
-            accrual_month = user_payment['AccrualMonth'].strip()
+            # Group the payments by employee and payment number
+            grouped.setdefault(employee_name, {}).setdefault(payment_number, []).append((f"{amount:.2f}", currency, payment_date, accrual_month))
 
-            # Логування для кожного платіжного запису
-            logging.debug(f"Обробка платіжного запису для {employee_name}, платіж №{payment_number}.")
+        # Now iterate over grouped data and compare with database records
+        for user in users:
+            phone_number, employee_name, joined_at = user
+            phone_number = normalize_phone_number(phone_number)
 
-            # Фільтруємо платежі по співробітнику
-            db_payment = df_db[df_db['employee_name'] == employee_name]
+            if employee_name in grouped:
+                for payment_number, payments in grouped[employee_name].items():
+                    bi_set = set(payments)
+                    db_set = fetch_db_payments(phone_number, payment_number)
 
-            # Логування для кожного співробітника
-            logging.debug(f"Знайдено {len(db_payment)} записів в БД для {employee_name}.")
+                    if bi_set != db_set:
+                        delete_payment_records(phone_number, payment_number)
+                        for amount, currency, payment_date, accrual_month in bi_set:
+                            await async_add_payment(phone_number, float(amount), currency, payment_date, payment_number, accrual_month)
+                    else:
+                        logging.info(f"⏭️ Платіж {payment_number} для {phone_number} без змін")
 
-            # Якщо в базі є запис для цього користувача, порівнюємо
-            if not db_payment.empty:
-                db_payment_set = set(db_payment[['payment_number', 'amount', 'currency', 'payment_date', 'accrual_month']].apply(tuple, axis=1))
-                bi_payment_set = {(payment_number, f"{amount:.2f}", currency, payment_date, accrual_month)}
-
-                # Логування для порівняння
-                logging.debug(f"Порівняння даних: {db_payment_set} з {bi_payment_set}")
-
-                # Порівнюємо
-                if db_payment_set != bi_payment_set:
-                    logging.info(f"🔄 Зміни в платіжці {payment_number} для {employee_name}. Синхронізуємо...")
-                    delete_payment_records(user_payment['phone_number'], payment_number)  # Видаляємо старі записи перед додаванням нових
-                    await async_add_payment(user_payment['phone_number'], amount, currency, payment_date, payment_number, accrual_month)
-                else:
-                    logging.info(f"⏭️ Платіж {payment_number} для {employee_name} без змін.")
+                logging.info(f"🔄 Синхронізовано {len(grouped[employee_name])} рядків для {employee_name}")
             else:
-                logging.info(f"❌ Платіж {payment_number} для {employee_name} не знайдено в БД.")
-
+                logging.warning(f"Не знайдено платіжних даних для {employee_name}")
+                
     except Exception as e:
-        logging.error(f"❌ Помилка при обробці платежів: {e}")
-    logging.info("✅ Синхронізація платежів завершена.")
+        logging.error(f"❌ Помилка при синхронізації платежів: {e}")
+
+    finally:
+        cursor.close()
+        conn.close()
