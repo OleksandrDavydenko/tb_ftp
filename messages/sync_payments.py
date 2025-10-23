@@ -25,6 +25,7 @@ def fetch_db_payments(phone_number, payment_number):
     records = cursor.fetchall()
     cursor.close()
     conn.close()
+    logging.info(f"❓ Отримано записи з БД для {phone_number}, {payment_number}: {records}")
     return set((f"{float(r[0]):.2f}", r[1], r[2].strftime('%Y-%m-%d'), r[3].strip()) for r in records)
 
 def delete_payment_records(phone_number, payment_number):
@@ -138,6 +139,9 @@ async def sync_payments():
         cursor.close()
         conn.close()
 
+        # Логування отриманих даних з таблиці users
+        logging.info(f"✅ Отримано дані про користувачів: {users}")
+
         # Синхронізуємо дані для кожного співробітника
         for user in users:
             phone_number, joined_at = user
@@ -148,10 +152,15 @@ async def sync_payments():
                 logging.warning(f"❌ Номер телефону для {user} не нормалізований.")
                 continue
 
+            logging.info(f"❓ Для співробітника {user}, нормалізований номер телефону: {phone_number}")
+
             # Фільтруємо платежі, де дата платежу більше або дорівнює даті приєднання
             employee_df = df[df['Employee'] == phone_number]
             employee_df['Дата платежу'] = pd.to_datetime(employee_df['Дата платежу'])
             employee_df = employee_df[employee_df['Дата платежу'] >= pd.to_datetime(joined_at)]
+
+            # Логування, щоб перевірити фільтрацію
+            logging.info(f"❓ Платежі після фільтрації для {phone_number}: {employee_df}")
 
             for _, row in employee_df.iterrows():
                 payment_number = row["Документ"]
@@ -164,6 +173,10 @@ async def sync_payments():
                 db_set = fetch_db_payments(phone_number, payment_number)
 
                 bi_set = {(f"{amount:.2f}", currency, payment_date, accrual_month)}
+
+                # Логування порівняння наборів
+                logging.info(f"bi_set: {bi_set}")
+                logging.info(f"db_set: {db_set}")
 
                 if bi_set != db_set:
                     delete_payment_records(phone_number, payment_number)
