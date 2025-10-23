@@ -119,6 +119,9 @@ async def sync_payments():
         # Фільтруємо порожні записи в колонці Employee
         df = df[df['Employee'].notna()]
 
+        # Приводимо дату платежу до формату datetime
+        df['Дата платежу'] = pd.to_datetime(df['Дата платежу'], errors='coerce')
+
         # Логування отриманих даних з таблиці SalaryPayment
         logging.info(f"✅ Датафрейм даних про платежі: {df}")
 
@@ -133,6 +136,8 @@ async def sync_payments():
         # Створюємо датафрейм для користувачів
         users_df = pd.DataFrame(users, columns=['Phone Number', 'Joined At'])
         users_df['Phone Number'] = users_df['Phone Number'].apply(normalize_phone_number)
+        users_df['Joined At'] = pd.to_datetime(users_df['Joined At'], errors='coerce')  # Приводимо дату до datetime
+
         logging.info(f"✅ Датафрейм користувачів: {users_df}")
 
         # Логування датафреймів перед обробкою
@@ -153,7 +158,6 @@ async def sync_payments():
 
             # Фільтруємо платежі, де дата платежу більше або дорівнює даті приєднання
             employee_df = df[df['Employee'] == phone_number]
-            employee_df['Дата платежу'] = pd.to_datetime(employee_df['Дата платежу'])
             employee_df = employee_df[employee_df['Дата платежу'] >= pd.to_datetime(joined_at)]
 
             # Логування, щоб перевірити фільтрацію
