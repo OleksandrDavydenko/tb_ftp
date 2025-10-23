@@ -93,10 +93,28 @@ async def sync_payments():
             return
 
         data = response.json()
+
+        # Перевірка наявності таблиць у відповіді
+        if 'results' not in data or len(data['results']) == 0 or 'tables' not in data['results'][0]:
+            logging.error("❌ Немає даних у відповіді від Power BI.")
+            return
+
         rows = data['results'][0]['tables'][0].get('rows', [])
-        
+
+        # Логування отриманих даних для діагностики
+        logging.info(f"✅ Отримані дані з Power BI: {rows}")
+
+        if len(rows) == 0:
+            logging.info("❌ Немає записів у даних.")
+            return
+
         # Перетворюємо список в датафрейм
         df = pd.DataFrame(rows)
+
+        # Перевірка наявності колонки 'Employee'
+        if 'Employee' not in df.columns:
+            logging.error("❌ Відсутня колонка 'Employee' в отриманих даних.")
+            return
 
         # Фільтруємо порожні записи в колонці Employee
         df = df[df['Employee'].notna()]
