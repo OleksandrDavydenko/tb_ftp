@@ -96,6 +96,11 @@ async def sync_payments():
         # Логування отриманих даних з Power BI
         logging.debug(f"Отримані дані з Power BI: {df_power_bi.head()}")
 
+        # Перевірка на порожні значення в полі 'Employee' та логування таких випадків
+        invalid_employees = df_power_bi[df_power_bi['Employee'].isna() | (df_power_bi['Employee'] == '')]
+        if not invalid_employees.empty:
+            logging.warning(f"❌ Знайдені некоректні записи з порожнім полем 'Employee': {invalid_employees}")
+
         # Фільтрація даних на основі наявності 'Employee'
         df_power_bi = df_power_bi[df_power_bi['Employee'].notna() & (df_power_bi['Employee'] != '')]
         logging.info(f"✅ Після фільтрації залишилося {len(df_power_bi)} записів для обробки.")
