@@ -100,7 +100,6 @@ async def sync_payments():
             return
 
         rows = data['results'][0]['tables'][0].get('rows', [])
-
         if len(rows) == 0:
             logging.info("❌ Немає записів у даних.")
             return
@@ -126,11 +125,7 @@ async def sync_payments():
         # Отримуємо дату приєднання для кожного співробітника з таблиці users
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("""
-            SELECT phone_number, joined_at 
-            FROM users
-            WHERE status = 'active'
-        """)
+        cursor.execute("""SELECT phone_number, joined_at FROM users WHERE status = 'active'""")
         users = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -177,7 +172,6 @@ async def sync_payments():
 
                 # Отримуємо запис з БД
                 db_set = fetch_db_payments(phone_number, payment_number)
-
                 bi_set = {(f"{amount:.2f}", currency, payment_date, accrual_month)}
 
                 # Логування порівняння наборів
