@@ -98,7 +98,12 @@ async def sync_payments():
 
         data = response.json()
         rows = data['results'][0]['tables'][0].get('rows', [])
+        
+        # Створюємо DataFrame
         df = pd.DataFrame(rows)
+        
+        # Логування DataFrame
+        logging.info(f"📝 Отриманий DataFrame:\n{df}")
 
         for _, row in df.iterrows():
             employee_name = row["Employee"]
