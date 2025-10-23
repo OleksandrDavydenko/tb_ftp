@@ -15,40 +15,143 @@ def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode='require')
 
 def fetch_db_payments(phone_number, payment_number):
+    """Отримує платежі з БД за нормалізованим номером телефону та номером платежу"""
     conn = get_db_connection()
     cursor = conn.cursor()
+    
+    # Отримуємо всі записи з БД за номером платежу
     cursor.execute("""
-        SELECT amount, currency, payment_date, accrual_month
-        FROM payments
-        WHERE phone_number = %s AND payment_number = %s
-    """, (phone_number, payment_number))
+        SELECT amount, currency, payment_date, accrual_month, phone_number
+        FROM payments 
+        WHERE payment_number = %s
+    """, (payment_number,))
+    
     records = cursor.fetchall()
     cursor.close()
     conn.close()
-    return set((f"{float(r[0]):.2f}", r[1], r[2].strftime('%Y-%m-%d'), r[3].strip()) for r in records)
+    
+    # Фільтруємо за нормалізованим номером телефону
+    filtered_records = []
+    for r in records:
+        db_phone_normalized = normalize_phone_number(r[4])  # phone_number є 5-м полем
+        if db_phone_normalized == phone_number:
+            filtered_records.append(r)
+    
+    logging.info(f"🔍 Знайдено {len(filtered_records)} записів у БД для {phone_number}, платіж {payment_number}")
+    
+    return set((f"{float(r[0]):.2f}", r[1], r[2].strftime('%Y-%m-%d'), r[3].strip()) for r in filtered_records)
 
 def delete_payment_records(phone_number, payment_number):
+    """Видаляє платежі з БД за нормалізованим номером телефону та номером платежу"""
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
+        # Спочатку знайдемо всі записи, які потрібно видалити
         cursor.execute("""
-            DELETE FROM payments
-            WHERE phone_number = %s AND payment_number = %s
-        """, (phone_number, payment_number))
-        conn.commit()
-        logging.info(f"🧹 Видалено старі записи по платіжці {payment_number} для {phone_number}")
+            SELECT id, phone_number 
+            FROM payments 
+            WHERE payment_number = %s
+        """, (payment_number,))
+        
+        records_to_delete = cursor.fetchall()
+        
+        # Відфільтруємо за нормалізованим номером телефону
+        ids_to_delete = []
+        for record_id, db_phone in records_to_delete:
+            db_phone_normalized = normalize_phone_number(db_phone)
+            if db_phone_normalized == phone_number:
+                ids_to_delete.append(record_id)
+        
+        if ids_to_delete:
+            # Видалимо знайдені записи
+            placeholders = ','.join(['%s'] * len(ids_to_delete))
+            cursor.execute(f"""
+                DELETE FROM payments 
+                WHERE id IN ({placeholders})
+            """, ids_to_delete)
+            
+            conn.commit()
+            logging.info(f"🧹 Видалено {len(ids_to_delete)} старих записів по платіжці {payment_number} для {phone_number}")
+        else:
+            logging.info(f"ℹ️ Не знайдено записів для видалення: {phone_number}, платіж {payment_number}")
+            
     except Exception as e:
         logging.error(f"❌ Помилка при видаленні: {e}")
+        conn.rollback()
     finally:
         cursor.close()
         conn.close()
 
 async def async_add_payment(phone_number, amount, currency, payment_date, payment_number, accrual_month):
+    """Додає платіж з нормалізованим номером телефону"""
     try:
         add_payment(phone_number, amount, currency, payment_date, payment_number, accrual_month, False)
         logging.info(f"✅ Додано платіж: {phone_number} | {amount} {currency} | {accrual_month} | № {payment_number}")
     except Exception as e:
         logging.error(f"❌ Помилка при додаванні: {e}")
+
+def check_payment_state(phone_number, payment_number):
+    """Функція для дебагу - перевіряє стан платежів у БД"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT id, phone_number, amount, currency, payment_date, payment_number, accrual_month
+        FROM payments 
+        WHERE payment_number = %s
+    """, (payment_number,))
+    
+    records = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    logging.info(f"🔍 СТАН БД для платежу {payment_number}:")
+    for record in records:
+        record_id, db_phone, amount, currency, payment_date, payment_num, accrual_month = record
+        db_phone_normalized = normalize_phone_number(db_phone)
+        matches = "✅" if db_phone_normalized == phone_number else "❌"
+        logging.info(f"   {matches} ID: {record_id}, Телефон: {db_phone} (норм: {db_phone_normalized}), Сума: {amount} {currency}")
+    
+    return records
+
+def delete_all_payments(confirm=False):
+    """
+    Видаляє всі записи з таблиці payments
+    
+    Args:
+        confirm (bool): Потрібно підтвердження для видалення
+    
+    Returns:
+        int: Кількість видалених записів
+    """
+    if not confirm:
+        logging.warning("⚠️  Для видалення всіх записів встановіть confirm=True")
+        return 0
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Спочатку порахуємо кількість записів
+        cursor.execute("SELECT COUNT(*) FROM payments")
+        count_before = cursor.fetchone()[0]
+        
+        if count_before == 0:
+            logging.info("📭 Таблиця payments вже порожня")
+            return 0
+        
+        # Виконуємо видалення
+        cursor.execute("DELETE FROM payments")
+        conn.commit()
+        
+        logging.info(f"🗑️ Видалено всі записи з таблиці payments. Кількість: {count_before}")
+        return count_before
+        
+    except Exception as e:
+        logging.error(f"❌ Помилка при видаленні всіх записів: {e}")
+        conn.rollback()
+        return 0
+    finally:
+        cursor.close()
+        conn.close()
 
 async def sync_payments():
     token = get_power_bi_token()
@@ -124,7 +227,7 @@ async def sync_payments():
 
         # Логування отриманих даних
         logging.info(f"✅ Отримано {len(df)} записів з Power BI")
-        logging.info(f"📊 Унікальні співробітники в даних Power BI: {df['Employee'].unique()[:10]}")  # Перші 10
+        logging.info(f"📊 Унікальні співробітники в даних Power BI: {df['Employee'].unique()[:10]}")
         
         # Перевіримо, чи є платежі за сьогодні
         today = pd.Timestamp.now().normalize()
@@ -154,7 +257,7 @@ async def sync_payments():
             }
 
         logging.info(f"✅ Отримано {len(users_dict)} активних користувачів з БД")
-        logging.info(f"📋 Співробітники з БД: {list(users_dict.keys())[:10]}")  # Перші 10
+        logging.info(f"📋 Співробітники з БД: {list(users_dict.keys())[:10]}")
 
         # Синхронізуємо дані для кожного співробітника
         synced_count = 0
@@ -183,6 +286,7 @@ async def sync_payments():
                 all_employee_payments = df[df['Employee'] == employee_name]
                 if len(all_employee_payments) > 0:
                     logging.info(f"ℹ️ Увага! {employee_name} є в Power BI, але всі платежі до {joined_at}")
+                    logging.info(f"📅 Дати платежів: {all_employee_payments['Дата платежу'].unique()}")
                 continue
 
             # Групуємо платежі по номерам документів
@@ -198,6 +302,9 @@ async def sync_payments():
                     
                     bi_set.add((f"{amount:.2f}", currency, payment_date, accrual_month))
 
+                # Додамо перевірку стану БД перед видаленням
+                check_payment_state(phone_number, payment_number)
+                
                 # Порівнюємо з даними з БД
                 db_set = fetch_db_payments(phone_number, payment_number)
                 
@@ -208,6 +315,10 @@ async def sync_payments():
                 if bi_set != db_set:
                     logging.info(f"🔄 Знайдені розбіжності для {employee_name}, платіж {payment_number}")
                     delete_payment_records(phone_number, payment_number)
+                    
+                    # Після видалення ще раз перевіримо стан
+                    check_payment_state(phone_number, payment_number)
+                    
                     for amount, currency, payment_date, accrual_month in bi_set:
                         await async_add_payment(phone_number, float(amount), currency, payment_date, payment_number, accrual_month)
                     synced_count += 1
@@ -220,3 +331,4 @@ async def sync_payments():
         logging.error(f"❌ Помилка при обробці: {e}")
         import traceback
         logging.error(f"❌ Деталі помилки: {traceback.format_exc()}")
+
