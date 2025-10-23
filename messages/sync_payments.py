@@ -162,6 +162,10 @@ async def sync_payments():
             # Логування, щоб перевірити фільтрацію
             logging.info(f"❓ Платежі після фільтрації для {phone_number}: {employee_df}")
 
+            if employee_df.empty:
+                logging.warning(f"❌ Немає платежів після фільтрації для {phone_number}. Пропускаємо.")
+                continue
+
             for _, row in employee_df.iterrows():
                 payment_number = row["Документ"]
                 amount = float(row["Сума USD"]) if abs(row["Сума USD"]) > 0 else float(row["Сума UAH"])
