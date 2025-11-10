@@ -1,6 +1,7 @@
 # hr/tenure_info.py
 # -*- coding: utf-8 -*-
 import logging
+from calendar import monthrange
 from datetime import date, datetime
 
 import pandas as pd
@@ -11,68 +12,116 @@ from telegram.ext import CallbackContext
 from auth import get_power_bi_token
 from utils.name_aliases import display_name
 
+# Логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Константи Power BI
 DATASET_ID = "8b80be15-7b31-49e4-bc85-8b37a0d98f1c"
 PBI_URL = f"https://api.powerbi.com/v1.0/myorg/datasets/{DATASET_ID}/executeQueries"
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Допоміжні функції
+# ─────────────────────────────────────────────────────────────────────────────
 def _diff_ymd(start: date, end: date):
-    """Різниця у роках/місяцях/днях між двома датами."""
+    """Різниця у роках/місяцях/днях між двома датами (без pandas)."""
     if start > end:
         start, end = end, start
+
     y = end.year - start.year
     m = end.month - start.month
     d = end.day - start.day
+
     if d < 0:
-        # скільки днів було у попередньому місяці
-        prev_month_last = (date(end.year, end.month, 1) - pd.Timedelta(days=1)).date()
-        d += prev_month_last.day
+        # попередній місяць відносно 'end'
+        prev_year = end.year if end.month > 1 else end.year - 1
+        prev_month = end.month - 1 if end.month > 1 else 12
+        days_in_prev = monthrange(prev_year, prev_month)[1]
+        d += days_in_prev
         m -= 1
+
     if m < 0:
         m += 12
         y -= 1
+
     return y, m, d
 
 
-def _fmt_date(dt) -> str:
-    """Форматування дати у ДД.ММ.РРРР або — якщо порожньо."""
-    if dt is None or (isinstance(dt, float) and pd.isna(dt)):
+def _fmt_date_any(value) -> str:
+    """Приводить різні типи до формату ДД.ММ.РРРР або повертає '—'."""
+    if value is None:
         return "—"
-    if isinstance(dt, str):
-        try:
-            dt = pd.to_datetime(dt, errors="coerce")
-        except Exception:
-            return str(dt)
-    if isinstance(dt, pd.Timestamp):
-        dt = dt.to_pydatetime()
-    if isinstance(dt, datetime):
-        dt = dt.date()
-    if isinstance(dt, date):
-        return dt.strftime("%d.%m.%Y")
+    # Пробуємо пропустити через pandas для надійного парсингу рядків/мілісекунд тощо
+    try:
+        ts = pd.to_datetime(value, errors="coerce")
+        if pd.isna(ts):
+            return "—"
+        # Переводимо до чистого date
+        if isinstance(ts, pd.Timestamp):
+            dt = ts.to_pydatetime()
+        else:
+            dt = ts
+        if isinstance(dt, datetime):
+            dt = dt.date()
+        if isinstance(dt, date):
+            return dt.strftime("%d.%m.%Y")
+    except Exception:
+        pass
     return "—"
+
+
+def _coerce_date(value):
+    """Повертає datetime.date або None."""
+    if value is None:
+        return None
+    try:
+        ts = pd.to_datetime(value, errors="coerce")
+        if pd.isna(ts):
+            return None
+        if isinstance(ts, pd.Timestamp):
+            dt = ts.to_pydatetime()
+        else:
+            dt = ts
+        if isinstance(dt, datetime):
+            return dt.date()
+        if isinstance(dt, date):
+            return dt
+    except Exception:
+        return None
+    return None
+
+
+def _row_get(row: dict, *names: str, default=None):
+    """
+    Дістає значення з рядка Power BI, враховуючи, що ключі можуть бути як "Column",
+    так і "[Column]". Повертає default, якщо значення не знайдено.
+    """
+    for name in names:
+        if name in row:
+            return row[name]
+        # Спроба з дужками
+        br = f"[{name}]" if not (name.startswith("[") and name.endswith("]")) else name
+        if br in row:
+            return row[br]
+        # Спроба без дужок
+        nb = name[1:-1] if (name.startswith("[") and name.endswith("]")) else name
+        if nb in row:
+            return row[nb]
+    return default
 
 
 def _build_message(row: dict) -> str:
     """Формує текст повідомлення зі стажем тощо."""
     today = date.today()
 
-    # значення з дужками в ключах
-    employee = row.get("[Employee]", "—")
-    last_dep = row.get("[LastDepartment]", "—")
-    phone_tg = row.get("[PhoneNumberTelegram]", "—")
-    code = row.get("[Code]", "—")
-    bday = row.get("[birthdayDate]")
-    hire = row.get("[hireDate]")
+    employee = _row_get(row, "Employee", "[Employee]", default="—")
+    last_dep = _row_get(row, "LastDepartment", "[LastDepartment]", default="—")
+    phone_tg = _row_get(row, "PhoneNumberTelegram", "[PhoneNumberTelegram]", default="—")
+    code = _row_get(row, "Code", "[Code]", default="—")
+    bday_raw = _row_get(row, "birthdayDate", "[birthdayDate]")
+    hire_raw = _row_get(row, "hireDate", "[hireDate]")
 
-    hire_dt = None
-    if hire is not None:
-        try:
-            hire_ts = pd.to_datetime(hire, errors="coerce")
-            if pd.notna(hire_ts):
-                hire_dt = hire_ts.date()
-        except Exception:
-            hire_dt = None
+    hire_dt = _coerce_date(hire_raw)
 
     tenure_text = "—"
     if hire_dt:
@@ -95,19 +144,22 @@ def _build_message(row: dict) -> str:
         f"📱 Telegram: {phone_tg}",
         "",
         f"📅 Сьогодні: {today.strftime('%d.%m.%Y')}",
-        f"📄 Дата прийняття: {_fmt_date(hire_dt)}",
+        f"📄 Дата прийняття: {_fmt_date_any(hire_dt)}",
         f"⏳ Стаж: {tenure_text}",
     ]
 
-    if bday is not None:
-        lines.append(f"🎂 Дата народження: {_fmt_date(bday)}")
+    bday_fmt = _fmt_date_any(bday_raw)
+    if bday_fmt != "—":
+        lines.append(f"🎂 Дата народження: {bday_fmt}")
 
     return "\n".join(lines)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Публічний Telegram-хендлер
+# ─────────────────────────────────────────────────────────────────────────────
 async def show_tenure_info(update: Update, context: CallbackContext) -> None:
     """
-    Публічний Telegram-хендлер:
     - бере ім'я співробітника з context.user_data['employee_name']
     - тягне рядок з таблиці Employees у Power BI
     - відображає стаж, відділ, код, телефон тощо
@@ -178,4 +230,7 @@ SELECTCOLUMNS(
 
     # навігація
     kb = [[KeyboardButton("Назад")], [KeyboardButton("Головне меню")]]
-    await update.message.reply_text("Виберіть опцію:", reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True))
+    await update.message.reply_text(
+        "Виберіть опцію:",
+        reply_markup=ReplyKeyboardMarkup(kb, resize_keyboard=True)
+    )
