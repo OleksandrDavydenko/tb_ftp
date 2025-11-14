@@ -229,11 +229,11 @@ def get_user_debt_data(manager_name: str):
                 SELECTCOLUMNS(
                     FILTER(
                         Deb,
-                        (Deb[Manager] = "{manager_name}" OR Deb[Seller] = "{manager_name}") && Deb[Inform] <> 1
+                        (Deb[Manager] = "{manager_name}" || Deb[Seller] = "{manager_name}") && Deb[Inform] <> 1
                     ),
                     "Client", Deb[Client],
                     "Sum_$", Deb[Sum_$],
-                    "Manager", Deb[Manager],
+                    "Manager_or_Seller", IF(Deb[Manager] = "{manager_name}", Deb[Manager], Deb[Seller]),
                     "PlanDatePay", Deb[PlanDatePay],
                     "Account", Deb[Account],
                     "Deal", Deb[Deal],
