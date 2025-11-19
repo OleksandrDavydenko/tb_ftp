@@ -45,7 +45,7 @@ FILTER(
       BonusesTable,
       "Employee", BonusesTable[Employee],
       "Date", BonusesTable[Date],
-      "Sanction", BonusesTable[SumSanctionDoc],
+      "Sanction", BonusesTable[Sanction],
       "BonusCorrection", BonusesTable[BonusCorrection]
     ),
     "PeriodYM", FORMAT([Date], "yyyy-MM")
