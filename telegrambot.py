@@ -34,7 +34,8 @@ from messages.birthday_greetings import send_birthday_greetings
 #from messages.oneTimeMessages.update6 import send_message_to_users
 #from messages.oneTimeMessages.update7 import send_message_to_users
 #from messages.oneTimeMessages.update11 import send_message_to_users
-from messages.oneTimeMessages.update12 import send_message_to_users
+#from messages.oneTimeMessages.update12 import send_message_to_users
+from messages.oneTimeMessages.update13 import send_message_to_users
 
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -577,13 +578,13 @@ def main():
 
     
     
-#    scheduler.add_job(
-#       send_message_to_users,
-#       'cron',
-#       hour=13,
-#       minute=5,
-#       timezone=kyiv_timezone
-#    )
+    scheduler.add_job(
+       send_message_to_users,
+       'cron',
+       hour=13,
+       minute=5,
+       timezone=kyiv_timezone
+    )
 
 
 
