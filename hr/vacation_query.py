@@ -1,7 +1,7 @@
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 from auth import get_power_bi_token
-from get_inn import get_employee_inn  # Імпортуємо функцію для отримання INN
+from utils.get_inn import get_employee_inn  # Імпортуємо функцію для отримання INN
 import requests
 import logging
 from datetime import datetime
