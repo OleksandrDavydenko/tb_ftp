@@ -45,7 +45,10 @@ def get_employee_inn(employee_name: str) -> str | None:
     response = requests.post(power_bi_url, headers=headers, json=dax_query)
 
     logging.info(f"📥 Статус відповіді Power BI (INN): {response.status_code}")
-    logging.info(f"📄 Вміст відповіді (INN): {response.text}")
+    
+    # Тільки для дебагінга показуємо повну відповідь
+    if logging.getLogger().getEffectiveLevel() <= logging.DEBUG:
+        logging.debug(f"📄 Вміст відповіді (INN): {response.text}")
 
     if response.status_code != 200:
         logging.warning("⚠️ Не вдалося отримати INN, спробуємо інший метод.")
@@ -62,11 +65,22 @@ def get_employee_inn(employee_name: str) -> str | None:
         logging.warning(f"⚠️ INN для {employee_name} не знайдено.")
         return None
 
-    # Повертаємо перше знайдене INN
-    inn = rows[0].get("INN", None)
+    # Перевіряємо обидва можливі формати ключів
+    first_row = rows[0]
+    
+    # Спробуємо отримати INN у різних форматах
+    inn = None
+    possible_keys = ["[INN]", "INN", "inn", "Inn"]
+    
+    for key in possible_keys:
+        if key in first_row:
+            inn = first_row[key]
+            break
+    
     if inn:
         logging.info(f"✅ Знайдено INN для {employee_name}: {inn}")
-        return inn
+        return str(inn)  # Конвертуємо в строку на всяк випадок
     else:
-        logging.warning(f"⚠️ INN для {employee_name} не знайдено.")
+        # Для дебагінга покажемо, які ключі є насправді
+        logging.warning(f"⚠️ INN для {employee_name} не знайдено. Доступні ключі: {list(first_row.keys())}")
         return None
