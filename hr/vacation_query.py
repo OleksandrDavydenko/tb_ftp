@@ -30,7 +30,7 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
         logging.info(f"⚠️ Не вдалося знайти INN для {employee_name}. Використовуємо фільтрацію по імені.")
     else:
         logging.info(f"✅ INN знайдено для {employee_name}: {tax_code}")
-    
+
     headers = {
         'Authorization': f'Bearer {token}',
         'Content-Type': 'application/json'
