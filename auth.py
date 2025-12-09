@@ -25,16 +25,12 @@ def normalize_phone_number(phone_number: str) -> str:
         return ""
     digits = re.sub(r"\D", "", str(phone_number))
 
-    # 0XXXXXXXXX -> 380XXXXXXXXX
     if len(digits) == 10 and digits.startswith("0"):
         return f"380{digits[1:]}"
-    # XXXXXXXXX -> 380XXXXXXXXX
     if len(digits) == 9:
         return f"380{digits}"
-    # 380XXXXXXXXX -> як є
     if len(digits) == 12 and digits.startswith("380"):
         return digits
-    # fallback – інші міжнародні / дивні формати, але стабільно нормалізовані як "тільки цифри"
     return digits
 
 
@@ -59,12 +55,7 @@ def get_power_bi_token() -> str | None:
     }
 
     try:
-        resp = requests.post(
-            url,
-            data=body,
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            timeout=30,
-        )
+        resp = requests.post(url, data=body, headers={"Content-Type": "application/x-www-form-urlencoded"}, timeout=30)
         if resp.status_code == 200:
             return resp.json().get("access_token")
         logging.error(f"❌ Error getting token: {resp.status_code}, {resp.text}")
@@ -95,22 +86,10 @@ def _pbi_post(query_obj: dict) -> dict | None:
     return None
 
 
-# Кеш для зберігання INN по нормалізованому номеру телефону
-_PHONE_INN_CACHE: dict[str, str] = {}
-
-
 def get_employee_directory_from_power_bi() -> dict[str, dict]:
     """
     Повертає мапу:
-      {
-        employee_name: {
-            "phone": "<normalized>",
-            "status": "<Статус>",
-            "raw_phone": "<як у PBI>",
-            "inn": "<INN з таблиці Employees>"
-        }
-      }
-
+      { employee_name: { "phone": "<normalized>", "status": "<Статус>", "raw_phone": "<як у PBI>" } }
     Якщо кілька рядків по співробітнику — беремо той, де статус "Активний".
     """
     query = {
@@ -120,9 +99,8 @@ def get_employee_directory_from_power_bi() -> dict[str, dict]:
                 SELECTCOLUMNS(
                     Employees,
                     "Employee", Employees[Employee],
-                    "Phone",   Employees[PhoneNumberTelegram],
-                    "Status",  Employees[Status],
-                    "INN",     Employees[INN]
+                    "Phone", Employees[PhoneNumberTelegram],
+                    "Status", Employees[Status]
                 )
             """
         }],
@@ -140,39 +118,20 @@ def get_employee_directory_from_power_bi() -> dict[str, dict]:
         emp = (r.get("[Employee]") or "").strip()
         phone_raw = (r.get("[Phone]") or "").strip()
         status = (r.get("[Status]") or "").strip()
-        inn = (r.get("[INN]") or "").strip()
         phone_norm = normalize_phone_number(phone_raw) if phone_raw else ""
 
         if emp not in directory:
-            directory[emp] = {
-                "phone": phone_norm,
-                "status": status,
-                "raw_phone": phone_raw,
-                "inn": inn,
-            }
+            directory[emp] = {"phone": phone_norm, "status": status, "raw_phone": phone_raw}
         else:
-            # Якщо вже був співробітник, але новий рядок Активний — перезаписуємо
             if status == "Активний":
-                directory[emp] = {
-                    "phone": phone_norm,
-                    "status": status,
-                    "raw_phone": phone_raw,
-                    "inn": inn,
-                }
+                directory[emp] = {"phone": phone_norm, "status": status, "raw_phone": phone_raw}
     return directory
 
 
 def is_phone_number_in_power_bi(phone_number: str) -> tuple[bool, str | None, str | None]:
     """
-    Шукаємо номер в PBI: тягнемо Employee/Phone/Status/INN і ПОРІВНЮЄМО вже в Python
+    Шукаємо номер в PBI: тягнемо Employee/Phone/Status і ПОРІВНЮЄМО вже в Python
     з використанням normalize_phone_number(), щоб збігались правила (UA 0XXXXXXXXX → 380XXXXXXXXX і т.д.).
-
-    Повертає:
-      (is_active, employee_name, status)
-
-    ДОДАТКОВО (НЕ ЛАМАЮЧИ ІНТЕРФЕЙС):
-      - кешує INN в _PHONE_INN_CACHE по нормалізованому номеру телефону;
-      - отримати INN можна через get_inn_for_phone().
     """
     target = normalize_phone_number(phone_number)
 
@@ -181,14 +140,10 @@ def is_phone_number_in_power_bi(phone_number: str) -> tuple[bool, str | None, st
             "query": """
                 EVALUATE
                 SELECTCOLUMNS(
-                    FILTER(
-                        Employees,
-                        NOT ISBLANK(Employees[PhoneNumberTelegram])
-                    ),
+                    FILTER(Employees, NOT ISBLANK(Employees[PhoneNumberTelegram])),
                     "Employee", Employees[Employee],
                     "Phone",    Employees[PhoneNumberTelegram],
-                    "Status",   Employees[Status],
-                    "INN",      Employees[INN]
+                    "Status",   Employees[Status]
                 )
             """
         }],
@@ -203,6 +158,7 @@ def is_phone_number_in_power_bi(phone_number: str) -> tuple[bool, str | None, st
     if not rows:
         return False, None, None
 
+    # шукаємо всі збіги по нормалізованому номеру
     matches = []
     for r in rows:
         phone_raw = (r.get("[Phone]") or "").strip()
@@ -212,42 +168,19 @@ def is_phone_number_in_power_bi(phone_number: str) -> tuple[bool, str | None, st
             matches.append(r)
 
     if not matches:
-        logging.warning(
-            f"🚫 Номер (raw={phone_number}, norm={target}) не знайдено серед {len(rows)} записів PBI."
-        )
+        # корисно лишити детальніший лог для діагностики
+        logging.warning(f"🚫 Номер (raw={phone_number}, norm={target}) не знайдено серед {len(rows)} записів PBI.")
         return False, None, None
 
-    # Віддаємо активний, якщо є; інакше перший
-    row = next(
-        (m for m in matches if (m.get("[Status]") or "").strip() == "Активний"),
-        matches[0],
-    )
+    # віддаємо активний, якщо є; інакше перший
+    row = next((m for m in matches if (m.get("[Status]") or "").strip() == "Активний"), matches[0])
     employee_name = (row.get("[Employee]") or "").strip() or None
     status = (row.get("[Status]") or "").strip() or None
-    inn = (row.get("[INN]") or "").strip()
-
-    # Кешуємо INN по нормалізованому номеру (щоб можна було використати в інших місцях)
-    if inn and target:
-        _PHONE_INN_CACHE[target] = inn
-
     is_active = status == "Активний"
 
-    logging.info(
-        f"✅ PBI: {employee_name} / {status} / INN={inn or '—'} для {target} "
-        f"(знайдено {len(matches)} збіг(ів))"
-    )
+    logging.info(f"✅ PBI: {employee_name} / {status} для {target} (знайдено {len(matches)} збіг(ів))")
     return is_active, employee_name, status
 
-
-def get_inn_for_phone(phone_number: str) -> str | None:
-    """
-    Повертає INN (tax_code) для телефону, якщо він вже був знайдений
-    через is_phone_number_in_power_bi.
-
-    Нічого не викликає в Power BI – лише читає кеш.
-    """
-    norm = normalize_phone_number(phone_number)
-    return _PHONE_INN_CACHE.get(norm)
 
 
 # ---------------------------
@@ -258,14 +191,11 @@ def verify_and_add_user(phone_number: str, telegram_id: int | str, telegram_name
     При логіні:
       - перевіряємо номер у PBI
       - при БУДЬ-ЯКІЙ зміні статусу оновлюємо joined_at
-      - додаємо/оновлюємо запис у БД
-
-    Інтерфейс не змінювався.
+      - додаємо/оновлюємо запис
     """
     is_active, employee_name_pbi, status_from_pbi = is_phone_number_in_power_bi(phone_number)
     logging.info(
-        f"📊 PBI для {phone_number}: is_active={is_active}, "
-        f"employee={employee_name_pbi}, status={status_from_pbi}"
+        f"📊 PBI для {phone_number}: is_active={is_active}, employee={employee_name_pbi}, status={status_from_pbi}"
     )
 
     employee_name = employee_name_pbi or get_employee_name(phone_number)
@@ -292,10 +222,6 @@ def verify_and_add_user(phone_number: str, telegram_id: int | str, telegram_name
 
 
 def get_user_debt_data(manager_name: str):
-    """
-    Запит до Power BI по таблиці Deb: показує дебіторку як за Manager, так і за Seller.
-    Логіка не змінена – лише обгортка через _pbi_post().
-    """
     query = {
         "queries": [{
             "query": f"""
@@ -303,17 +229,15 @@ def get_user_debt_data(manager_name: str):
                 SELECTCOLUMNS(
                     FILTER(
                         Deb,
-                        (Deb[Manager] = "{manager_name}" || Deb[Seller] = "{manager_name}")
-                            && Deb[Inform] <> 1
+                        (Deb[Manager] = "{manager_name}" || Deb[Seller] = "{manager_name}") && Deb[Inform] <> 1
                     ),
-                    "Client",          Deb[Client],
-                    "Sum_$",           Deb[Sum_$],
-                    "Manager_or_Seller",
-                        IF(Deb[Manager] = "{manager_name}", Deb[Manager], Deb[Seller]),
-                    "PlanDatePay",     Deb[PlanDatePay],
-                    "Account",         Deb[Account],
-                    "Deal",            Deb[Deal],
-                    "AccountDate",     Deb[AccountDate]
+                    "Client", Deb[Client],
+                    "Sum_$", Deb[Sum_$],
+                    "Manager_or_Seller", IF(Deb[Manager] = "{manager_name}", Deb[Manager], Deb[Seller]),
+                    "PlanDatePay", Deb[PlanDatePay],
+                    "Account", Deb[Account],
+                    "Deal", Deb[Deal],
+                    "AccountDate", Deb[AccountDate]
                 )
             """
         }],
