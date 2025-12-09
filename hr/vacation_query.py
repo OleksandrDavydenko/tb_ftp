@@ -26,6 +26,8 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
     # Отримуємо INN співробітника
     tax_code = get_employee_inn(employee_name)
 
+    logging.info(f" {tax_code}.МІЙ ТЕСТ.")
+
     if not tax_code:
         logging.info(f"⚠️ Не вдалося знайти INN для {employee_name}. Використовуємо фільтрацію по імені.")
     else:
