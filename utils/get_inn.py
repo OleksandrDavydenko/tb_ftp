@@ -5,10 +5,7 @@ from auth import get_power_bi_token
 def get_employee_inn(employee_name: str) -> str | None:
     """
     Отримує INN співробітника з таблиці Employees по імені.
-    Якщо знайдено кілька — бере перший.
-    Якщо нічого не знайдено або помилка — повертає None.
     """
-    # Отримуємо токен для доступу до Power BI
     token = get_power_bi_token()
     if not token:
         logging.error("❌ Не вдалося отримати токен для Power BI.")
@@ -22,7 +19,6 @@ def get_employee_inn(employee_name: str) -> str | None:
     dataset_id = "8b80be15-7b31-49e4-bc85-8b37a0d98f1c"
     power_bi_url = f"https://api.powerbi.com/v1.0/myorg/datasets/{dataset_id}/executeQueries"
 
-    # Запит на отримання INN співробітника по імені
     dax_query = {
         "queries": [
             {
@@ -41,32 +37,34 @@ def get_employee_inn(employee_name: str) -> str | None:
         "serializerSettings": {"includeNulls": True},
     }
 
-    logging.info(f"📤 Шукаємо INN для співробітника {employee_name} в таблиці Employees")
+    logging.info(f"📤 Шукаємо INN для {employee_name}")
     response = requests.post(power_bi_url, headers=headers, json=dax_query)
 
-    logging.info(f"📥 Статус відповіді Power BI (INN): {response.status_code}")
-    logging.info(f"📄 Вміст відповіді (INN): {response.text}")
+    logging.info(f"📥 Статус: {response.status_code}")
+    logging.info(f"📄 Відповідь: {response.text}")
 
     if response.status_code != 200:
-        logging.warning("⚠️ Не вдалося отримати INN, спробуємо інший метод.")
         return None
 
     try:
         data = response.json()
         rows = data["results"][0]["tables"][0].get("rows", [])
+        
+        if not rows:
+            return None
+        
+        # Головна зміна: використовуємо "[INN]" замість "INN"
+        inn = rows[0].get("[INN]")
+        
+        if inn:
+            inn_str = str(inn).strip()
+            logging.info(f"✅ Знайдено INN: {inn_str}")
+            return inn_str
+        else:
+            # Дебаг: що насправді в рядку?
+            logging.warning(f"⚠️ Ключ [INN] не знайдено. Рядок містить: {rows[0]}")
+            return None
+            
     except Exception as e:
-        logging.error(f"❌ Помилка при розборі JSON (INN): {e}")
-        return None
-
-    if not rows:
-        logging.warning(f"⚠️ INN для {employee_name} не знайдено.")
-        return None
-
-    # Повертаємо перше знайдене INN
-    inn = rows[0].get("INN", None)
-    if inn:
-        logging.info(f"✅ Знайдено INN для {employee_name}: {inn}")
-        return inn
-    else:
-        logging.warning(f"⚠️ INN для {employee_name} не знайдено.")
+        logging.error(f"❌ Помилка: {e}")
         return None
