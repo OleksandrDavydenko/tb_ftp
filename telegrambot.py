@@ -35,7 +35,9 @@ from messages.birthday_greetings import send_birthday_greetings
 #from messages.oneTimeMessages.update7 import send_message_to_users
 #from messages.oneTimeMessages.update11 import send_message_to_users
 #from messages.oneTimeMessages.update12 import send_message_to_users
-from messages.oneTimeMessages.update13 import send_message_to_users
+#from messages.oneTimeMessages.update13 import send_message_to_users
+from messages.oneTimeMessages.update14 import send_message_to_users
+from messages.oneTimeMessages.update15 import send_NYmessage_to_users
 
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -586,7 +588,24 @@ def main():
 #       timezone=kyiv_timezone
 #   )
 
-
+# New Year message===========================
+    scheduler.add_job(
+        send_message_to_users,   
+        trigger='date',
+        run_date=datetime(2025, 12, 31, 10, 00, tzinfo=kyiv_timezone),
+        id='new_year_greeting',
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+    scheduler.add_job(
+        send_NYmessage_to_users,   
+        trigger='date',
+        run_date=datetime(2026, 1, 1, 10, 00, tzinfo=kyiv_timezone),
+        id='new_year_greeting_2',
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+# ====================================================
 
     scheduler.add_job(
         check_overdue_debts,  # Функція, яку потрібно виконувати
