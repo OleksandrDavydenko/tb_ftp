@@ -66,7 +66,7 @@ def get_previous_month_name(now: datetime | None = None) -> str:
 def build_reminder_message(now: datetime | None = None) -> str:
     now = now or kyiv_now()
     previous_month_name = get_previous_month_name(now)
-    reminder_date = f"07.{now.strftime('%m')}"
+    reminder_date = f"09.{now.strftime('%m')}"
     return (
         f"🔔 Нагадування!\n"
         f"Колеги, закриваємо {previous_month_name.upper()} місяць 💪\n"
