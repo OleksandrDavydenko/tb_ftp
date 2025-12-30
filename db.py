@@ -344,20 +344,29 @@ def get_employee_name(phone_number):
 
 def delete_user_payments(phone_number):
     """
-    Видаляє всі платежі користувача з таблиці payments за номером телефону.
+    Видаляє всі платежі користувача з таблиці payments за номером телефону, 
+    де дата платежу не дорівнює сьогоднішній.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
     
+    today = datetime.today().date()  # Отримуємо сьогоднішню дату
+    
     try:
-        cursor.execute("DELETE FROM payments WHERE phone_number = %s", (phone_number,))
+        # Видаляємо платежі, де payment_date не дорівнює сьогоднішній даті
+        cursor.execute("""
+            DELETE FROM payments 
+            WHERE phone_number = %s 
+            AND payment_date::date != %s
+        """, (phone_number, today))
         conn.commit()
-        logging.info(f"❌ Усі платежі для {phone_number} видалено.")
+        logging.info(f"❌ Платежі для {phone_number}, де дата не сьогодні, видалено.")
     except Exception as e:
         logging.error(f"⚠️ Помилка видалення платежів для {phone_number}: {e}")
     finally:
         cursor.close()
         conn.close()
+
 
 
 
