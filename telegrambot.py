@@ -351,7 +351,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         # 🔹 Аналітика
         elif text in ["Аналітика за місяць", "Аналітика за рік"]:
             await handle_analytics_selection(update, context, text)
-        elif text in ["2024", "2025"]:
+        elif text in ["2024", "2025", "2026", "2027", "2028", "2029", "2030"]:
             menu = context.user_data.get("menu")
             if menu == "workdays_years":
                 await show_workdays_months(update, context)
