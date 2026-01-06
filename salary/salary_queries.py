@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 DATASET_ID = "8b80be15-7b31-49e4-bc85-8b37a0d98f1c"
 PBI_URL = f"https://api.powerbi.com/v1.0/myorg/datasets/{DATASET_ID}/executeQueries"
 
-MIN_YEAR = 2026
+MIN_YEAR = 2025
 MIN_DATE_DAX = f"DATE({MIN_YEAR},1,1)"  # для DAX фільтрів
 
 MONTHS_UA = [
