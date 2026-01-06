@@ -91,34 +91,50 @@ UNION(
 
 
 def get_available_months_salary(employee_name: str, year: str) -> list[str]:
+    """
+    Функція для отримання доступних місяців для вказаного року та співробітника.
+    """
     dax = f"""
-EVALUATE
-UNION(
-  SELECTCOLUMNS(
-    FILTER(
-      EmployeeSalary,
-      EmployeeSalary[Employee] = "{employee_name}" &&
-      YEAR(EmployeeSalary[Date]) = {year}
-    ),
-    "M", MONTH(EmployeeSalary[Date])
-  ),
-  SELECTCOLUMNS(
-    FILTER(
-      SalaryPayment,
-      SalaryPayment[Employee] = "{employee_name}" &&
-      LOWER(SalaryPayment[character]) = "salary" &&
-      YEAR(DATEVALUE(SalaryPayment[МісяцьНарахування])) = {year}
-    ),
-    "M", MONTH(DATEVALUE(SalaryPayment[МісяцьНарахування]))
-  )
-)
-"""
+    EVALUATE
+    UNION(
+        SELECTCOLUMNS(
+            FILTER(
+                EmployeeSalary,
+                EmployeeSalary[Employee] = "{employee_name}" &&
+                YEAR(EmployeeSalary[Date]) = {year}
+            ),
+            "M", MONTH(EmployeeSalary[Date])
+        ),
+        SELECTCOLUMNS(
+            FILTER(
+                SalaryPayment,
+                SalaryPayment[Employee] = "{employee_name}" &&
+                LOWER(SalaryPayment[character]) = "salary" &&
+                YEAR(DATEVALUE(SalaryPayment[МісяцьНарахування])) = {year}
+            ),
+            "M", MONTH(DATEVALUE(SalaryPayment[МісяцьНарахування]))
+        )
+    )
+    """
+    # Відправляємо запит до Power BI
     rows = _pbi_exec(dax)
+
+    # Логування результатів
+    logging.info(f"Отримано місяці для {employee_name} за {year} рік: {rows}")
+
+    # Фільтруємо і сортуємо місяці
     mm = sorted({
         int(r.get("[M]", 0))
         for r in rows
         if r.get("[M]") and 1 <= int(r.get("[M]", 0)) <= 12
     })
+
+    # Якщо не знайдено жодного місяця, то повідомляємо про відсутність даних
+    if not mm:
+        logging.warning(f"Не знайдено даних для {employee_name} за {year} рік.")
+        return []
+
+    # Повертаємо місяці у форматі українських назв
     return [month_int_to_ua(m) for m in mm]
 
 
