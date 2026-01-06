@@ -391,17 +391,24 @@ async def show_salary_years(update: Update, context: CallbackContext) -> None:
     context.user_data["menu"] = "salary_years"
     await update.message.reply_text("Оберіть рік:", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
 
-
-
 async def show_salary_months(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     year = context.user_data.get("selected_year")
+    
+    # Логування перед отриманням місяців
+    logging.info(f"Отримання місяців для {employee} за {year} рік.")
+    
     months = get_available_months_salary(employee, year) if (employee and year) else []
+
+    # Логування отриманих місяців
+    logging.info(f"Отримано місяці для {employee} за {year}: {months}")
+    
     if not months:
         kb = [[KeyboardButton("Назад")], [KeyboardButton("Головне меню")]]
         context.user_data["menu"] = "salary_months"
         await update.message.reply_text("ℹ️ Немає місяців з даними за цей рік.", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
         return
+    
     kb = [[KeyboardButton(m)] for m in months]
     kb.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
     context.user_data["menu"] = "salary_months"
