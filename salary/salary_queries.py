@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 DATASET_ID = "8b80be15-7b31-49e4-bc85-8b37a0d98f1c"
 PBI_URL = f"https://api.powerbi.com/v1.0/myorg/datasets/{DATASET_ID}/executeQueries"
 
-MIN_YEAR = 2025
+MIN_YEAR = 2026
 MIN_DATE_DAX = f"DATE({MIN_YEAR},1,1)"  # для DAX фільтрів
 
 MONTHS_UA = [
@@ -91,58 +91,35 @@ UNION(
 
 
 def get_available_months_salary(employee_name: str, year: str) -> list[str]:
-    """
-    Функція для отримання доступних місяців для вказаного року та співробітника.
-    """
     dax = f"""
-    EVALUATE
-    UNION(
-        SELECTCOLUMNS(
-            FILTER(
-                EmployeeSalary,
-                EmployeeSalary[Employee] = "{employee_name}" &&
-                YEAR(EmployeeSalary[Date]) = {year}
-            ),
-            "M", MONTH(EmployeeSalary[Date])
-        ),
-        SELECTCOLUMNS(
-            FILTER(
-                SalaryPayment,
-                SalaryPayment[Employee] = "{employee_name}" &&
-                LOWER(SalaryPayment[character]) = "salary" &&
-                YEAR(DATEVALUE(SalaryPayment[МісяцьНарахування])) = {year}
-            ),
-            "M", MONTH(DATEVALUE(SalaryPayment[МісяцьНарахування]))
-        )
-    )
-    """
-    logging.info(f"Запит для отримання місяців для {employee_name} за {year} рік: {dax}")
-
-    # Відправляємо запит до Power BI
+EVALUATE
+UNION(
+  SELECTCOLUMNS(
+    FILTER(
+      EmployeeSalary,
+      EmployeeSalary[Employee] = "{employee_name}" &&
+      YEAR(EmployeeSalary[Date]) = {year}
+    ),
+    "M", MONTH(EmployeeSalary[Date])
+  ),
+  SELECTCOLUMNS(
+    FILTER(
+      SalaryPayment,
+      SalaryPayment[Employee] = "{employee_name}" &&
+      LOWER(SalaryPayment[character]) = "salary" &&
+      YEAR(DATEVALUE(SalaryPayment[МісяцьНарахування])) = {year}
+    ),
+    "M", MONTH(DATEVALUE(SalaryPayment[МісяцьНарахування]))
+  )
+)
+"""
     rows = _pbi_exec(dax)
-
-    # Логування результатів
-    logging.info(f"Результати запиту для {employee_name} за {year} рік: {rows}")
-
-    # Фільтруємо і сортуємо місяці
     mm = sorted({
         int(r.get("[M]", 0))
         for r in rows
         if r.get("[M]") and 1 <= int(r.get("[M]", 0)) <= 12
     })
-
-    # Логування знайдених місяців
-    logging.info(f"Знайдені місяці для {employee_name} за {year} рік: {mm}")
-
-    # Якщо не знайдено жодного місяця, то повідомляємо про відсутність даних
-    if not mm:
-        logging.warning(f"Не знайдено місяців для {employee_name} за {year} рік.")
-        return []
-
-    # Повертаємо місяці у форматі українських назв
     return [month_int_to_ua(m) for m in mm]
-
-
 
 
 # --- БОНУСИ (ПРАВКА): списки років/місяців беремо з BonusesDetails[Period] (DATE),
