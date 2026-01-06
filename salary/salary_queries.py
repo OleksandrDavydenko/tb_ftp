@@ -116,7 +116,6 @@ def get_available_months_salary(employee_name: str, year: str) -> list[str]:
         )
     )
     """
-    # Логування запиту
     logging.info(f"Запит для отримання місяців для {employee_name} за {year} рік: {dax}")
 
     # Відправляємо запит до Power BI
@@ -142,6 +141,7 @@ def get_available_months_salary(employee_name: str, year: str) -> list[str]:
 
     # Повертаємо місяці у форматі українських назв
     return [month_int_to_ua(m) for m in mm]
+
 
 
 

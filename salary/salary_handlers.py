@@ -394,13 +394,11 @@ async def show_salary_years(update: Update, context: CallbackContext) -> None:
 async def show_salary_months(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     year = context.user_data.get("selected_year")
-    
-    # Логування перед отриманням місяців
+
     logging.info(f"Отримання місяців для {employee} за {year} рік.")
     
     months = get_available_months_salary(employee, year) if (employee and year) else []
 
-    # Логування отриманих місяців
     logging.info(f"Отримано місяці для {employee} за {year}: {months}")
     
     if not months:
