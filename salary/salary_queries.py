@@ -116,11 +116,14 @@ def get_available_months_salary(employee_name: str, year: str) -> list[str]:
         )
     )
     """
+    # Логування запиту
+    logging.info(f"Запит для отримання місяців для {employee_name} за {year} рік: {dax}")
+
     # Відправляємо запит до Power BI
     rows = _pbi_exec(dax)
 
     # Логування результатів
-    logging.info(f"Отримано місяці для {employee_name} за {year} рік: {rows}")
+    logging.info(f"Результати запиту для {employee_name} за {year} рік: {rows}")
 
     # Фільтруємо і сортуємо місяці
     mm = sorted({
@@ -129,13 +132,17 @@ def get_available_months_salary(employee_name: str, year: str) -> list[str]:
         if r.get("[M]") and 1 <= int(r.get("[M]", 0)) <= 12
     })
 
+    # Логування знайдених місяців
+    logging.info(f"Знайдені місяці для {employee_name} за {year} рік: {mm}")
+
     # Якщо не знайдено жодного місяця, то повідомляємо про відсутність даних
     if not mm:
-        logging.warning(f"Не знайдено даних для {employee_name} за {year} рік.")
+        logging.warning(f"Не знайдено місяців для {employee_name} за {year} рік.")
         return []
 
     # Повертаємо місяці у форматі українських назв
     return [month_int_to_ua(m) for m in mm]
+
 
 
 # --- БОНУСИ (ПРАВКА): списки років/місяців беремо з BonusesDetails[Period] (DATE),
