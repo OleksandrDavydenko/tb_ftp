@@ -85,6 +85,19 @@ def create_tables():
     )
     """)
 
+    # Створюємо таблицю для користувачів LightBot
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS usersLightBot (
+        id SERIAL PRIMARY KEY,
+        telegram_id BIGINT UNIQUE NOT NULL,
+        first_name VARCHAR(100),
+        subscribed BOOLEAN DEFAULT FALSE
+    )
+    """)
+
+
+
+
     # Створюємо таблицю для логів бота
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS bot_logs (
@@ -125,6 +138,8 @@ def create_tables():
     CREATE UNIQUE INDEX IF NOT EXISTS ux_bonus_docs_doc_number
     ON bonus_docs (doc_number)
     """)
+
+    
 
 
 
