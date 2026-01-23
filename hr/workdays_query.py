@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 from datetime import datetime
@@ -8,16 +10,158 @@ import logging
 from utils.name_aliases import display_name
 
 
+POWER_BI_URL = "https://api.powerbi.com/v1.0/myorg/datasets/8b80be15-7b31-49e4-bc85-8b37a0d98f1c/executeQueries"
+
+MONTHS_UA = [
+    "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
+    "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
+]
+
+MONTH_MAP = {
+    "Січень": "01", "Лютий": "02", "Березень": "03", "Квітень": "04",
+    "Травень": "05", "Червень": "06", "Липень": "07", "Серпень": "08",
+    "Вересень": "09", "Жовтень": "10", "Листопад": "11", "Грудень": "12"
+}
+MONTH_MAP_REV = {v: k for k, v in MONTH_MAP.items()}
+
+
+# =========================
+# Helpers
+# =========================
+def _to_int(v, default: int = 0) -> int:
+    """Перетворює значення з Power BI у ціле число без крапок."""
+    if v is None:
+        return default
+    try:
+        # буває float або Decimal-подібне
+        return int(round(float(v)))
+    except Exception:
+        try:
+            # буває строка "12" або "12.0"
+            return int(round(float(str(v).replace(",", "."))))
+        except Exception:
+            return default
+
+
+def _get_headers() -> dict | None:
+    token = get_power_bi_token()
+    if not token:
+        return None
+    return {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+
+def _execute_dax(headers: dict, dax_query: str) -> list[dict]:
+    payload = {
+        "queries": [{"query": dax_query}],
+        "serializerSettings": {"includeNulls": True}
+    }
+    response = requests.post(POWER_BI_URL, headers=headers, json=payload)
+
+    logging.info(f"📥 Статус відповіді Power BI: {response.status_code}")
+    logging.info(f"📄 Вміст відповіді: {response.text}")
+
+    if response.status_code != 200:
+        return []
+
+    data = response.json()
+    return data.get("results", [{}])[0].get("tables", [{}])[0].get("rows", [])
+
+
+def _extract_year_month(period_str: str) -> tuple[int | None, int | None]:
+    """
+    period_str очікуємо як ISO 'YYYY-MM-DD...' або 'DD.MM.YYYY'.
+    Повертає (year, month) або (None, None).
+    """
+    s = (period_str or "").strip()
+
+    # ISO
+    try:
+        dt = datetime.fromisoformat(s[:10])
+        return dt.year, dt.month
+    except Exception:
+        pass
+
+    # dd.mm.yyyy
+    try:
+        dt = datetime.strptime(s[:10], "%d.%m.%Y")
+        return dt.year, dt.month
+    except Exception:
+        return None, None
+
+
+def _get_employee_periods_cached(context: CallbackContext, employee_name: str) -> list[str]:
+    """
+    Дістає Period для працівника з Power BI і кешує в context.user_data,
+    щоб не робити зайві запити при виборі років/місяців.
+    """
+    cache_key = "workdays_available_periods"
+    cache_emp_key = "workdays_available_periods_employee"
+
+    cached = context.user_data.get(cache_key)
+    cached_emp = context.user_data.get(cache_emp_key)
+
+    if cached and cached_emp == employee_name:
+        return cached
+
+    headers = _get_headers()
+    if not headers:
+        return []
+
+    dax = f"""
+        EVALUATE
+        SELECTCOLUMNS(
+            FILTER(
+                workdays_by_employee,
+                workdays_by_employee[Employee] = "{employee_name}"
+            ),
+            "Period", workdays_by_employee[Period]
+        )
+    """
+
+    rows = _execute_dax(headers, dax)
+
+    periods: list[str] = []
+    for r in rows:
+        p = r.get("[Period]")
+        if p:
+            periods.append(str(p))
+
+    # Унікалізація зі збереженням порядку
+    seen = set()
+    uniq = []
+    for p in periods:
+        if p not in seen:
+            seen.add(p)
+            uniq.append(p)
+
+    context.user_data[cache_key] = uniq
+    context.user_data[cache_emp_key] = employee_name
+    return uniq
+
+
+# =========================
+# Handlers
+# =========================
 async def show_workdays_years(update: Update, context: CallbackContext) -> None:
-    context.user_data['menu'] = 'workdays_years'
+    context.user_data["menu"] = "workdays_years"
 
-    current_year = datetime.now().year
-    start_year = 2025
-    end_year = max(current_year, 2025)
+    employee_name = context.user_data.get("employee_name")
+    if not employee_name:
+        await update.message.reply_text("⚠️ Не знайдено працівника в контексті.")
+        return
 
-    years = [str(y) for y in range(start_year, end_year + 1)]
+    periods = _get_employee_periods_cached(context, employee_name)
+    ym = [_extract_year_month(p) for p in periods]
+    years = sorted({y for (y, m) in ym if y is not None})
 
-    keyboard = [[KeyboardButton(year)] for year in years]
+    if not years:
+        await update.message.reply_text("ℹ️ Дані по відпрацьованих днях відсутні.")
+        return
+
+    keyboard = [[KeyboardButton(str(y))] for y in years]
     keyboard.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
 
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
@@ -26,13 +170,30 @@ async def show_workdays_years(update: Update, context: CallbackContext) -> None:
 
 async def show_workdays_months(update: Update, context: CallbackContext) -> None:
     selected_year = update.message.text
-    context.user_data['selected_year'] = selected_year
-    context.user_data['menu'] = 'workdays_months'
+    context.user_data["selected_year"] = selected_year
+    context.user_data["menu"] = "workdays_months"
 
-    months = [
-        "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
-        "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"
-    ]
+    employee_name = context.user_data.get("employee_name")
+    if not employee_name:
+        await update.message.reply_text("⚠️ Не знайдено працівника в контексті.")
+        return
+
+    try:
+        year_int = int(selected_year)
+    except ValueError:
+        await update.message.reply_text("⚠️ Невірний рік.")
+        return
+
+    periods = _get_employee_periods_cached(context, employee_name)
+    ym = [_extract_year_month(p) for p in periods]
+
+    months_nums = sorted({m for (y, m) in ym if y == year_int and m is not None})
+    if not months_nums:
+        await update.message.reply_text("ℹ️ Немає даних за обраний рік.")
+        return
+
+    months = [MONTHS_UA[m - 1] for m in months_nums]
+
     keyboard = [[KeyboardButton(month)] for month in months]
     keyboard.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
 
@@ -42,76 +203,48 @@ async def show_workdays_months(update: Update, context: CallbackContext) -> None
 
 async def show_workdays_details(update: Update, context: CallbackContext) -> None:
     selected_month = update.message.text
-    context.user_data['selected_month'] = selected_month
-    context.user_data['menu'] = 'workdays_details'
+    context.user_data["selected_month"] = selected_month
+    context.user_data["menu"] = "workdays_details"
 
-    employee_name = context.user_data.get('employee_name')
-    year = context.user_data.get('selected_year')
+    employee_name = context.user_data.get("employee_name")
+    year = context.user_data.get("selected_year")
 
     if not employee_name or not year:
         await update.message.reply_text("⚠️ Не знайдено працівника або року в контексті.")
         return
 
-    month_map = {
-        "Січень": "01", "Лютий": "02", "Березень": "03", "Квітень": "04",
-        "Травень": "05", "Червень": "06", "Липень": "07", "Серпень": "08",
-        "Вересень": "09", "Жовтень": "10", "Листопад": "11", "Грудень": "12"
-    }
-    month_num = month_map.get(selected_month)
+    month_num = MONTH_MAP.get(selected_month)
     if not month_num:
         await update.message.reply_text("⚠️ Невідомий місяць.")
         return
 
-    token = get_power_bi_token()
-    if not token:
+    headers = _get_headers()
+    if not headers:
         await update.message.reply_text("❌ Не вдалося отримати токен для Power BI.")
         return
 
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
+    dax = f"""
+        EVALUATE
+        SELECTCOLUMNS(
+            FILTER(
+                workdays_by_employee,
+                workdays_by_employee[Employee] = "{employee_name}" &&
+                DATEVALUE(workdays_by_employee[Period]) = DATE({year}, {int(month_num)}, 1)
+            ),
+            "Period", workdays_by_employee[Period],
+            "TotalDays", workdays_by_employee[TotalDays],
+            "WeekendDays", workdays_by_employee[WeekendDays],
+            "HolidayDays", workdays_by_employee[HolidayDays],
+            "WorkDays", workdays_by_employee[WorkDays],
+            "LeaveWithoutPay", workdays_by_employee[LeaveWithoutPay],
+            "RegularVacationDays", workdays_by_employee[RegularVacationDays],
+            "VacationOnWeekends", workdays_by_employee[VacationOnWeekends],
+            "SickLeaveDays", workdays_by_employee[SickLeaveDays],
+            "WorkedDays", workdays_by_employee[WorkedDays]
+        )
+    """
 
-    dax_query = {
-        "queries": [
-            {
-                "query": f"""
-                    EVALUATE
-                    SELECTCOLUMNS(
-                        FILTER(
-                            workdays_by_employee,
-                            workdays_by_employee[Employee] = \"{employee_name}\" &&
-                            DATEVALUE(workdays_by_employee[Period]) = DATE({year}, {int(month_num)}, 1)
-                        ),
-                        \"Period\", workdays_by_employee[Period],
-                        \"TotalDays\", workdays_by_employee[TotalDays],
-                        \"WeekendDays\", workdays_by_employee[WeekendDays],
-                        \"HolidayDays\", workdays_by_employee[HolidayDays],
-                        \"WorkDays\", workdays_by_employee[WorkDays],
-                        \"LeaveWithoutPay\", workdays_by_employee[LeaveWithoutPay],
-                        \"RegularVacationDays\", workdays_by_employee[RegularVacationDays],
-                        \"VacationOnWeekends\", workdays_by_employee[VacationOnWeekends],
-                        \"SickLeaveDays\", workdays_by_employee[SickLeaveDays],
-                        \"WorkedDays\", workdays_by_employee[WorkedDays]
-                    )
-                """
-            }
-        ],
-        "serializerSettings": {"includeNulls": True}
-    }
-
-    power_bi_url = "https://api.powerbi.com/v1.0/myorg/datasets/8b80be15-7b31-49e4-bc85-8b37a0d98f1c/executeQueries"
-    response = requests.post(power_bi_url, headers=headers, json=dax_query)
-
-    logging.info(f"📥 Статус відповіді Power BI: {response.status_code}")
-    logging.info(f"📄 Вміст відповіді: {response.text}")
-
-    if response.status_code != 200:
-        await update.message.reply_text("❌ Помилка при отриманні даних з Power BI.")
-        return
-
-    data = response.json()
-    rows = data.get('results', [{}])[0].get('tables', [{}])[0].get('rows', [])
+    rows = _execute_dax(headers, dax)
 
     if not rows:
         await update.message.reply_text("ℹ️ Дані по відпрацьованих днях відсутні.")
@@ -120,16 +253,17 @@ async def show_workdays_details(update: Update, context: CallbackContext) -> Non
     row = rows[0]
     nice_name = display_name(employee_name)
 
-    period_val = (row.get('[Period]') or '')[:10]
-    total_days = row.get('[TotalDays]', 0)
-    work_days = row.get('[WorkDays]', 0)
-    weekend_days = row.get('[WeekendDays]', 0)
-    holiday_days = row.get('[HolidayDays]', 0)
-    leave_wo_pay = row.get('[LeaveWithoutPay]', 0)
-    regular_vac = row.get('[RegularVacationDays]', 0)
-    vac_on_non_working = row.get('[VacationOnWeekends]', 0)  # це “відпустка у неробочі дні”
-    sick_days = row.get('[SickLeaveDays]', 0)
-    worked_days = row.get('[WorkedDays]', 0)
+    period_val = (row.get("[Period]") or "")[:10]
+
+    total_days = _to_int(row.get("[TotalDays]", 0))
+    work_days = _to_int(row.get("[WorkDays]", 0))
+    weekend_days = _to_int(row.get("[WeekendDays]", 0))
+    holiday_days = _to_int(row.get("[HolidayDays]", 0))
+    leave_wo_pay = _to_int(row.get("[LeaveWithoutPay]", 0))
+    regular_vac = _to_int(row.get("[RegularVacationDays]", 0))
+    vac_on_non_working = _to_int(row.get("[VacationOnWeekends]", 0))
+    sick_days = _to_int(row.get("[SickLeaveDays]", 0))
+    worked_days = _to_int(row.get("[WorkedDays]", 0))
 
     message = (
         f"📅 Період: {period_val}\n"
