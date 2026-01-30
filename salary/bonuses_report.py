@@ -13,6 +13,21 @@ from utils.name_aliases import display_name
 DATASET_ID = os.getenv("PBI_DATASET_ID", "8b80be15-7b31-49e4-bc85-8b37a0d98f1c")
 
 # ---------- Power BI queries ----------
+def _exec_dax(token: str, dax: str) -> dict:
+    """Універсальна функція для виконання DAX запитів"""
+    url = f"https://api.powerbi.com/v1.0/myorg/datasets/{DATASET_ID}/executeQueries"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    payload = {"queries": [{"query": dax}], "serializerSettings": {"includeNulls": True}}
+    r = requests.post(url, headers=headers, json=payload)
+    try:
+        r.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        print(f"❌ DAX запит повернув помилку: {e}")
+        print(f"❌ DAX запит: {dax}")
+        print(f"❌ Відповідь сервера: {r.text}")
+        raise
+    return r.json()
+
 def query_bonuses_details(token: str, employee: str, period_ym: str) -> dict:
     emp_escaped = employee.replace('"', '""')
     dax = f"""
@@ -25,17 +40,9 @@ FILTER(
     BonusesDetails[Employee] = "{emp_escaped}" && [PeriodYM] = "{period_ym}"
 )
 """
-    url = f"https://api.powerbi.com/v1.0/myorg/datasets/{DATASET_ID}/executeQueries"
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    payload = {"queries": [{"query": dax}], "serializerSettings": {"includeNulls": True}}
-    r = requests.post(url, headers=headers, json=payload)
-    r.raise_for_status()
-    return r.json()
+    return _exec_dax(token, dax)
 
 def query_bonuses_table(token: str, employee: str, period_ym: str) -> dict:
-    """
-    Повертає таблицю з полями: Employee, Date, Sanction, BonusCorrection (+ штучна колонка PeriodYM)
-    """
     emp_escaped = employee.replace('"', '""')
     dax = f"""
 EVALUATE
@@ -53,12 +60,65 @@ FILTER(
   [Employee] = "{emp_escaped}" && [PeriodYM] = "{period_ym}"
 )
 """
-    url = f"https://api.powerbi.com/v1.0/myorg/datasets/{DATASET_ID}/executeQueries"
-    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    payload = {"queries": [{"query": dax}], "serializerSettings": {"includeNulls": True}}
-    r = requests.post(url, headers=headers, json=payload)
-    r.raise_for_status()
-    return r.json()
+    return _exec_dax(token, dax)
+
+def query_bonuses_table_not_paid(token: str, employee: str, period_ym: str) -> dict:
+    emp_escaped = employee.replace('"', '""')
+    dax = f"""
+EVALUATE
+FILTER(
+  ADDCOLUMNS(
+    SELECTCOLUMNS(
+      BonusesTableNotPaid,
+      "Employee", BonusesTableNotPaid[Employee],
+      "Client", BonusesTableNotPaid[Client],
+      "DealCompletionDate", BonusesTableNotPaid[DealCompletionDate],
+      "DealNumber", BonusesTableNotPaid[DealNumber],
+      "DealType", BonusesTableNotPaid[DealType],
+      "ManagerRole", BonusesTableNotPaid[ManagerRole],
+      "PercentValue", BonusesTableNotPaid[PercentValue],
+      "Profit", BonusesTableNotPaid[Profit],
+      "BonusBase", BonusesTableNotPaid[BonusBase],
+      "PercentPaid", BonusesTableNotPaid[PercentPaid],
+      "Period", BonusesTableNotPaid[Period],
+      "ProfitNew", BonusesTableNotPaid[ProfitNew],
+      "ExchangeRateDifference", BonusesTableNotPaid[ExchangeRateDifference],
+      "NewBonus", BonusesTableNotPaid[NewBonus],
+      "notPayed", BonusesTableNotPaid[notPayed],
+      "toPay", BonusesTableNotPaid[toPay],
+      "Saldo", BonusesTableNotPaid[Saldo],
+      "TypePercent", BonusesTableNotPaid[TypePercent],
+      "Seller", BonusesTableNotPaid[Seller]
+    ),
+    "PeriodYM", FORMAT([Period], "yyyy-MM")
+  ),
+  [Employee] = "{emp_escaped}" && [PeriodYM] = "{period_ym}"
+)
+"""
+    return _exec_dax(token, dax)
+
+def query_plan_for_sellers_new_clients(token: str, employee: str, period_ym: str) -> dict:
+    emp_escaped = employee.replace('"', '""')
+    dax = f"""
+EVALUATE
+FILTER(
+  ADDCOLUMNS(
+    SELECTCOLUMNS(
+      PlanForSelersNewClients,
+      "Client", PlanForSelersNewClients[Client],
+      "DealNumber", PlanForSelersNewClients[DealNumber],
+      "DepartmentFromDealType", PlanForSelersNewClients[DepartmentFromDealType],
+      "DokNumber", PlanForSelersNewClients[DokNumber],
+      "Manager", PlanForSelersNewClients[Manager],
+      "Period", PlanForSelersNewClients[Period],
+      "ProfitNew", PlanForSelersNewClients[ProfitNew]
+    ),
+    "PeriodYM", FORMAT([Period], "yyyy-MM")
+  ),
+  [Manager] = "{emp_escaped}" && [PeriodYM] = "{period_ym}"
+)
+"""
+    return _exec_dax(token, dax)
 
 # ---------- helpers ----------
 def to_dataframe(result_json: dict) -> pd.DataFrame:
@@ -86,6 +146,10 @@ def to_dataframe(result_json: dict) -> pd.DataFrame:
             return col[len("BonusesDetails["):-1]
         if col.startswith("BonusesTable[") and col.endswith("]"):
             return col[len("BonusesTable["):-1]
+        if col.startswith("BonusesTableNotPaid[") and col.endswith("]"):
+            return col[len("BonusesTableNotPaid["):-1]
+        if col.startswith("PlanForSelersNewClients[") and col.endswith("]"):
+            return col[len("PlanForSelersNewClients["):-1]
         return col.strip("[]")
 
     records = [{clean(k): v for k, v in rec.items()} for rec in records]
@@ -100,6 +164,7 @@ def _fmt_date_series(s: pd.Series) -> pd.Series:
 # ---------- Excel builder ----------
 def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
                 sanction_sum: float, correction_sum: float,
+                not_paid_df: pd.DataFrame, new_clients_df: pd.DataFrame,
                 path_dir: str) -> str:
     # import xlsxwriter
     nice = display_name(employee)  # псевдо лише для відображення
@@ -283,9 +348,128 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
         sum_cols = ["Прибуток","Бонус база","Новий бонус","До виплати","Остаток","Курсова різниця","Було не виплачено"]
         totals = {c: round(pd.to_numeric(out[c], errors="coerce").fillna(0).sum(), 2) for c in sum_cols if c in out.columns}
         total_row = {k: "" for k in cols_order}
-        total_row.update({"Менеджер": "Разом:", **totals})
+        total_row.update({"Менеджер":"Разом:", **totals})
         out = pd.concat([out, pd.DataFrame([total_row], columns=out.columns)], ignore_index=True)
         return "Процент операційний (минулий період)", out
+
+    def build_not_paid_section(dfs: pd.DataFrame):
+        cols_order = [
+            "Менеджер","Клієнт","Тип угоди","Угода","Дата завершення","Роль менеджера",
+            "Процент","Прибуток","Бонус база","Процент оплати","Період","Прибуток новий",
+            "Курсова різниця","Новий бонус","Було не виплачено","До виплати","Остаток",
+            "Тип процента","Продавець"
+        ]
+        
+        src_map = {
+            "Менеджер": "Employee",
+            "Клієнт": "Client",
+            "Тип угоди": "DealType",
+            "Угода": "DealNumber",
+            "Дата завершення": "DealCompletionDate",
+            "Роль менеджера": "ManagerRole",
+            "Процент": "PercentValue",
+            "Прибуток": "Profit",
+            "Бонус база": "BonusBase",
+            "Процент оплати": "PercentPaid",
+            "Період": "Period",
+            "Прибуток новий": "ProfitNew",
+            "Курсова різниця": "ExchangeRateDifference",
+            "Новий бонус": "NewBonus",
+            "Було не виплачено": "notPayed",
+            "До виплати": "toPay",
+            "Остаток": "Saldo",
+            "Тип процента": "TypePercent",
+            "Продавець": "Seller"
+        }
+        
+        out = pd.DataFrame({c: (dfs[src_map[c]] if src_map.get(c) in dfs.columns else pd.NA) for c in cols_order})
+
+        if "Менеджер" in out.columns:
+            out["Менеджер"] = out["Менеджер"].apply(
+                lambda v: display_name(v) if isinstance(v, str) else v
+            )
+
+        for dcol in ["Дата завершення", "Період"]:
+            out[dcol] = _fmt_date_series(out[dcol])
+
+        sum_cols = ["Прибуток","Бонус база","Новий бонус","До виплати","Остаток","Курсова різниця","Було не виплачено"]
+        totals = {c: round(pd.to_numeric(out[c], errors="coerce").fillna(0).sum(), 2) for c in sum_cols if c in out.columns}
+        total_row = {k: "" for k in cols_order}
+        total_row.update({"Менеджер": "Разом:", **totals})
+        out = pd.concat([out, pd.DataFrame([total_row], columns=out.columns)], ignore_index=True)
+        return "Таблиця невиплачених бонусів", out
+
+    def prepare_new_clients_sheet(dfs: pd.DataFrame):
+        """Підготовка даних для листа 'Нові Угоди'"""
+        if dfs.empty:
+            return pd.DataFrame()
+        
+        result_df = pd.DataFrame()
+        
+        # Додаємо стовпець "Угода"
+        if "DealNumber" in dfs.columns:
+            result_df["Угода"] = dfs["DealNumber"]
+        else:
+            result_df["Угода"] = ""
+        
+        # Додаємо стовпець "Клієнт"
+        client_col = None
+        for col in dfs.columns:
+            if 'client' in col.lower() or 'клієнт' in col.lower():
+                client_col = col
+                break
+        
+        if client_col:
+            result_df["Клієнт"] = dfs[client_col]
+        else:
+            result_df["Клієнт"] = ""
+        
+        # Додаємо стовпець "Менеджер" з display_name
+        manager_col = None
+        for col in dfs.columns:
+            if 'manager' in col.lower() or 'менеджер' in col.lower():
+                manager_col = col
+                break
+        
+        if manager_col and manager_col in dfs.columns:
+            result_df["Менеджер"] = dfs[manager_col].apply(
+                lambda v: display_name(v) if isinstance(v, str) else v
+            )
+        else:
+            result_df["Менеджер"] = ""
+        
+        # Додаємо стовпець "Прибуток"
+        profit_col = None
+        for col in dfs.columns:
+            if 'profit' in col.lower() or 'прибуток' in col.lower():
+                profit_col = col
+                break
+        
+        if profit_col and profit_col in dfs.columns:
+            profit_series = pd.to_numeric(dfs[profit_col], errors="coerce")
+            result_df["Прибуток"] = profit_series
+            
+            result_df["Прибуток"] = result_df["Прибуток"].apply(
+                lambda x: f"{x:,.2f}".replace(",", " ").replace(".", ",") if not pd.isna(x) else ""
+            )
+        else:
+            result_df["Прибуток"] = ""
+        
+        # Додаємо рядок підсумків
+        if profit_col and profit_col in dfs.columns and not dfs.empty:
+            total_profit = pd.to_numeric(dfs[profit_col], errors="coerce").sum()
+            if not pd.isna(total_profit):
+                total_row = {
+                    "Угода": "",
+                    "Клієнт": "",
+                    "Менеджер": "",
+                    "Прибуток": f"{total_profit:,.2f}".replace(",", " ").replace(".", ",")
+                }
+                
+                total_df = pd.DataFrame([total_row])
+                result_df = pd.concat([result_df, total_df], ignore_index=True)
+        
+        return result_df
 
     sections = [
         make_section(df[cur_mask & sales_mask].copy(),   "Бонуси сейлс менеджера (поточний період)", False),
@@ -294,8 +478,10 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
         build_prev_sales_section(df[prev_mask & sales_mask].copy()),
         build_prev_ops_pct_section(df[prev_mask & ops_pct_mask].copy()),
     ]
+    
+    if not not_paid_df.empty:
+        sections.append(build_not_paid_section(not_paid_df))
 
-    # filename
     docnum = None
     if "DocNumber" in df.columns:
         vals = [str(v) for v in df["DocNumber"].dropna().tolist() if str(v).strip()]
@@ -307,9 +493,10 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
     if os.path.exists(fname):
         os.remove(fname)
 
-    # write excel
     with pd.ExcelWriter(fname, engine="xlsxwriter") as writer:
         wb = writer.book
+        
+        # ========== ЛИСТ 1: ЗВІТ ==========
         ws = wb.add_worksheet("Звіт")
         writer.sheets["Звіт"] = ws
 
@@ -353,7 +540,7 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
         xwrite(ws, row, 6, currency_val, bold_fmt)
         row += 2
 
-        ws.merge_range(row, 2, row, 4, "Итого к выплате", bold_fmt)
+        ws.merge_range(row, 2, row, 4, "Всього до виплати", bold_fmt)
         xwrite(ws, row, 5, round(total_cur + total_prev, 2), bold_fmt)
         xwrite(ws, row, 6, currency_val, bold_fmt)
         row += 2
@@ -368,18 +555,51 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
         for title, df_sec in sections:
             ws.write(row, 0, title, sec_title_fmt); row += 1
 
-            # header
             ws.set_row(row, 28)
             for c, name in enumerate(df_sec.columns.tolist()):
                 xwrite(ws, row, c, name, sec_header_fmt)
 
-            # rows
             nrows, ncols = df_sec.shape
             for i in range(nrows):
                 for j in range(ncols):
                     xwrite(ws, row + 1 + i, j, df_sec.iat[i, j], sec_cell_fmt)
 
             row += nrows + 2
+
+        # ========== ЛИСТ 2: НОВІ УГОДИ ==========
+        if not new_clients_df.empty:
+            new_clients_sheet = wb.add_worksheet("Нові Угоди")
+            writer.sheets["Нові Угоди"] = new_clients_sheet
+            
+            prepared_data = prepare_new_clients_sheet(new_clients_df)
+            
+            if not prepared_data.empty:
+                new_clients_sheet.merge_range(0, 0, 0, len(prepared_data.columns)-1, 
+                                            "Нові угоди", title_fmt)
+                
+                for col_idx, column_name in enumerate(prepared_data.columns):
+                    new_clients_sheet.write(1, col_idx, column_name, header_fmt)
+                
+                for row_idx in range(len(prepared_data)):
+                    for col_idx, column_name in enumerate(prepared_data.columns):
+                        value = prepared_data.iloc[row_idx, col_idx]
+                        
+                        if row_idx == len(prepared_data) - 1:
+                            bold_cell_fmt = wb.add_format({"border":1, "bold": True})
+                            new_clients_sheet.write(row_idx + 2, col_idx, value, bold_cell_fmt)
+                        else:
+                            new_clients_sheet.write(row_idx + 2, col_idx, value, cell_fmt)
+                
+                column_widths = {
+                    "Угода": 20,
+                    "Клієнт": 35,
+                    "Менеджер": 25,
+                    "Прибуток": 15
+                }
+                
+                for i, col in enumerate(prepared_data.columns):
+                    width = column_widths.get(col, 12)
+                    new_clients_sheet.set_column(i, i, width)
 
     return fname
 
@@ -405,7 +625,6 @@ def generate_excel(employee: str, period_ym: str) -> str:
         sanction_sum = 0.0
         correction_sum = 0.0
     else:
-        # У Sanction можуть бути числа/None; у BonusCorrection — рядки з комою
         sanction_sum = round(pd.to_numeric(df_tbl.get("Sanction"), errors="coerce").fillna(0).sum(), 2)
         if "BonusCorrection" in df_tbl.columns:
             correction_sum = round(
@@ -416,6 +635,18 @@ def generate_excel(employee: str, period_ym: str) -> str:
             )
         else:
             correction_sum = 0.0
+
+    # Таблиця невиплачених бонусів
+    raw_not_paid = query_bonuses_table_not_paid(token, employee, period_ym)
+    df_not_paid = to_dataframe(raw_not_paid)
+    
+    # Нові угоди
+    try:
+        raw_new_clients = query_plan_for_sellers_new_clients(token, employee, period_ym)
+        df_new_clients = to_dataframe(raw_new_clients)
+    except Exception as e:
+        print(f"⚠️ Помилка при отриманні даних з PlanForSelersNewClients: {e}")
+        df_new_clients = pd.DataFrame()
 
     # впорядкування (не обов'язково)
     preferred = [
@@ -429,5 +660,6 @@ def generate_excel(employee: str, period_ym: str) -> str:
     df_details = df_details[cols]
 
     temp_dir = tempfile.mkdtemp(prefix="bonuses_")
-    out_file = build_excel(df_details, employee, period_ym, sanction_sum, correction_sum, path_dir=temp_dir)
+    out_file = build_excel(df_details, employee, period_ym, sanction_sum, correction_sum, 
+                          df_not_paid, df_new_clients, path_dir=temp_dir)
     return out_file
