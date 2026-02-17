@@ -166,8 +166,7 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
                 sanction_sum: float, correction_sum: float,
                 not_paid_df: pd.DataFrame, new_clients_df: pd.DataFrame,
                 path_dir: str) -> str:
-    # import xlsxwriter
-    nice = display_name(employee)  # псевдо лише для відображення
+    nice = display_name(employee)
 
     cur_mask  = df["RecordType"].fillna("").str.contains("Поточ", case=False)
     prev_mask = ~cur_mask
@@ -176,12 +175,31 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
     rm = df["ManagerRoleWithSales"].fillna("").str.lower()
 
     sales_mask   = r.str.contains("сейл") | rm.str.contains("sales", regex=False)
-    ops_mgr_mask = (r.str_contains(r"операт|операц") if hasattr(r, "str_contains") else r.str.contains(r"операт|операц")) & (~r.str.contains("процент"))
-    ops_pct_mask = (r.str_contains("процент") if hasattr(r, "str_contains") else r.str.contains("процент")) | rm.str.contains("percent", regex=False)
+    ops_mgr_mask = (r.str.contains(r"операт|операц", na=False)) & (~r.str.contains("процент", na=False))
+    ops_pct_mask = (r.str.contains("процент", na=False)) | rm.str.contains("percent", regex=False, na=False)
 
     def fnum(x):
         try: return float(x)
         except: return 0.0
+
+    # Функція для отримання суми Остаток з таблиці невиплачених бонусів по ролі
+    def get_not_paid_saldo_by_role(role_mask):
+        if not_paid_df.empty:
+            return 0.0
+        
+        # Визначаємо роль для фільтрації в not_paid_df
+        if role_mask is sales_mask:
+            role_filter = not_paid_df["ManagerRole"].fillna("").str.lower().str.contains("сейлс|sales", case=False, na=False)
+        elif role_mask is ops_mgr_mask:
+            role_filter = not_paid_df["ManagerRole"].fillna("").str.lower().str.contains("оперативний|операційний", case=False, na=False) & \
+                         ~not_paid_df["ManagerRole"].fillna("").str.lower().str.contains("процент", case=False, na=False)
+        elif role_mask is ops_pct_mask:
+            role_filter = not_paid_df["ManagerRole"].fillna("").str.lower().str.contains("процент", case=False, na=False)
+        else:
+            role_filter = pd.Series(False, index=not_paid_df.index)
+        
+        filtered = not_paid_df[role_filter]
+        return round(pd.to_numeric(filtered.get("Saldo"), errors="coerce").fillna(0).sum(), 2)
 
     def agg_row(descr, role_mask):
         cur  = df[cur_mask  & role_mask]
@@ -191,7 +209,12 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
         accrual = round(cur["Bonus"].map(fnum).sum(), 2)
         to_cur  = round(cur["ToPay"].map(fnum).sum(), 2)
         to_prev = round(prv["ToPay"].map(fnum).sum(), 2)
-        unpaid  = round(accrual - to_cur, 2)
+        unpaid_cur = round(accrual - to_cur, 2)
+        
+        # Отримуємо Остаток з таблиці невиплачених бонусів
+        not_paid_saldo = get_not_paid_saldo_by_role(role_mask)
+        # Додаємо поточний невиплачений залишок до загального
+        unpaid_all = round(unpaid_cur + not_paid_saldo, 2)
 
         if "Currency" in allr and not allr["Currency"].dropna().empty:
             curr = allr["Currency"].dropna().iloc[0]
@@ -200,16 +223,22 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
         else:
             curr = ""
 
-        return [nice, descr, accrual, to_cur, to_prev, unpaid, curr]
+        return [nice, descr, accrual, to_cur, to_prev, unpaid_cur, unpaid_all, curr]
 
-    # базові 3 рядки
-    summary_rows = [
-        agg_row("Оперативний менеджер", ops_mgr_mask),
-        agg_row("Процент оперативний",  ops_pct_mask),
-        agg_row("Сейлс",                sales_mask),
+    # Створюємо рядки для кожної ролі
+    all_rows = [
+        ("Оперативний менеджер", ops_mgr_mask),
+        ("Процент оперативний", ops_pct_mask),
+        ("Сейлс", sales_mask),
     ]
+    
+    summary_rows = []
+    for descr, mask in all_rows:
+        row_data = agg_row(descr, mask)
+        # Перевіряємо чи всі числові значення дорівнюють 0 (крім перших двох колонок)
+        if not (row_data[2] == 0 and row_data[3] == 0 and row_data[4] == 0 and row_data[5] == 0 and row_data[6] == 0):
+            summary_rows.append(row_data)
 
-    # додаткові рядки — Штраф та Конкурс 10%
     sanction_sum   = round(float(sanction_sum or 0), 2)
     correction_sum = round(float(correction_sum or 0), 2)
 
@@ -218,15 +247,20 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
         currency_val = df["Currency"].dropna().iloc[0]
 
     if abs(sanction_sum) != 0:
-        summary_rows.append([nice, "Штраф",       sanction_sum,   sanction_sum,   0.0, 0.0, currency_val])
+        summary_rows.append([nice, "Штраф",       sanction_sum,   sanction_sum,   0.0, 0.0, 0.0, currency_val])
     if abs(correction_sum) != 0:
-        summary_rows.append([nice, "Конкурс 10%", correction_sum, correction_sum, 0.0, 0.0, currency_val])
+        summary_rows.append([nice, "Конкурс 10%", correction_sum, correction_sum, 0.0, 0.0, 0.0, currency_val])
+
+    # Якщо після фільтрації не залишилося рядків, додаємо хоча б один з нулями
+    if not summary_rows:
+        summary_rows.append([nice, "Немає даних", 0, 0, 0, 0, 0, currency_val])
 
     total_accrual = round(sum(r[2] for r in summary_rows), 2)
     total_cur     = round(sum(r[3] for r in summary_rows), 2)
     total_prev    = round(sum(r[4] for r in summary_rows), 2)
-    total_unpaid  = round(total_accrual - total_cur, 2)
-    currency_val  = summary_rows[0][6] if summary_rows and summary_rows[0][6] else currency_val
+    total_unpaid_cur = round(sum(r[5] for r in summary_rows), 2)
+    total_unpaid_all = round(sum(r[6] for r in summary_rows), 2)
+    currency_val  = summary_rows[0][7] if summary_rows and summary_rows[0][7] else currency_val
 
     def make_section(dfs: pd.DataFrame, title: str, prev: bool):
         base_cols = [
@@ -238,7 +272,18 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
             ("Bonus","Бонус"), ("ToPay","До виплати"), ("NotPayYet","Не виплачено"),
             ("PayDate","Дата оплати"),
         ]
-        out = pd.DataFrame({dst: dfs.get(src) for src, dst in base_cols})
+        
+        # Додаткові колонки для таблиць сейлс менеджера
+        additional_cols = []
+        if "сейлс" in title.lower():
+            if "TypePercent" in dfs.columns:
+                additional_cols.append(("TypePercent", "Тип відсотку"))
+            if "SelerFomDeal" in dfs.columns:
+                additional_cols.append(("SelerFomDeal", "Продавець"))
+        
+        all_cols = base_cols + additional_cols
+        
+        out = pd.DataFrame({dst: dfs.get(src) for src, dst in all_cols if src in dfs.columns or pd.NA})
 
         if "Менеджер" in out.columns:
             out["Менеджер"] = out["Менеджер"].apply(
@@ -280,13 +325,21 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
             "Курсова різниця","Новий бонус","Було не виплачено","До виплати","Остаток",
             "Тип процента","Продавець"
         ]
+        
         src_map = {
             "Менеджер":"Employee","Клієнт":"Client","Тип угоди":"DealType","Угода":"DealNumber",
             "Дата завершення":"DealCompletionDate","Роль менеджера":"ManagerRole","Процент":"PercentValue",
             "Прибуток":"Profit","Бонус база":"BonusBase","Процент оплати":"PercentPaid","Період":"DealCompletionDate",
             "Прибуток новий":"ProfitBecome","Було не виплачено":"NotPayYet","До виплати":"ToPay",
-            "Остаток":"Saldo","Тип процента":"TypePercent","Продавець":"SelerFomDeal","Новий бонус":"NewBonus",
+            "Остаток":"Saldo","Новий бонус":"NewBonus",
         }
+        
+        # Додаємо колонки, якщо вони є
+        if "TypePercent" in dfs.columns:
+            src_map["Тип процента"] = "TypePercent"
+        if "SelerFomDeal" in dfs.columns:
+            src_map["Продавець"] = "SelerFomDeal"
+        
         out = pd.DataFrame({c: (dfs[src_map[c]] if src_map.get(c) in dfs.columns else pd.NA) for c in cols_order})
 
         if "Менеджер" in out.columns:
@@ -424,7 +477,7 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
         else:
             result_df["Клієнт"] = ""
         
-        # Додаємо стовпець "Менеджер" з display_name
+        # Додаємо стовпець "Менеджер"
         manager_col = None
         for col in dfs.columns:
             if 'manager' in col.lower() or 'менеджер' in col.lower():
@@ -522,10 +575,12 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
             "Нараховано\n(поточний місяць)",
             "До виплати\n(поточний період)",
             "До виплати\n(минулий період)",
-            "Невиплачений\nзалишок",
+            "Невиплачений залишок\n(поточний період)",
+            "Невиплачений залишок\n(всі періоди)",
             "Валюта",
         ]
-        ws.write_row(1, 0, headers, header_fmt); ws.set_row(1, 40)
+        ws.write_row(1, 0, headers, header_fmt)
+        ws.set_row(1, 70)
 
         row = 2
         for rdata in summary_rows:
@@ -536,16 +591,24 @@ def build_excel(df: pd.DataFrame, employee: str, period_ym: str,
         xwrite(ws, row, 2, total_accrual, bold_fmt)
         xwrite(ws, row, 3, total_cur, bold_fmt)
         xwrite(ws, row, 4, total_prev, bold_fmt)
-        xwrite(ws, row, 5, total_unpaid, bold_fmt)
-        xwrite(ws, row, 6, currency_val, bold_fmt)
+        xwrite(ws, row, 5, total_unpaid_cur, bold_fmt)
+        xwrite(ws, row, 6, total_unpaid_all, bold_fmt)
+        xwrite(ws, row, 7, currency_val, bold_fmt)
         row += 2
 
-        ws.merge_range(row, 2, row, 4, "Всього до виплати", bold_fmt)
-        xwrite(ws, row, 5, round(total_cur + total_prev, 2), bold_fmt)
-        xwrite(ws, row, 6, currency_val, bold_fmt)
+        ws.merge_range(row, 2, row, 5, "Всього до виплати", bold_fmt)
+        xwrite(ws, row, 6, round(total_cur + total_prev, 2), bold_fmt)
+        xwrite(ws, row, 7, currency_val, bold_fmt)
         row += 2
 
-        ws.set_column(0, 1, 18); ws.set_column(2, 4, 22); ws.set_column(5, 6, 14)
+        ws.set_column(0, 0, 16)
+        ws.set_column(1, 1, 14)
+        ws.set_column(2, 2, 16)
+        ws.set_column(3, 3, 16)
+        ws.set_column(4, 4, 16)
+        ws.set_column(5, 5, 20)
+        ws.set_column(6, 6, 20)
+        ws.set_column(7, 7, 8)
 
         sec_title_fmt  = wb.add_format({"bold": True, "font_size": 12})
         sec_header_fmt = wb.add_format({"bold": True, "bg_color": "#F2F2F2", "border":1,
@@ -648,13 +711,13 @@ def generate_excel(employee: str, period_ym: str) -> str:
         print(f"⚠️ Помилка при отриманні даних з PlanForSelersNewClients: {e}")
         df_new_clients = pd.DataFrame()
 
-    # впорядкування (не обов'язково)
+    # впорядкування
     preferred = [
         "Employee","PeriodYM","Period","DocNumber","DealNumber","DealCompletionDate",
         "ManagerRole","ManagerRoleWithSales","EffectiveManager","Deprtment","DepartmentFromEmp",
         "DealType","Client","Currency","Income","Profit","ProfitBecome","ProfitDiference",
         "ExchangeRateDifference","NewBonus","PercentValue","Bonus","PercentPaid",
-        "ToPay","NotPayYet","PayDate","RecordType"
+        "ToPay","NotPayYet","PayDate","RecordType","TypePercent","SelerFomDeal"
     ]
     cols = [c for c in preferred if c in df_details.columns] + [c for c in df_details.columns if c not in preferred]
     df_details = df_details[cols]
