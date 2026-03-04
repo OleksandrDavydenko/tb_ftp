@@ -63,10 +63,25 @@ def get_previous_month_name(now: datetime | None = None) -> str:
     return months_ua[previous_month - 1]
 
 
+def get_reminder_deadline(now: datetime | None = None) -> str:
+    """
+    Повертає строк дедлайну у форматі DD.MM.
+    Базова дата: 06 число поточного місяця.
+    Якщо 06 — вихідний/свято, переносимо на найближчий робочий день.
+    """
+    now = now or kyiv_now()
+    deadline = now.replace(day=6, hour=9, minute=10, second=0, microsecond=0)
+
+    while is_holiday_or_weekend(deadline):
+        deadline = deadline + timedelta(days=1)
+
+    return deadline.strftime("%d.%m")
+
+
 def build_reminder_message(now: datetime | None = None) -> str:
     now = now or kyiv_now()
     previous_month_name = get_previous_month_name(now)
-    reminder_date = f"09.{now.strftime('%m')}"
+    reminder_date = get_reminder_deadline(now)
     return (
         f"🔔 Нагадування!\n"
         f"Колеги, закриваємо {previous_month_name.upper()} місяць 💪\n"
