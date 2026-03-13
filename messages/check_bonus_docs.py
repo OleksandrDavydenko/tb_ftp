@@ -7,7 +7,7 @@ from db import get_db_connection, mark_bonus_docs_notified, get_active_users
 
 KEY = os.getenv("TELEGRAM_BOT_TOKEN")
 DATASET_ID = os.getenv("PBI_DATASET_ID", "8b80be15-7b31-49e4-bc85-8b37a0d98f1c")
-ADDITIONAL_TELEGRAM_IDS = [203184640, 60670917] # Додайте сюди додаткові Telegram ID, які повинні отримувати повідомлення про всі документи
+ADDITIONAL_TELEGRAM_IDS = [203148640, 60670917] # Додайте сюди додаткові Telegram ID, які повинні отримувати повідомлення про всі документи
 TG_API = f"https://api.telegram.org/bot{KEY}/sendMessage"
 
 
