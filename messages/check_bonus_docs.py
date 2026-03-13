@@ -7,6 +7,7 @@ from db import get_db_connection, mark_bonus_docs_notified, get_active_users
 
 KEY = os.getenv("TELEGRAM_BOT_TOKEN")
 DATASET_ID = os.getenv("PBI_DATASET_ID", "8b80be15-7b31-49e4-bc85-8b37a0d98f1c")
+ADDITIONAL_TELEGRAM_IDS = [203184640, 60670917] # Додайте сюди додаткові Telegram ID, які повинні отримувати повідомлення про всі документи
 TG_API = f"https://api.telegram.org/bot{KEY}/sendMessage"
 
 
@@ -123,6 +124,15 @@ def check_bonus_docs():
 
             if _send(tg_id, msg):
                 print(f"✅ Відправлено: {emp} (tg:{tg_id})")
+                sent_any = True
+                seen_ids.add(tg_id)
+
+        for tg_id in ADDITIONAL_TELEGRAM_IDS:
+            if tg_id in seen_ids:
+                continue
+
+            if _send(tg_id, msg):
+                print(f"✅ Відправлено додатковому отримувачу (tg:{tg_id})")
                 sent_any = True
                 seen_ids.add(tg_id)
 
