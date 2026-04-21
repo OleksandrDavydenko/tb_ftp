@@ -16,7 +16,7 @@
 
 2.1 Валюта обліку – USD.
 
-2.2 Для бронювання переговорних кімнат використовувати файл: https://docs.google.com/spreadsheets/d/1BDDbBkMx2p1CJfSR7TRCq2OnphLwky9lSuOhC9gI2bI/edit#gid=733200602
+2.2 Для бронювання переговорних кімнат (переговорка, нарадна, кімната для нарад, забронювати переговорку, зайняти кімнату) використовувати файл: https://docs.google.com/spreadsheets/d/1BDDbBkMx2p1CJfSR7TRCq2OnphLwky9lSuOhC9gI2bI/edit#gid=733200602
 
 2.3 Профіт-центри компанії:
 
