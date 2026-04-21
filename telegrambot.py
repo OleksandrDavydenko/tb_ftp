@@ -22,6 +22,7 @@ from messages.reminder import daily_first_workday_check
 from messages.check_devaluation import check_new_devaluation_records
 from messages.sync_devaluation import sync_devaluation_data
 from messages.birthday_greetings import send_birthday_greetings 
+from messages.work_anniversary_greetings import send_work_anniversary_greetings
  
 
 
@@ -618,6 +619,7 @@ def main():
 
 
     scheduler.add_job(send_birthday_greetings, 'cron', hour=8, minute=35, timezone='Europe/Kiev')
+    scheduler.add_job(send_work_anniversary_greetings, 'cron', hour=10, minute=53, timezone='Europe/Kiev')
 
     # Синхронізація бонусних документів і перевірка нових документів
     scheduler.add_job(sync_bonus_docs, 'interval', minutes=12)
