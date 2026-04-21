@@ -7,7 +7,7 @@ from openai import AsyncOpenAI
 from telegram import Bot
 
 from auth import get_power_bi_token
-from db import get_active_users
+from db import get_active_users, log_birthday_greeting
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -91,6 +91,7 @@ async def generate_ai_work_anniversary_greeting(name: str, years: int | None) ->
         "звертайся на 'ти', додай мотивації, подяки та теплих емоцій. "
         "Додай 1-2 емодзі."
     )
+    query = f"Привітання {name} з річницею роботи. "
 
     try:
         response = await gpt.chat.completions.create(
@@ -99,6 +100,7 @@ async def generate_ai_work_anniversary_greeting(name: str, years: int | None) ->
             temperature=0.85,
         )
         message = response.choices[0].message.content.strip()
+        log_birthday_greeting(name, query, message)
         return f"🤖 {message}"
     except Exception as e:
         logging.error(f"Помилка генерації привітання з річницею для {name}: {e}")
