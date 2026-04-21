@@ -32,6 +32,24 @@ OUT_OF_SCOPE_RESPONSE = (
     "Скористайтесь /menu або /info."
 )
 
+IDENTITY_KEYWORDS = [
+    "хто ти", "що ти", "розкажи про себе", "як тебе звати", "що ти вмієш",
+    "навіщо ти", "ти бот", "ти людина", "твоя назва", "як тебе кликати",
+    "що ти за бот", "чим ти займаєшся",
+]
+
+IDENTITY_RESPONSE = (
+    "Привіт! 👋 Я — корпоративний <b>AI-помічник</b> цього Telegram-бота.\n\n"
+    "Знаюся на:\n"
+    "• 💼 зарплатах, бонусах, розрахункових листах\n"
+    "• 📉 дебіторській заборгованості AR\n"
+    "• 💱 курсах валют і девальвації\n"
+    "• 📊 аналітиці продажів (Power BI)\n"
+    "• 🧾 кадровому обліку — стаж, відпустки, відпрацьовані дні\n"
+    "• 🏢 офісних питаннях — переговорки, канцелярія, IT\n\n"
+    "Просто постав питання — відповім по суті. 🤝"
+)
+
 IN_SCOPE_KEYWORDS = [
     # зарплата / виплати
     "зарп", "зп", "виплат", "аванс", "бонус", "премі", "оклад", "kpi", "розрахунков",
@@ -64,6 +82,11 @@ def is_known_command(text):
     return text in KNOWN_COMMANDS
 
 
+def is_identity_query(text):
+    lower_text = text.lower()
+    return any(keyword in lower_text for keyword in IDENTITY_KEYWORDS)
+
+
 def is_in_scope_query(text):
     lower_text = text.lower()
     return any(keyword in lower_text for keyword in IN_SCOPE_KEYWORDS)
@@ -83,6 +106,9 @@ def get_gpt_response(user_input, user_id, employee_name, message_id):
     normalized_input = (user_input or "").strip()
     if not normalized_input:
         return "Будь ласка, сформулюйте запит."
+
+    if is_identity_query(normalized_input):
+        return IDENTITY_RESPONSE
 
     if not is_in_scope_query(normalized_input):
         return OUT_OF_SCOPE_RESPONSE
@@ -104,9 +130,7 @@ def get_gpt_response(user_input, user_id, employee_name, message_id):
 ✅ Функції цього Telegram-бота
 
 ══ ЗАБОРОНЕНО ══
-❌ Відповідати на питання поза дозволеними темами
 ❌ Вигадувати факти — лише те, що є в базі знань
-❌ Small talk, жарти, загальні розмови не по роботі
 ❌ Markdown-форматування (*, #, **) — виключно HTML
 
 ══ ЯКЩО ЗАПИТ ПОЗА ТЕМАМИ ══
