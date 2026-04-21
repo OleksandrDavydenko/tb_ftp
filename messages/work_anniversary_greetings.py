@@ -4,6 +4,7 @@ from datetime import datetime
 
 import requests
 from openai import AsyncOpenAI
+from pytz import timezone
 from telegram import Bot
 
 from auth import get_power_bi_token
@@ -27,7 +28,12 @@ def get_today_work_anniversaries():
     if not token:
         return []
 
-    today = datetime.today().strftime("%m-%d")
+    kyiv_now = datetime.now(timezone('Europe/Kiev'))
+    today_month = kyiv_now.month
+    today_day = kyiv_now.day
+    today_year = kyiv_now.year
+    logging.info(f"[Anniversary] Перевірка дати (Kyiv): {kyiv_now.strftime('%Y-%m-%d')}")
+
     dataset_id = '8b80be15-7b31-49e4-bc85-8b37a0d98f1c'
     url = f'https://api.powerbi.com/v1.0/myorg/datasets/{dataset_id}/executeQueries'
 
@@ -42,12 +48,13 @@ def get_today_work_anniversaries():
             FILTER(
                 Employees,
                 NOT ISBLANK(Employees[hireDate]) &&
-                FORMAT(Employees[hireDate], \"MM-dd\") = \"{today}\" &&
-                YEAR(Employees[hireDate]) < YEAR(TODAY())
+                MONTH(Employees[hireDate]) = {today_month} &&
+                DAY(Employees[hireDate]) = {today_day} &&
+                YEAR(Employees[hireDate]) < {today_year}
             ),
             \"Employee\", Employees[Employee],
             \"hireDate\", Employees[hireDate],
-            \"YearsInCompany\", DATEDIFF(Employees[hireDate], TODAY(), YEAR)
+            \"YearsInCompany\", DATEDIFF(Employees[hireDate], DATE({today_year}, {today_month}, {today_day}), YEAR)
         )
     """
 
@@ -66,7 +73,14 @@ def get_today_work_anniversaries():
             logging.error(f"Помилка при запиті Power BI: {response.status_code}, {response.text}")
             return []
 
-        rows = response.json().get('results', [{}])[0].get('tables', [{}])[0].get('rows', [])
+        payload = response.json()
+        result = payload.get('results', [{}])[0]
+        if result.get('error'):
+            logging.error(f"Помилка DAX запиту річниць: {result.get('error')}")
+            return []
+
+        rows = result.get('tables', [{}])[0].get('rows', [])
+        logging.info(f"[Anniversary] Знайдено записів по річницях: {len(rows)}")
         return [
             {
                 "Employee": row.get("[Employee]"),
@@ -119,10 +133,14 @@ async def send_work_anniversary_greetings():
         return
 
     users = get_active_users()
-    users_dict = {u["employee_name"]: u["telegram_id"] for u in users}
+    users_dict = {
+        (u.get("employee_name") or "").strip(): u["telegram_id"]
+        for u in users
+        if u.get("employee_name") and u.get("telegram_id")
+    }
 
     for person in anniversary_people:
-        name = person.get("Employee")
+        name = (person.get("Employee") or "").strip()
         years = person.get("YearsInCompany")
         telegram_id = users_dict.get(name)
 

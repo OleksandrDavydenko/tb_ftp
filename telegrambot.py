@@ -619,7 +619,7 @@ def main():
 
 
     scheduler.add_job(send_birthday_greetings, 'cron', hour=8, minute=35, timezone='Europe/Kiev')
-    scheduler.add_job(send_work_anniversary_greetings, 'cron', hour=10, minute=53, timezone='Europe/Kiev')
+    scheduler.add_job(send_work_anniversary_greetings, 'cron', hour=11, minute=25, timezone='Europe/Kiev')
 
     # Синхронізація бонусних документів і перевірка нових документів
     scheduler.add_job(sync_bonus_docs, 'interval', minutes=12)
