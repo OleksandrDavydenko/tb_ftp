@@ -9,6 +9,7 @@ from telegram import Bot
 
 from auth import get_power_bi_token
 from db import get_active_users, log_birthday_greeting
+from utils.name_aliases import display_name
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -95,18 +96,19 @@ def get_today_work_anniversaries():
         return []
 
 
-async def generate_ai_work_anniversary_greeting(name: str, years: int | None) -> str:
+async def generate_ai_work_anniversary_greeting(real_name: str, years: int | None) -> str:
+    shown_name = display_name(real_name)
     years_text = f"{years} рік" if years == 1 else f"{years} роки" if years and years < 5 else f"{years} років" if years else "ще один важливий рік"
 
     prompt = (
-        f"Привітай співробітника на ім'я {name} з річницею роботи в компанії ТОВ 'ФТП'. "
+        f"Привітай співробітника на ім'я {shown_name} з річницею роботи в компанії ТОВ 'ФТП'. "
         f"Сьогодні виповнюється {years_text} роботи в компанії. "
         "Напиши коротке щире привітання українською мовою (2-4 речення), "
         "звертайся на 'ти', додай мотивації, подяки та теплих емоцій. "
         "Вкажи кількість років у компанії, якщо ця інформація є. "
         "Додай 1-2 емодзі."
     )
-    query = f"Привітання {name} з річницею роботи. "
+    query = f"Привітання {real_name} з річницею роботи. "
 
     try:
         response = await gpt.chat.completions.create(
@@ -115,13 +117,13 @@ async def generate_ai_work_anniversary_greeting(name: str, years: int | None) ->
             temperature=0.85,
         )
         message = response.choices[0].message.content.strip()
-        log_birthday_greeting(name, query, message)
+        log_birthday_greeting(real_name, query, message)
         return f"🤖 {message}"
     except Exception as e:
-        logging.error(f"Помилка генерації привітання з річницею для {name}: {e}")
+        logging.error(f"Помилка генерації привітання з річницею для {real_name}: {e}")
         years_fallback = f"{years} р." if years else "черговою річницею"
         return (
-            f"🤖 🎉 {name}, вітаю з {years_fallback} у компанії ФТП! "
+            f"🤖 🎉 {shown_name}, вітаю з {years_fallback} у компанії ФТП! "
             "Дякую за твою роботу, відповідальність і внесок у спільний результат!"
         )
 
