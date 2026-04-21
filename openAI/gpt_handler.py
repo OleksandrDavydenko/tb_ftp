@@ -33,7 +33,7 @@ OUT_OF_SCOPE_RESPONSE = (
 )
 
 IN_SCOPE_KEYWORDS = [
-    "зарп", "зп", "виплат", "бонус", "премі", "оклад", "kpi",
+    "зарп", "зп", "виплат", "аванс", "бонус", "премі", "оклад", "kpi", "розрахунков", "лист",
     "дебітор", "заборг", "кредитор", "валют", "курс", "девальвац",
     "фінанс", "бухгалтер", "звіт", "прибут", "дохід", "собіварт",
     "power bi", "powerbi", "профіт", "облік", "амортизац",
@@ -61,6 +61,12 @@ def is_known_command(text):
 def is_in_scope_query(text):
     lower_text = text.lower()
     return any(keyword in lower_text for keyword in IN_SCOPE_KEYWORDS)
+
+
+def should_append_command_hint(gpt_response, command):
+    if not command:
+        return False
+    return command not in gpt_response
 
 # Генерація відповіді від GPT-3.5 Turbo
 def get_gpt_response(user_input, user_id, employee_name, message_id):
@@ -123,7 +129,7 @@ def get_gpt_response(user_input, user_id, employee_name, message_id):
     ]
 
 
-    # Додаємо історію діалогу (останні 3 повідомлення)
+    # Додаємо історію діалогу
     for msg in chat_history:
         messages.append(msg)
 
@@ -134,7 +140,9 @@ def get_gpt_response(user_input, user_id, employee_name, message_id):
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=messages,
-            temperature=0.3
+            temperature=0.2,
+            top_p=0.4,
+            max_tokens=450
         )
 
         gpt_response = response.choices[0].message.content
@@ -143,11 +151,11 @@ def get_gpt_response(user_input, user_id, employee_name, message_id):
         logging.info(f"🔹 Використано токенів: {response.usage.total_tokens}")
 
         # Збереження запиту та відповіді у БД з message_id
-        save_gpt_query(user_id, employee_name, user_input, gpt_response, message_id)
+        save_gpt_query(user_id, employee_name, normalized_input, gpt_response, message_id)
 
         # Перевіряємо, чи варто рекомендувати команду бота
         recommended_command = recommend_bot_function(normalized_input)
-        if recommended_command:
+        if should_append_command_hint(gpt_response, recommended_command):
             gpt_response += f'\n\nℹ️ <b>Для цього у боті є вбудована функція!</b>\nВикористайте команду: {recommended_command}'
 
         return gpt_response
