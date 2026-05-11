@@ -618,7 +618,7 @@ def main():
 
 
 
-    scheduler.add_job(send_birthday_greetings, 'cron', hour=12, minute=23, timezone='Europe/Kiev')
+    scheduler.add_job(send_birthday_greetings, 'cron', hour=8, minute=35, timezone='Europe/Kiev')
     scheduler.add_job(send_work_anniversary_greetings, 'cron', hour=8, minute=50, timezone='Europe/Kiev')
 
     # Синхронізація бонусних документів і перевірка нових документів
