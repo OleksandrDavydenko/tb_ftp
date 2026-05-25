@@ -9,7 +9,7 @@ bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def send_NYmessage_to_users():
+def send_message_to_users():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(async_send_message_to_users())
