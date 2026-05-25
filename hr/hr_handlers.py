@@ -10,7 +10,8 @@ async def show_hr_menu(update: Update, context: CallbackContext) -> None:
     keyboard = [
         [KeyboardButton("🗓 Залишки відпусток")],
         [KeyboardButton("🕓 Відпрацьовані дні")],
-        [KeyboardButton("👔 Інформація про стаж")],  
+        [KeyboardButton("👔 Інформація про стаж")],
+        [KeyboardButton("📊 Звіт відпусток та лікарняних")],
         [KeyboardButton("Головне меню")]
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
