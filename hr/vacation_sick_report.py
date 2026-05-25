@@ -53,7 +53,6 @@ def _fetch_yearly_data(employee_name: str, year: int) -> dict[int, dict]:
             "LeaveWithoutPay",     workdays_by_employee[LeaveWithoutPay],
             "VacationOnWeekends",  workdays_by_employee[VacationOnWeekends]
         )
-        ORDER BY workdays_by_employee[Period]
     """
 
     rows = _execute_dax(headers, dax)
