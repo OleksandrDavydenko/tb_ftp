@@ -39,7 +39,8 @@ from messages.work_anniversary_greetings import send_work_anniversary_greetings
 #from messages.oneTimeMessages.update13 import send_message_to_users
 #from messages.oneTimeMessages.update14 import send_message_to_users
 #from messages.oneTimeMessages.update15 import send_NYmessage_to_users
-from messages.oneTimeMessages.update16 import send_message_to_users
+#from messages.oneTimeMessages.update16 import send_message_to_users
+from messages.oneTimeMessages.update17 import send_message_to_users
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart, handle_overdue_debt
