@@ -109,7 +109,7 @@ def split_message(text, max_length=4096):
 async def send_large_message(update, context, message):
      parts = split_message(message)
      for part in parts:
-         await update.message.reply_text(part, parse_mode="Markdown")
+         await update.message.reply_text(part)
 
 
 
@@ -161,7 +161,7 @@ async def show_debt_details(update: Update, context: CallbackContext) -> None:
 
     nice_name = display_name(employee_name)
     # ── Формування повідомлення у стилі «Компактний список»
-    lines = [f"📋 *Дебіторка для {nice_name}:*", ""]
+    lines = [f"📋 Дебіторка для {nice_name}:", ""]
 
     for client, deals in grouped.items():
         # попередньо порахуємо суми по угодах
