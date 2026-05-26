@@ -240,9 +240,9 @@ def format_smart_monthly_card(current: dict, previous, ytd_months: dict,
     n_months   = len(ytd_months)
     avg_margin_ytd = (ytd_gp / ytd_income * 100) if ytd_income else 0
 
-    # Ranking by income within the year
+    # Ranking by gross profit within the year
     month_num = (MONTHS_UA.index(month) + 1) if month in MONTHS_UA else None
-    ranked    = sorted(ytd_months.keys(), key=lambda m: ytd_months[m]["income"], reverse=True)
+    ranked    = sorted(ytd_months.keys(), key=lambda m: ytd_months[m]["gross_profit"], reverse=True)
     rank      = (ranked.index(month_num) + 1) if (month_num in ranked) else None
 
     lines = [f"📊 {month} {year} · {nice_name}", ""]
@@ -285,12 +285,12 @@ def format_smart_monthly_card(current: dict, previous, ytd_months: dict,
     if n_months >= 2 and rank is not None:
         lines.append("")
         if rank == 1:
-            lines.append(f"✨ {month} — найкращий місяць {year} р. за доходом!")
+            lines.append(f"✨ {month} — найкращий місяць {year} р. за валовим прибутком!")
         elif rank == 2:
-            lines.append(f"✨ {month} — 2-й за доходом серед місяців {year} р.")
+            lines.append(f"✨ {month} — 2-й за валовим прибутком серед місяців {year} р.")
         elif rank == 3:
-            lines.append(f"✨ {month} — 3-й за доходом серед місяців {year} р.")
+            lines.append(f"✨ {month} — 3-й за валовим прибутком серед місяців {year} р.")
         elif rank == n_months:
-            lines.append(f"📉 {month} — найслабший місяць {year} р. за доходом")
+            lines.append(f"📉 {month} — найслабший місяць {year} р. за валовим прибутком")
 
     return "\n".join(lines)

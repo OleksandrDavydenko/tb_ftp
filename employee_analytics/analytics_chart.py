@@ -207,16 +207,16 @@ async def show_yearly_dashboard(update: Update, context: CallbackContext, employ
         loc="upper left", fontsize=9, framealpha=0.7
     )
 
-    # ── Insights text ─────────────────────────────────────────────────────────
-    if len(incomes) > 1:
-        best_i  = incomes.index(max(incomes))
-        worst_i = incomes.index(min(incomes))
-        avg_inc = total_income / len(incomes)
-        best_pct = max(incomes) / total_income * 100 if total_income else 0
+    # ── Insights text (за валовим прибутком) ──────────────────────────────────
+    if len(gps) > 1 and total_gp > 0:
+        best_i  = gps.index(max(gps))
+        worst_i = gps.index(min(gps))
+        avg_gp  = total_gp / len(gps)
+        best_pct = max(gps) / total_gp * 100
         insights = (
-            f"Топ: {MONTHS_UA[all_months[best_i]-1]} — {fmt_usd(max(incomes))} ({best_pct:.0f}% за рік)   "
-            f"Слабкий: {MONTHS_UA[all_months[worst_i]-1]} — {fmt_usd(min(incomes))}   "
-            f"Середній: {fmt_usd(avg_inc)}"
+            f"Топ: {MONTHS_UA[all_months[best_i]-1]} — {fmt_usd(max(gps))} прибутку ({best_pct:.0f}% за рік)   "
+            f"Слабкий: {MONTHS_UA[all_months[worst_i]-1]} — {fmt_usd(min(gps))}   "
+            f"Середній: {fmt_usd(avg_gp)}"
         )
         fig.text(0.5, 0.005, insights, ha="center", fontsize=9, color="#495057")
 
