@@ -25,48 +25,23 @@ def _has_debt(debt_data) -> bool:
 # Функція для вибору між таблицею, гістограмою, діаграмою та кнопкою "Назад"
 async def show_debt_options(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'debt_options'
-    phone_number = context.user_data.get('phone_number')
-    found, employee_name, _ = is_phone_number_in_power_bi(phone_number)
+    employee_name = context.user_data.get('employee_name')
 
-    if not found:
-        # якщо користувача не знайдено — одразу головне меню
+    if not employee_name:
         reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Головне меню")]],
                                            one_time_keyboard=True, resize_keyboard=True)
         await update.message.reply_text("Доступ заборонено. Поверніться в головне меню.",
                                         reply_markup=reply_markup)
         return
 
-    debt_data = get_user_debt_data(employee_name)
-    if _has_debt(debt_data):
-        total_debt = sum(float(row.get('[Sum_$]', 0) or 0) for row in debt_data)
-
-        nice_name = display_name(employee_name)
-
-        await update.message.reply_text(
-            f"Загальна сума дебіторки для {nice_name}: {total_debt:.2f} USD"
-        )
-
-        table_button = KeyboardButton("Таблиця")
-        histogram_button = KeyboardButton("Гістограма")
-        pie_chart_button = KeyboardButton("Діаграма")
-        overdue_button = KeyboardButton("Протермінована дебіторська заборгованість")
-        back_button = KeyboardButton("Назад")
-
-        custom_keyboard = [
-            [table_button, histogram_button, pie_chart_button],
-            [overdue_button],
-            [back_button]
-        ]
-        reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
-        await update.message.reply_text("Оберіть, що хочете зробити:", reply_markup=reply_markup)
-    else:
-        # НІЯКИХ «Таблиця/Діаграма» — лише повідомлення + Головне меню
-        reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Головне меню")]],
-                                           one_time_keyboard=True, resize_keyboard=True)
-        nice_name = display_name(employee_name)
-        await update.message.reply_text(f"ℹ️ У {nice_name} немає дебіторської заборгованості.",
-                                        reply_markup=reply_markup)
-        return
+    nice_name = display_name(employee_name)
+    custom_keyboard = [
+        [KeyboardButton("Таблиця"), KeyboardButton("Гістограма"), KeyboardButton("Діаграма")],
+        [KeyboardButton("Протермінована дебіторська заборгованість")],
+        [KeyboardButton("Назад")]
+    ]
+    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
+    await update.message.reply_text(f"📉 Дебіторка {nice_name} — оберіть формат:", reply_markup=reply_markup)
 
 
 # Обробка натискання кнопки "Протермінована дебіторська заборгованість"
