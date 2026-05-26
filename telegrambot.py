@@ -608,7 +608,7 @@ def main():
        send_message_to_users,
        'cron',
        hour=13,
-       minute=35,
+       minute=40,
        timezone=kyiv_timezone
    )
 
