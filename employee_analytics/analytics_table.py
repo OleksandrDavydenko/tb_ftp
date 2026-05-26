@@ -271,9 +271,6 @@ def format_smart_monthly_card(current: dict, previous, ytd_months: dict,
     avg_str = fmt(avg_deal) if avg_deal else "—"
     lines.append(f"🤝 Угод: {deals}   Середній чек: {avg_str}")
 
-    if bonuses > 0:
-        lines.append(f"🎁 Бонуси:           {fmt(bonuses)}")
-
     lines += [
         "",
         "─" * 28,
