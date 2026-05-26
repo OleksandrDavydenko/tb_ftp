@@ -57,14 +57,13 @@ EVALUATE ROW(
 def get_menu_access(context, employee_name: str) -> dict:
     cached = context.user_data.get(_CACHE_KEY)
     if cached and cached.get('employee') == employee_name:
-        return cached
+        analytics = cached['analytics']
+    else:
+        logging.info(f"menu_access: перевірка аналітики для {employee_name}")
+        analytics = check_analytics(employee_name)
+        context.user_data[_CACHE_KEY] = {'employee': employee_name, 'analytics': analytics}
 
-    logging.info(f"menu_access: перевірка доступу для {employee_name}")
-    access = {
-        'employee':  employee_name,
-        'analytics': check_analytics(employee_name),
-        'debt':      check_debt(employee_name),
-    }
-    context.user_data[_CACHE_KEY] = access
-    logging.info(f"menu_access: analytics={access['analytics']}, debt={access['debt']}")
-    return access
+    # Дебіторка — без кешу, перевіряємо щоразу (дані часто змінюються)
+    debt = check_debt(employee_name)
+    logging.info(f"menu_access: analytics={analytics} (cached={bool(cached)}), debt={debt}")
+    return {'employee': employee_name, 'analytics': analytics, 'debt': debt}
