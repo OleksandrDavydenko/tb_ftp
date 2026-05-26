@@ -74,6 +74,7 @@ from messages.sync_bonus_docs import sync_bonus_docs
 from messages.check_bonus_docs import check_bonus_docs
 
 from utils.name_aliases import display_name
+from utils.menu_access import get_menu_access
 
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "openAI"))
@@ -204,20 +205,17 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
 
 async def show_main_menu(update: Update, context: CallbackContext) -> None:
     """Функція показує головне меню та працює з будь-якого місця бота."""
-    
-    # Логування для діагностики
     logging.info("🔄 Виклик головного меню")
 
-    # Перевіряємо, чи користувач зареєстрований
     if not context.user_data.get('registered', False):
         logging.warning("❌ Користувач не зареєстрований. Запит номера телефону.")
         await prompt_for_phone_number(update, context)
         return
 
-    # Створюємо клавіатуру головного меню
-    reply_markup = get_main_menu_keyboard()
+    employee_name = context.user_data.get('employee_name', '')
+    access = get_menu_access(context, employee_name) if employee_name else {}
+    reply_markup = get_main_menu_keyboard(access)
 
-    # Визначаємо, чи це повідомлення або inline-кнопка
     if update.message:
         await update.message.reply_text("🏠 Головне меню:", reply_markup=reply_markup)
     elif update.callback_query:
@@ -225,15 +223,25 @@ async def show_main_menu(update: Update, context: CallbackContext) -> None:
         await update.callback_query.message.edit_text("🏠 Головне меню:", reply_markup=reply_markup)
 
 
-# Окрема функція для генерації клавіатури головного меню
-def get_main_menu_keyboard():
-    """Генерує клавіатуру головного меню"""
+def get_main_menu_keyboard(access: dict = None):
+    """Генерує клавіатуру головного меню з урахуванням доступу до розділів."""
+    if access is None:
+        access = {}
+    has_analytics = access.get('analytics', True)
+    has_debt      = access.get('debt',      True)
+
+    row1 = []
+    if has_analytics:
+        row1.append(KeyboardButton(text="📊 Аналітика"))
+    row1.append(KeyboardButton(text="💼 Зарплата"))
+
+    row2 = []
+    if has_debt:
+        row2.append(KeyboardButton(text="📉 Дебіторка (AR)"))
+    row2.append(KeyboardButton(text="🧾 Кадровий облік"))
+
     return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="📊 Аналітика"), KeyboardButton(text="💼 Зарплата")],
-            [KeyboardButton(text="📉 Дебіторка (AR)"), KeyboardButton(text="🧾 Кадровий облік")],
-            [KeyboardButton(text="ℹ️ Інформація")]
-        ],
+        keyboard=[row1, row2, [KeyboardButton(text="ℹ️ Інформація")]],
         resize_keyboard=True,
         one_time_keyboard=False
     )
