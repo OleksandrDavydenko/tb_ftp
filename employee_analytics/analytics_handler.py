@@ -77,6 +77,8 @@ async def show_monthly_analytics(update: Update, context: CallbackContext) -> No
     kb = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
     reply_markup = ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)
 
+    context.user_data['menu'] = 'analytics_monthly_card'
+
     if not income_data:
         await update.message.reply_text("Немає даних для вибраного періоду.", reply_markup=reply_markup)
         return

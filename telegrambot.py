@@ -447,6 +447,8 @@ async def handle_back_navigation(update: Update, context: CallbackContext) -> No
         await show_analytics_years(update, context)
     elif menu == 'analytics_months':
         await show_analytics_years(update, context)
+    elif menu == 'analytics_monthly_card':
+        await show_analytics_months(update, context)
 
     # Дебіторка
     elif menu in ['debt_details', 'debt_histogram', 'debt_pie_chart', 'overdue_debt']:
@@ -457,8 +459,13 @@ async def handle_back_navigation(update: Update, context: CallbackContext) -> No
         await show_help_menu(update, context)
 
     # Кадровий облік
-    elif menu in ['workdays_years', 'workdays_months', 'workdays_details', 'vacation_balance', 'tenure_info',
-                  'vsr_years', 'vsr_report']:
+    elif menu == 'workdays_details':
+        await show_workdays_months(update, context)
+    elif menu == 'workdays_months':
+        await show_workdays_years(update, context)
+    elif menu == 'vsr_report':
+        await show_vacation_sick_years(update, context)
+    elif menu in ['workdays_years', 'vacation_balance', 'tenure_info', 'vsr_years']:
         from hr.hr_handlers import show_hr_menu
         await show_hr_menu(update, context)
 
