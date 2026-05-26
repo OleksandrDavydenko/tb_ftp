@@ -55,8 +55,8 @@ from salary.salary_handlers import (
 
 
 from employee_analytics.analytics_handler import (
-    show_analytics_options, show_analytics_years, show_analytics_months, 
-    show_monthly_analytics, show_yearly_chart_for_parameter
+    show_analytics_options, show_analytics_years, show_analytics_months,
+    show_monthly_analytics, show_yearly_chart_for_parameter, show_yearly_dashboard
 )
 from hr.hr_handlers import show_hr_menu
 
@@ -443,7 +443,7 @@ async def handle_back_navigation(update: Update, context: CallbackContext) -> No
     # Аналітика
     elif menu == 'analytics_years':
         await show_analytics_options(update, context)
-    elif menu == 'parameter_selection':
+    elif menu in ('parameter_selection', 'analytics_yearly_dashboard'):
         await show_analytics_years(update, context)
     elif menu == 'analytics_months':
         await show_analytics_years(update, context)
@@ -487,7 +487,8 @@ async def handle_year_choice(update: Update, context: CallbackContext) -> None:
     elif context.user_data.get('analytics_type') == 'monthly':
         await show_analytics_months(update, context)
     elif context.user_data.get('analytics_type') == 'yearly':
-        await show_parameter_selection(update, context)
+        employee_name = context.user_data.get('employee_name')
+        await show_yearly_dashboard(update, context, employee_name, selected_year)
     elif current_menu == 'leadprize_years':
         await show_leadprize_months(update, context)
     elif current_menu == 'leadreport_years':

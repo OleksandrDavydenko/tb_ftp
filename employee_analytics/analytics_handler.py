@@ -3,11 +3,10 @@ from telegram.ext import CallbackContext
 import datetime
 from .analytics_table import (
     get_income_data, format_analytics_table,
-    get_available_years_analytics, get_available_months_analytics
+    get_available_years_analytics, get_available_months_analytics,
+    get_yearly_breakdown, format_smart_monthly_card, MONTHS_UA
 )
-from .analytics_chart import show_yearly_chart_for_parameter
-
-from .analytics_chart import show_yearly_chart_for_parameter
+from .analytics_chart import show_yearly_chart_for_parameter, show_yearly_dashboard
 import logging
 
 # Налаштування логування
@@ -62,26 +61,48 @@ async def show_analytics_months(update: Update, context: CallbackContext) -> Non
     await update.message.reply_text("Оберіть місяць:", reply_markup=reply_markup)
 
 
-# Відображення аналітики за місяць
+# Відображення аналітики за місяць (розумна картка)
 async def show_monthly_analytics(update: Update, context: CallbackContext) -> None:
     employee_name = context.user_data.get('employee_name')
-    year = context.user_data.get('selected_year')
+    year  = context.user_data.get('selected_year')
     month = context.user_data.get('selected_month')
 
     if not employee_name or not year or not month:
         await update.message.reply_text("Помилка: необхідно вибрати рік і місяць.")
         return
 
-    income_data = get_income_data(employee_name, "Менеджер", year, month) or get_income_data(employee_name, "Сейлс", year, month)
-    if not income_data:
-        await update.message.reply_text("Немає даних для вибраного періоду.")
-    else:
-        formatted_table = format_analytics_table(income_data, employee_name, month, year)
-        await update.message.reply_text(f"```\n{formatted_table}\n```", parse_mode="Markdown")
+    income_data = (get_income_data(employee_name, "Менеджер", year, month) or
+                   get_income_data(employee_name, "Сейлс", year, month))
 
-    # Додаємо кнопки "Назад" та "Головне меню"
-    custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
+    kb = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
+    reply_markup = ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)
+
+    if not income_data:
+        await update.message.reply_text("Немає даних для вибраного періоду.", reply_markup=reply_markup)
+        return
+
+    # Попередній місяць
+    try:
+        month_idx = MONTHS_UA.index(month)
+    except ValueError:
+        month_idx = -1
+
+    if month_idx == 0:
+        prev_month, prev_year = MONTHS_UA[11], str(int(year) - 1)
+    elif month_idx > 0:
+        prev_month, prev_year = MONTHS_UA[month_idx - 1], year
+    else:
+        prev_month, prev_year = None, None
+
+    previous_data = None
+    if prev_month:
+        previous_data = (get_income_data(employee_name, "Менеджер", prev_year, prev_month) or
+                         get_income_data(employee_name, "Сейлс", prev_year, prev_month))
+
+    ytd_months = get_yearly_breakdown(employee_name, year)
+
+    card = format_smart_monthly_card(income_data, previous_data, ytd_months, employee_name, month, year)
+    await update.message.reply_text(card)
     await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
 
 # Відображення параметрів для вибору графіка за рік
