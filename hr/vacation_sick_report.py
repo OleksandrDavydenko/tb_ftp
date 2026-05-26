@@ -39,13 +39,18 @@ def _fetch_yearly_data(employee_name: str, year: int) -> dict[int, dict]:
     if not headers:
         return {}
 
+    emp = employee_name.replace('"', '""')
     dax = f"""
         EVALUATE
         SELECTCOLUMNS(
             FILTER(
                 workdays_by_employee,
-                workdays_by_employee[Employee] = "{employee_name}" &&
-                YEAR(workdays_by_employee[Period]) = {year}
+                workdays_by_employee[TaxCode] IN
+                    SELECTCOLUMNS(
+                        FILTER(Employees, Employees[Employee] = "{emp}"),
+                        "INN", Employees[INN]
+                    ) &&
+                YEAR(DATEVALUE(workdays_by_employee[Period])) = {year}
             ),
             "Period",              workdays_by_employee[Period],
             "RegularVacationDays", workdays_by_employee[RegularVacationDays],

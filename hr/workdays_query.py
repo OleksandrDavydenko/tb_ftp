@@ -110,12 +110,17 @@ def _get_employee_periods_cached(context: CallbackContext, employee_name: str) -
     if not headers:
         return []
 
+    emp = employee_name.replace('"', '""')
     dax = f"""
         EVALUATE
         SELECTCOLUMNS(
             FILTER(
                 workdays_by_employee,
-                workdays_by_employee[Employee] = "{employee_name}"
+                workdays_by_employee[TaxCode] IN
+                    SELECTCOLUMNS(
+                        FILTER(Employees, Employees[Employee] = "{emp}"),
+                        "INN", Employees[INN]
+                    )
             ),
             "Period", workdays_by_employee[Period]
         )
@@ -223,12 +228,17 @@ async def show_workdays_details(update: Update, context: CallbackContext) -> Non
         await update.message.reply_text("❌ Не вдалося отримати токен для Power BI.")
         return
 
+    emp = employee_name.replace('"', '""')
     dax = f"""
         EVALUATE
         SELECTCOLUMNS(
             FILTER(
                 workdays_by_employee,
-                workdays_by_employee[Employee] = "{employee_name}" &&
+                workdays_by_employee[TaxCode] IN
+                    SELECTCOLUMNS(
+                        FILTER(Employees, Employees[Employee] = "{emp}"),
+                        "INN", Employees[INN]
+                    ) &&
                 DATEVALUE(workdays_by_employee[Period]) = DATE({year}, {int(month_num)}, 1)
             ),
             "Period", workdays_by_employee[Period],
