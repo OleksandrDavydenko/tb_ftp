@@ -602,7 +602,7 @@ async def handle_month_choice(update: Update, context: CallbackContext) -> None:
     else:
         await show_monthly_analytics(update, context)
     
-
+"ntcn"
 async def show_parameter_selection(update: Update, context: CallbackContext) -> None:
     parameter_buttons = [
         [KeyboardButton("Дохід")],
