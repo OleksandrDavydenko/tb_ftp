@@ -40,7 +40,8 @@ from messages.work_anniversary_greetings import send_work_anniversary_greetings
 #from messages.oneTimeMessages.update14 import send_message_to_users
 #from messages.oneTimeMessages.update15 import send_NYmessage_to_users
 #from messages.oneTimeMessages.update16 import send_message_to_users
-from messages.oneTimeMessages.update17 import send_message_to_users
+#from messages.oneTimeMessages.update17 import send_message_to_users
+from messages.oneTimeMessages.update18 import send_message_to_users
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart, handle_overdue_debt
@@ -602,7 +603,7 @@ async def handle_month_choice(update: Update, context: CallbackContext) -> None:
     else:
         await show_monthly_analytics(update, context)
     
-"ntcn"
+
 async def show_parameter_selection(update: Update, context: CallbackContext) -> None:
     parameter_buttons = [
         [KeyboardButton("Дохід")],
@@ -676,13 +677,13 @@ def main():
 
     
     
-#    scheduler.add_job(
-#       send_message_to_users,
-#       'cron',
-#       hour=13,
-#       minute=40,
-#       timezone=kyiv_timezone
-#   )
+    scheduler.add_job(
+       send_message_to_users,
+       'cron',
+       hour=15,
+       minute=55,
+       timezone=kyiv_timezone
+   )
 
 
     scheduler.add_job(
