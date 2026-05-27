@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import pytz
 
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext
 
 from auth import get_power_bi_token
@@ -242,36 +242,31 @@ async def show_vacation_sick_years(update: Update, context: CallbackContext) -> 
 
     employee_name = context.user_data.get("employee_name")
     if not employee_name:
-        await update.message.reply_text("⚠️ Не знайдено працівника в контексті.")
+        await update.effective_message.reply_text("⚠️ Не знайдено працівника в контексті.")
         return
 
-    await update.message.reply_text("⏳ Завантаження даних...")
+    await update.effective_message.reply_text("⏳ Завантаження даних...")
 
     periods = _get_employee_periods_cached(context, employee_name)
     years = sorted({y for (y, _) in (_extract_year_month(p) for p in periods) if y is not None})
 
+    nav_kb = ReplyKeyboardMarkup([[KeyboardButton("Назад"), KeyboardButton("Головне меню")]], resize_keyboard=True, one_time_keyboard=True)
+
     if not years:
-        keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-        await update.message.reply_text(
-            "ℹ️ Дані про відпустки відсутні.",
-            reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True),
-        )
+        await update.effective_message.reply_text("ℹ️ Дані про відпустки відсутні.", reply_markup=nav_kb)
         return
 
-    keyboard = [[KeyboardButton(str(y))] for y in years]
-    keyboard.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
-    await update.message.reply_text(
-        "📅 Оберіть рік для звіту:",
-        reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True),
-    )
+    inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(str(y), callback_data=f"vsr_year:{y}")] for y in years])
+    await update.effective_message.reply_text("📅 Оберіть рік для звіту:", reply_markup=inline_kb)
+    await update.effective_message.reply_text("​", reply_markup=nav_kb)
 
 
 async def show_vacation_sick_report(update: Update, context: CallbackContext) -> None:
-    year_str = update.message.text
+    year_str = str(context.user_data.get("selected_year", ""))
     try:
         year = int(year_str)
     except ValueError:
-        await update.message.reply_text("⚠️ Невірний рік.")
+        await update.effective_message.reply_text("⚠️ Невірний рік.")
         return
 
     context.user_data["vsr_selected_year"] = year
@@ -279,29 +274,27 @@ async def show_vacation_sick_report(update: Update, context: CallbackContext) ->
 
     employee_name = context.user_data.get("employee_name")
     if not employee_name:
-        await update.message.reply_text("⚠️ Не знайдено працівника в контексті.")
+        await update.effective_message.reply_text("⚠️ Не знайдено працівника в контексті.")
         return
 
-    await update.message.reply_text("⏳ Формую звіт, зачекайте...")
+    await update.effective_message.reply_text("⏳ Формую звіт, зачекайте...")
 
     months_data = _fetch_yearly_data(employee_name, year)
+
+    nav_kb = ReplyKeyboardMarkup([[KeyboardButton("Назад"), KeyboardButton("Головне меню")]], one_time_keyboard=True, resize_keyboard=True)
 
     if not months_data or all(
         d["vac"] == 0 and d["sick"] == 0 and d["lwp"] == 0
         for d in months_data.values()
     ):
-        keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-        await update.message.reply_text(
+        await update.effective_message.reply_text(
             f"ℹ️ За {year} рік відсутні дані про відпустки та лікарняні.",
-            reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True),
+            reply_markup=nav_kb,
         )
         return
 
     chart_buf = _generate_chart(months_data, employee_name, year)
     summary = _format_summary(months_data, employee_name, year)
 
-    keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-    reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-
-    await update.message.reply_photo(photo=chart_buf)
-    await update.message.reply_text(summary, parse_mode="Markdown", reply_markup=reply_markup)
+    await update.effective_message.reply_photo(photo=chart_buf)
+    await update.effective_message.reply_text(summary, parse_mode="Markdown", reply_markup=nav_kb)

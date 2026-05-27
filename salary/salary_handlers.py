@@ -1,6 +1,6 @@
 import asyncio
 import datetime
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext
 import logging
 
@@ -8,7 +8,7 @@ import os
 import shutil
 from .bonuses_report import generate_excel
 from .bonuses_message import build_bonus_message_for_period
-from .lead_prizes_message import build_lead_prizes_message_for_period 
+from .lead_prizes_message import build_lead_prizes_message_for_period
 from .lead_prizes_report import generate_hod_excel
 
 from .salary_queries import (
@@ -46,6 +46,12 @@ MONTHS_UA = [
     "Грудень",
 ]
 MONTHS_MAP = {name: idx + 1 for idx, name in enumerate(MONTHS_UA)}
+
+_NAV_KB = ReplyKeyboardMarkup(
+    [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]],
+    resize_keyboard=True,
+    one_time_keyboard=True,
+)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -86,29 +92,28 @@ async def show_salary_menu(update: Update, context: CallbackContext) -> None:
 async def show_leadreport_years(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     years = get_available_years_prizes(employee) if employee else []
-    if not years:
-        kb = [[KeyboardButton("Назад")], [KeyboardButton("Головне меню")]]
-        context.user_data["menu"] = "leadreport_years"
-        await update.message.reply_text("ℹ️ Немає даних по відомості керівника.", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
-        return
-    kb = [[KeyboardButton(y)] for y in years] + [[KeyboardButton("Назад")]]
     context.user_data["menu"] = "leadreport_years"
-    await update.message.reply_text("Оберіть рік (Відомість керівника):", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
+    msg = update.effective_message
+    if not years:
+        await msg.reply_text("ℹ️ Немає даних по відомості керівника.", reply_markup=_NAV_KB)
+        return
+    inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(y, callback_data=f"leadreport_year:{y}")] for y in years])
+    await msg.reply_text("Оберіть рік (Відомість керівника):", reply_markup=inline_kb)
+    await msg.reply_text("​", reply_markup=_NAV_KB)
 
 
 async def show_leadreport_months(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     year = context.user_data.get("selected_year")
     months = get_available_months_prizes(employee, year) if (employee and year) else []
-    if not months:
-        kb = [[KeyboardButton("Назад")], [KeyboardButton("Головне меню")]]
-        context.user_data["menu"] = "leadreport_months"
-        await update.message.reply_text("ℹ️ Немає даних за обраний рік (Відомість керівника).", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
-        return
-    kb = [[KeyboardButton(m)] for m in months]
-    kb.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
     context.user_data["menu"] = "leadreport_months"
-    await update.message.reply_text("Оберіть місяць (Відомість керівника):", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
+    msg = update.effective_message
+    if not months:
+        await msg.reply_text("ℹ️ Немає даних за обраний рік (Відомість керівника).", reply_markup=_NAV_KB)
+        return
+    inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(m, callback_data=f"leadreport_month:{m}")] for m in months])
+    await msg.reply_text("Оберіть місяць (Відомість керівника):", reply_markup=inline_kb)
+    await msg.reply_text("​", reply_markup=_NAV_KB)
 
 
 async def send_leadreport_excel(update: Update, context: CallbackContext) -> None:
@@ -116,31 +121,33 @@ async def send_leadreport_excel(update: Update, context: CallbackContext) -> Non
     year = context.user_data.get("selected_year")
     month = context.user_data.get("selected_month")
 
+    msg = update.effective_message
+
     if not (head and year and month):
-        await update.message.reply_text("Помилка: спочатку оберіть рік та місяць.")
+        await msg.reply_text("Помилка: спочатку оберіть рік та місяць.")
         return
 
     month_num = MONTHS_MAP.get(month)
     if month_num is None:
-        await update.message.reply_text("Невідомий місяць.")
+        await msg.reply_text("Невідомий місяць.")
         return
 
     period_ym = f"{year}-{month_num:02d}"
-    wait_msg = await update.message.reply_text("⏳ Формую відомість керівника…")
+    wait_msg = await msg.reply_text("⏳ Формую відомість керівника…")
 
     xlsx_path = None
     try:
         xlsx_path = generate_hod_excel(head, period_ym)
         with open(xlsx_path, "rb") as f:
-            await update.message.reply_document(
+            await msg.reply_document(
                 document=f,
                 filename=os.path.basename(xlsx_path),
                 caption=f"Відомість керівника • {head} • {period_ym}"
             )
     except ValueError:
-        await update.message.reply_text(f"ℹ️ Відсутні дані за {month} {year}.")
+        await msg.reply_text(f"ℹ️ Відсутні дані за {month} {year}.")
     except Exception as e:
-        await update.message.reply_text(f"❌ Не вдалося сформувати файл: {e}")
+        await msg.reply_text(f"❌ Не вдалося сформувати файл: {e}")
     finally:
         # приберемо тимчасову папку
         try:
@@ -157,12 +164,7 @@ async def send_leadreport_excel(update: Update, context: CallbackContext) -> Non
         except Exception:
             pass
 
-      # Додаємо кнопки "Назад" і "Головне меню"
-    nav = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-    await update.message.reply_text(
-        "Виберіть опцію:",
-        reply_markup=ReplyKeyboardMarkup(nav, one_time_keyboard=True, resize_keyboard=True)
-    )
+    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 
@@ -177,29 +179,28 @@ async def show_lead_prizes_stub(update: Update, context: CallbackContext) -> Non
 async def show_leadprize_years(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     years = get_available_years_prizes(employee) if employee else []
-    if not years:
-        kb = [[KeyboardButton("Назад")], [KeyboardButton("Головне меню")]]
-        context.user_data["menu"] = "leadprize_years"
-        await update.message.reply_text("ℹ️ Немає даних по преміях керівників.", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
-        return
-    kb = [[KeyboardButton(y)] for y in years] + [[KeyboardButton("Назад")]]
     context.user_data["menu"] = "leadprize_years"
-    await update.message.reply_text("Оберіть рік (Премії керівників):", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
+    msg = update.effective_message
+    if not years:
+        await msg.reply_text("ℹ️ Немає даних по преміях керівників.", reply_markup=_NAV_KB)
+        return
+    inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(y, callback_data=f"leadprize_year:{y}")] for y in years])
+    await msg.reply_text("Оберіть рік (Премії керівників):", reply_markup=inline_kb)
+    await msg.reply_text("​", reply_markup=_NAV_KB)
 
 
 async def show_leadprize_months(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     year = context.user_data.get("selected_year")
     months = get_available_months_prizes(employee, year) if (employee and year) else []
-    if not months:
-        kb = [[KeyboardButton("Назад")], [KeyboardButton("Головне меню")]]
-        context.user_data["menu"] = "leadprize_months"
-        await update.message.reply_text("ℹ️ Немає премій за обраний рік.", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
-        return
-    kb = [[KeyboardButton(m)] for m in months]
-    kb.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
     context.user_data["menu"] = "leadprize_months"
-    await update.message.reply_text("Оберіть місяць (Премії керівників):", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
+    msg = update.effective_message
+    if not months:
+        await msg.reply_text("ℹ️ Немає премій за обраний рік.", reply_markup=_NAV_KB)
+        return
+    inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(m, callback_data=f"leadprize_month:{m}")] for m in months])
+    await msg.reply_text("Оберіть місяць (Премії керівників):", reply_markup=inline_kb)
+    await msg.reply_text("​", reply_markup=_NAV_KB)
 
 
 async def send_leadprizes_message(update: Update, context: CallbackContext) -> None:
@@ -207,23 +208,23 @@ async def send_leadprizes_message(update: Update, context: CallbackContext) -> N
     year       = context.user_data.get("selected_year")
     month_name = context.user_data.get("selected_month")
 
+    msg = update.effective_message
+
     if not (employee and year and month_name):
-        await update.message.reply_text("Помилка: спочатку оберіть рік та місяць.")
+        await msg.reply_text("Помилка: спочатку оберіть рік та місяць.")
         return
 
     month_num = MONTHS_MAP.get(month_name)
     if month_num is None:
-        await update.message.reply_text("Невідомий місяць.")
+        await msg.reply_text("Невідомий місяць.")
         return
 
     try:
         text = build_lead_prizes_message_for_period(employee, int(year), int(month_num))
     except Exception as e:
         text = f"❌ Не вдалося завантажити премії: {e}"
-    await update.message.reply_text(text)
-
-    nav = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-    await update.message.reply_text("Виберіть опцію:", reply_markup=ReplyKeyboardMarkup(nav, one_time_keyboard=True, resize_keyboard=True))
+    await msg.reply_text(text)
+    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -232,31 +233,28 @@ async def send_leadprizes_message(update: Update, context: CallbackContext) -> N
 async def show_bonusmsg_years(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     years = get_available_years_bonuses(employee) if employee else []
-    if not years:
-        kb = [[KeyboardButton("Назад")], [KeyboardButton("Головне меню")]]
-        context.user_data["menu"] = "bonusmsg_years"
-        await update.message.reply_text("ℹ️ Немає даних по бонусах.", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
-        return
-    kb = [[KeyboardButton(y)] for y in years] + [[KeyboardButton("Назад")]]
     context.user_data["menu"] = "bonusmsg_years"
-    await update.message.reply_text("Оберіть рік (Бонуси):", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
-
+    msg = update.effective_message
+    if not years:
+        await msg.reply_text("ℹ️ Немає даних по бонусах.", reply_markup=_NAV_KB)
+        return
+    inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(y, callback_data=f"bonusmsg_year:{y}")] for y in years])
+    await msg.reply_text("Оберіть рік (Бонуси):", reply_markup=inline_kb)
+    await msg.reply_text("​", reply_markup=_NAV_KB)
 
 
 async def show_bonusmsg_months(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     year = context.user_data.get("selected_year")
     months = get_available_months_bonuses(employee, year) if (employee and year) else []
-    if not months:
-        kb = [[KeyboardButton("Назад")], [KeyboardButton("Головне меню")]]
-        context.user_data["menu"] = "bonusmsg_months"
-        await update.message.reply_text("ℹ️ Немає бонусів за обраний рік.", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
-        return
-    kb = [[KeyboardButton(m)] for m in months]
-    kb.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
     context.user_data["menu"] = "bonusmsg_months"
-    await update.message.reply_text("Оберіть місяць (Бонуси):", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
-
+    msg = update.effective_message
+    if not months:
+        await msg.reply_text("ℹ️ Немає бонусів за обраний рік.", reply_markup=_NAV_KB)
+        return
+    inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(m, callback_data=f"bonusmsg_month:{m}")] for m in months])
+    await msg.reply_text("Оберіть місяць (Бонуси):", reply_markup=inline_kb)
+    await msg.reply_text("​", reply_markup=_NAV_KB)
 
 
 async def send_bonuses_message(update: Update, context: CallbackContext) -> None:
@@ -264,23 +262,23 @@ async def send_bonuses_message(update: Update, context: CallbackContext) -> None
     year = context.user_data.get("selected_year")
     month_name = context.user_data.get("selected_month")
 
+    msg = update.effective_message
+
     if not (employee and year and month_name):
-        await update.message.reply_text("Помилка: спочатку оберіть рік та місяць.")
+        await msg.reply_text("Помилка: спочатку оберіть рік та місяць.")
         return
 
     month_num = MONTHS_MAP.get(month_name)
     if month_num is None:
-        await update.message.reply_text("Невідомий місяць.")
+        await msg.reply_text("Невідомий місяць.")
         return
 
     try:
         text = build_bonus_message_for_period(employee, int(year), int(month_num))
     except Exception as e:
         text = f"❌ Не вдалося завантажити бонуси: {e}"
-    await update.message.reply_text(text)
-
-    nav = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-    await update.message.reply_text("Виберіть опцію:", reply_markup=ReplyKeyboardMarkup(nav, one_time_keyboard=True, resize_keyboard=True))
+    await msg.reply_text(text)
+    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -289,31 +287,28 @@ async def send_bonuses_message(update: Update, context: CallbackContext) -> None
 async def show_bonuses_years(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     years = get_available_years_bonuses(employee) if employee else []
-    if not years:
-        kb = [[KeyboardButton("Назад")], [KeyboardButton("Головне меню")]]
-        context.user_data["menu"] = "bonuses_years"
-        await update.message.reply_text("ℹ️ Немає нарахувань бонусів.", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
-        return
-    kb = [[KeyboardButton(y)] for y in years] + [[KeyboardButton("Назад")]]
     context.user_data["menu"] = "bonuses_years"
-    await update.message.reply_text("Оберіть рік (Відомість Бонуси):", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
-
+    msg = update.effective_message
+    if not years:
+        await msg.reply_text("ℹ️ Немає нарахувань бонусів.", reply_markup=_NAV_KB)
+        return
+    inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(y, callback_data=f"bonuses_year:{y}")] for y in years])
+    await msg.reply_text("Оберіть рік (Відомість Бонуси):", reply_markup=inline_kb)
+    await msg.reply_text("​", reply_markup=_NAV_KB)
 
 
 async def show_bonuses_months(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     year = context.user_data.get("selected_year")
     months = get_available_months_bonuses(employee, year) if (employee and year) else []
-    if not months:
-        kb = [[KeyboardButton("Назад")], [KeyboardButton("Головне меню")]]
-        context.user_data["menu"] = "bonuses_months"
-        await update.message.reply_text("ℹ️ Немає нарахувань бонусів за цей рік.", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
-        return
-    kb = [[KeyboardButton(m)] for m in months]
-    kb.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
     context.user_data["menu"] = "bonuses_months"
-    await update.message.reply_text("Оберіть місяць (Відомість Бонуси):", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
-
+    msg = update.effective_message
+    if not months:
+        await msg.reply_text("ℹ️ Немає нарахувань бонусів за цей рік.", reply_markup=_NAV_KB)
+        return
+    inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(m, callback_data=f"bonuses_month:{m}")] for m in months])
+    await msg.reply_text("Оберіть місяць (Відомість Бонуси):", reply_markup=inline_kb)
+    await msg.reply_text("​", reply_markup=_NAV_KB)
 
 
 async def send_bonuses_excel(update: Update, context: CallbackContext) -> None:
@@ -322,37 +317,39 @@ async def send_bonuses_excel(update: Update, context: CallbackContext) -> None:
     year = context.user_data.get("selected_year")
     month = context.user_data.get("selected_month")
 
+    msg = update.effective_message
+
     if not (employee and year and month):
-        await update.message.reply_text("Помилка: спочатку оберіть рік та місяць.")
+        await msg.reply_text("Помилка: спочатку оберіть рік та місяць.")
         return
 
     month_num = MONTHS_MAP.get(month)
     if month_num is None:
-        await update.message.reply_text("Невідомий місяць.")
+        await msg.reply_text("Невідомий місяць.")
         return
 
     period_ym = f"{year}-{month_num:02d}"
-    wait_msg = await update.message.reply_text("⏳ Формую відомість бонусів…")
+    wait_msg = await msg.reply_text("⏳ Формую відомість бонусів…")
 
     xlsx_path = None
     try:
         xlsx_path = generate_excel(employee, period_ym)
         if not xlsx_path or not os.path.exists(xlsx_path):
-            await update.message.reply_text(f"ℹ️ У вас відсутні нарахування бонусів за {month} {year}.")
+            await msg.reply_text(f"ℹ️ У вас відсутні нарахування бонусів за {month} {year}.")
             return
 
         with open(xlsx_path, "rb") as f:
-            await update.message.reply_document(
+            await msg.reply_document(
                 document=f,
                 filename=os.path.basename(xlsx_path),
                 caption=f"Відомість бонусів • {nice} • {period_ym}"
             )
     except ValueError:
-        await update.message.reply_text(f"ℹ️ У вас відсутні нарахування бонусів за {month} {year}.")
+        await msg.reply_text(f"ℹ️ У вас відсутні нарахування бонусів за {month} {year}.")
         return
     except Exception as e:
         logging.exception("Помилка генерації бонусів")
-        await update.message.reply_text(f"❌ Не вдалося сформувати файл: {e}")
+        await msg.reply_text(f"❌ Не вдалося сформувати файл: {e}")
         return
     finally:
         try:
@@ -368,45 +365,37 @@ async def send_bonuses_excel(update: Update, context: CallbackContext) -> None:
         except Exception:
             pass
 
-    
-    # Додаємо кнопки "Назад" і "Головне меню"
-    nav_kb = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-    await update.message.reply_text(
-        "Виберіть опцію:",
-        reply_markup=ReplyKeyboardMarkup(nav_kb, one_time_keyboard=True, resize_keyboard=True)
-    )
-        
+    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Показ розрахункового листа ОКЛАД
 # ──────────────────────────────────────────────────────────────────────────────
 async def show_salary_years(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     years = get_available_years_salary(employee) if employee else []
-    if not years:
-        kb = [[KeyboardButton("Назад")], [KeyboardButton("Головне меню")]]
-        context.user_data["menu"] = "salary_years"
-        await update.message.reply_text("ℹ️ Немає даних по окладу.", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
-        return
-    kb = [[KeyboardButton(y)] for y in years] + [[KeyboardButton("Назад")]]
     context.user_data["menu"] = "salary_years"
-    await update.message.reply_text("Оберіть рік:", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
-
+    msg = update.effective_message
+    if not years:
+        await msg.reply_text("ℹ️ Немає даних по окладу.", reply_markup=_NAV_KB)
+        return
+    inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(y, callback_data=f"salary_year:{y}")] for y in years])
+    await msg.reply_text("Оберіть рік:", reply_markup=inline_kb)
+    await msg.reply_text("​", reply_markup=_NAV_KB)
 
 
 async def show_salary_months(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     year = context.user_data.get("selected_year")
     months = get_available_months_salary(employee, year) if (employee and year) else []
-    if not months:
-        kb = [[KeyboardButton("Назад")], [KeyboardButton("Головне меню")]]
-        context.user_data["menu"] = "salary_months"
-        await update.message.reply_text("ℹ️ Немає місяців з даними за цей рік.", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
-        return
-    kb = [[KeyboardButton(m)] for m in months]
-    kb.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
     context.user_data["menu"] = "salary_months"
-    await update.message.reply_text("Оберіть місяць:", reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True))
-
+    msg = update.effective_message
+    if not months:
+        await msg.reply_text("ℹ️ Немає місяців з даними за цей рік.", reply_markup=_NAV_KB)
+        return
+    inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(m, callback_data=f"salary_month:{m}")] for m in months])
+    await msg.reply_text("Оберіть місяць:", reply_markup=inline_kb)
+    await msg.reply_text("​", reply_markup=_NAV_KB)
 
 
 async def show_salary_details(update: Update, context: CallbackContext) -> None:
@@ -415,13 +404,15 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
     year = context.user_data.get("selected_year")
     month_name = context.user_data.get("selected_month")
 
+    msg = update.effective_message
+
     if not (employee and year and month_name):
-        await update.message.reply_text("Помилка: спочатку оберіть рік та місяць.")
+        await msg.reply_text("Помилка: спочатку оберіть рік та місяць.")
         return
 
     month_num = MONTHS_MAP.get(month_name)
     if month_num is None:
-        await update.message.reply_text("Невідомий місяць.")
+        await msg.reply_text("Невідомий місяць.")
         return
 
     salary_rows = get_salary_data(employee, year, month_name)
@@ -431,7 +422,7 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
     prize_payments = get_prize_payments(employee, year, month_name)
 
     if not (salary_rows or payments_rows or bonus_rows or bonus_payments):
-        await update.message.reply_text("Немає даних для вибраного періоду.")
+        await msg.reply_text("Немає даних для вибраного періоду.")
         return
 
     main_table, bonus_table, prize_table = format_salary_table(
@@ -473,11 +464,7 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
             )
             await _send_autodelete(update, context, prize_msg)
 
-    nav_kb = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-    await update.message.reply_text(
-        "Виберіть опцію:",
-        reply_markup=ReplyKeyboardMarkup(nav_kb, one_time_keyboard=True, resize_keyboard=True)
-    )
+    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -492,8 +479,8 @@ def code_block(content: str) -> str:
 
 
 async def _send_autodelete(update: Update, context: CallbackContext, message_text: str, *, delay: int = 60):
-    msg = await update.message.reply_text(message_text, parse_mode="Markdown")
-    warn = await update.message.reply_text("⚠️ Це повідомлення буде видалено через 60 секунд!")
+    msg = await update.effective_message.reply_text(message_text, parse_mode="Markdown")
+    warn = await update.effective_message.reply_text("⚠️ Це повідомлення буде видалено через 60 секунд!")
     asyncio.create_task(_delete_later(context, update.effective_chat.id, [msg.message_id, warn.message_id], delay))
 
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext
 from datetime import datetime
 from auth import get_power_bi_token
@@ -154,78 +154,79 @@ async def show_workdays_years(update: Update, context: CallbackContext) -> None:
     context.user_data["menu"] = "workdays_years"
 
     employee_name = context.user_data.get("employee_name")
+    msg = update.effective_message
     if not employee_name:
-        await update.message.reply_text("⚠️ Не знайдено працівника в контексті.")
+        await msg.reply_text("⚠️ Не знайдено працівника в контексті.")
         return
 
     periods = _get_employee_periods_cached(context, employee_name)
     ym = [_extract_year_month(p) for p in periods]
     years = sorted({y for (y, m) in ym if y is not None})
 
+    nav_kb = ReplyKeyboardMarkup([[KeyboardButton("Назад"), KeyboardButton("Головне меню")]], resize_keyboard=True, one_time_keyboard=True)
+
     if not years:
-        await update.message.reply_text("ℹ️ Дані по відпрацьованих днях відсутні.")
+        await msg.reply_text("ℹ️ Дані по відпрацьованих днях відсутні.", reply_markup=nav_kb)
         return
 
-    keyboard = [[KeyboardButton(str(y))] for y in years]
-    keyboard.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
-
-    reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-    await update.message.reply_text("🗓 Оберіть рік:", reply_markup=reply_markup)
+    inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(str(y), callback_data=f"workdays_year:{y}")] for y in years])
+    await msg.reply_text("🗓 Оберіть рік:", reply_markup=inline_kb)
+    await msg.reply_text("​", reply_markup=nav_kb)
 
 
 async def show_workdays_months(update: Update, context: CallbackContext) -> None:
-    selected_year = update.message.text
-    context.user_data["selected_year"] = selected_year
+    selected_year = context.user_data.get("selected_year")
     context.user_data["menu"] = "workdays_months"
 
     employee_name = context.user_data.get("employee_name")
+    msg = update.effective_message
     if not employee_name:
-        await update.message.reply_text("⚠️ Не знайдено працівника в контексті.")
+        await msg.reply_text("⚠️ Не знайдено працівника в контексті.")
         return
 
     try:
         year_int = int(selected_year)
-    except ValueError:
-        await update.message.reply_text("⚠️ Невірний рік.")
+    except (ValueError, TypeError):
+        await msg.reply_text("⚠️ Невірний рік.")
         return
 
     periods = _get_employee_periods_cached(context, employee_name)
     ym = [_extract_year_month(p) for p in periods]
 
     months_nums = sorted({m for (y, m) in ym if y == year_int and m is not None})
+
+    nav_kb = ReplyKeyboardMarkup([[KeyboardButton("Назад"), KeyboardButton("Головне меню")]], resize_keyboard=True, one_time_keyboard=True)
+
     if not months_nums:
-        await update.message.reply_text("ℹ️ Немає даних за обраний рік.")
+        await msg.reply_text("ℹ️ Немає даних за обраний рік.", reply_markup=nav_kb)
         return
 
     months = [MONTHS_UA[m - 1] for m in months_nums]
 
-    keyboard = [[KeyboardButton(month)] for month in months]
-    keyboard.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
-
-    reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-    await update.message.reply_text("📅 Оберіть місяць:", reply_markup=reply_markup)
+    inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(month, callback_data=f"workdays_month:{month}")] for month in months])
+    await msg.reply_text("📅 Оберіть місяць:", reply_markup=inline_kb)
+    await msg.reply_text("​", reply_markup=nav_kb)
 
 
 async def show_workdays_details(update: Update, context: CallbackContext) -> None:
-    selected_month = update.message.text
-    context.user_data["selected_month"] = selected_month
+    selected_month = context.user_data.get("selected_month")
     context.user_data["menu"] = "workdays_details"
 
     employee_name = context.user_data.get("employee_name")
     year = context.user_data.get("selected_year")
 
     if not employee_name or not year:
-        await update.message.reply_text("⚠️ Не знайдено працівника або року в контексті.")
+        await update.effective_message.reply_text("⚠️ Не знайдено працівника або року в контексті.")
         return
 
     month_num = MONTH_MAP.get(selected_month)
     if not month_num:
-        await update.message.reply_text("⚠️ Невідомий місяць.")
+        await update.effective_message.reply_text("⚠️ Невідомий місяць.")
         return
 
     headers = _get_headers()
     if not headers:
-        await update.message.reply_text("❌ Не вдалося отримати токен для Power BI.")
+        await update.effective_message.reply_text("❌ Не вдалося отримати токен для Power BI.")
         return
 
     emp = employee_name.replace('"', '""')
@@ -257,7 +258,7 @@ async def show_workdays_details(update: Update, context: CallbackContext) -> Non
     rows = _execute_dax(headers, dax)
 
     if not rows:
-        await update.message.reply_text("ℹ️ Дані по відпрацьованих днях відсутні.")
+        await update.effective_message.reply_text("ℹ️ Дані по відпрацьованих днях відсутні.")
         return
 
     row = rows[0]
@@ -290,8 +291,8 @@ async def show_workdays_details(update: Update, context: CallbackContext) -> Non
         f"Відпустка у неробочі дні: {vac_on_non_working}\n"
     )
 
-    await update.message.reply_text(message)
+    await update.effective_message.reply_text(message)
 
     keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-    await update.message.reply_text("⬅️ Оберіть дію:", reply_markup=reply_markup)
+    await update.effective_message.reply_text("⬅️ Оберіть дію:", reply_markup=reply_markup)

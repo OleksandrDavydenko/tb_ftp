@@ -1,4 +1,4 @@
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext
 import datetime
 from .analytics_table import (
@@ -25,19 +25,15 @@ async def show_analytics_options(update: Update, context: CallbackContext) -> No
 async def show_analytics_years(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     years = get_available_years_analytics(employee) if employee else []
-    if not years:
-        kb = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-        context.user_data['menu'] = 'analytics_years'
-        await update.message.reply_text(
-            "ℹ️ Немає доступних років аналітики.",
-            reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)
-        )
-        return
-    custom_keyboard = [[KeyboardButton(y)] for y in years]
-    custom_keyboard.append([KeyboardButton("Назад")])
-    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
     context.user_data['menu'] = 'analytics_years'
-    await update.message.reply_text("Оберіть рік:", reply_markup=reply_markup)
+    msg = update.effective_message
+    nav_kb = ReplyKeyboardMarkup([[KeyboardButton("Назад"), KeyboardButton("Головне меню")]], resize_keyboard=True, one_time_keyboard=True)
+    if not years:
+        await msg.reply_text("ℹ️ Немає доступних років аналітики.", reply_markup=nav_kb)
+        return
+    inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(y, callback_data=f"analytics_year:{y}")] for y in years])
+    await msg.reply_text("Оберіть рік:", reply_markup=inline_kb)
+    await msg.reply_text("​", reply_markup=nav_kb)
 
 
 # Відображення місяців для помісячної аналітики
@@ -45,20 +41,15 @@ async def show_analytics_months(update: Update, context: CallbackContext) -> Non
     employee = context.user_data.get("employee_name")
     year = context.user_data.get("selected_year")
     months = get_available_months_analytics(employee, year) if (employee and year) else []
-    if not months:
-        kb = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-        context.user_data['menu'] = 'analytics_months'
-        await update.message.reply_text(
-            "ℹ️ Немає доступних місяців за обраний рік.",
-            reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)
-        )
-        return
-    custom_keyboard = [[KeyboardButton(m)] for m in months]
-    custom_keyboard.append([KeyboardButton("Назад"), KeyboardButton("Головне меню")])
-    reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
-
     context.user_data['menu'] = 'analytics_months'
-    await update.message.reply_text("Оберіть місяць:", reply_markup=reply_markup)
+    msg = update.effective_message
+    nav_kb = ReplyKeyboardMarkup([[KeyboardButton("Назад"), KeyboardButton("Головне меню")]], resize_keyboard=True, one_time_keyboard=True)
+    if not months:
+        await msg.reply_text("ℹ️ Немає доступних місяців за обраний рік.", reply_markup=nav_kb)
+        return
+    inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(m, callback_data=f"analytics_month:{m}")] for m in months])
+    await msg.reply_text("Оберіть місяць:", reply_markup=inline_kb)
+    await msg.reply_text("​", reply_markup=nav_kb)
 
 
 # Відображення аналітики за місяць (розумна картка)
@@ -74,13 +65,12 @@ async def show_monthly_analytics(update: Update, context: CallbackContext) -> No
     income_data = (get_income_data(employee_name, "Менеджер", year, month) or
                    get_income_data(employee_name, "Сейлс", year, month))
 
-    kb = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
-    reply_markup = ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)
+    nav_kb = ReplyKeyboardMarkup([[KeyboardButton("Назад"), KeyboardButton("Головне меню")]], one_time_keyboard=True, resize_keyboard=True)
 
     context.user_data['menu'] = 'analytics_monthly_card'
 
     if not income_data:
-        await update.message.reply_text("Немає даних для вибраного періоду.", reply_markup=reply_markup)
+        await update.effective_message.reply_text("Немає даних для вибраного періоду.", reply_markup=nav_kb)
         return
 
     # Попередній місяць
@@ -104,8 +94,8 @@ async def show_monthly_analytics(update: Update, context: CallbackContext) -> No
     ytd_months = get_yearly_breakdown(employee_name, year)
 
     card = format_smart_monthly_card(income_data, previous_data, ytd_months, employee_name, month, year)
-    await update.message.reply_text(card)
-    await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
+    await update.effective_message.reply_text(card)
+    await update.effective_message.reply_text("Виберіть опцію:", reply_markup=nav_kb)
 
 # Відображення параметрів для вибору графіка за рік
 async def show_yearly_parameters(update: Update, context: CallbackContext) -> None:

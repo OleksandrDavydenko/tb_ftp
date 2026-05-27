@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # Функція для побудови річного графіка за обраним параметром
 async def show_yearly_chart_for_parameter(update: Update, context: CallbackContext, employee_name: str, year: str, parameter: str):
     # Повідомлення користувачу про очікування
-    await update.message.reply_text("Зачекайте, будь ласка. Це може зайняти деякий час...")
+    await update.effective_message.reply_text("Зачекайте, будь ласка. Це може зайняти деякий час...")
     nice_name = display_name(employee_name)
 
     # Місяці для отримання даних та побудови графіка
@@ -28,7 +28,7 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
     if not months:
         custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
         reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True, resize_keyboard=True)
-        await update.message.reply_text(f"Для {nice_name} немає даних за {year} рік.", reply_markup=reply_markup)
+        await update.effective_message.reply_text(f"Для {nice_name} немає даних за {year} рік.", reply_markup=reply_markup)
         return
 
 
@@ -42,7 +42,7 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
 
     # Перевірка на випадок, якщо обраний параметр недоступний
     if not parameter_column:
-        await update.message.reply_text("Обраний параметр не підтримується.")
+        await update.effective_message.reply_text("Обраний параметр не підтримується.")
         return
 
     # Отримання даних про обраний параметр за кожен місяць року
@@ -65,7 +65,7 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
 
     # Перевірка на випадок, якщо всі значення рівні нулю
     if all(value == 0 for value in monthly_values):
-        await update.message.reply_text(f"Для {nice_name} немає інформації за {year} рік.", reply_markup=reply_markup)
+        await update.effective_message.reply_text(f"Для {nice_name} немає інформації за {year} рік.", reply_markup=reply_markup)
         logging.info(f"Немає даних для графіка {parameter.lower()} для {employee_name} за {year} рік.")
         return
 
@@ -99,14 +99,14 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
     plt.close()
 
     # Відправка графіка як зображення
-    await update.message.reply_photo(photo=buffer)
-    await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
+    await update.effective_message.reply_photo(photo=buffer)
+    await update.effective_message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
     logging.info(f"Графік {parameter.lower()} для {employee_name} за {year} рік відображено.")
 
 
 async def show_yearly_dashboard(update: Update, context: CallbackContext, employee_name: str, year: str):
     """Composite yearly dashboard: KPI row + bar/margin combo chart + insights."""
-    await update.message.reply_text("Зачекайте, будь ласка. Це може зайняти деякий час...")
+    await update.effective_message.reply_text("Зачекайте, будь ласка. Це може зайняти деякий час...")
     nice_name = display_name(employee_name)
 
     months_data = get_yearly_breakdown(employee_name, year)
@@ -115,7 +115,7 @@ async def show_yearly_dashboard(update: Update, context: CallbackContext, employ
     reply_markup = ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)
 
     if not months_data:
-        await update.message.reply_text(
+        await update.effective_message.reply_text(
             f"Для {nice_name} немає даних за {year} рік.", reply_markup=reply_markup
         )
         return
@@ -235,7 +235,7 @@ async def show_yearly_dashboard(update: Update, context: CallbackContext, employ
 
     context.user_data["menu"] = "analytics_yearly_dashboard"
 
-    await update.message.reply_photo(photo=buffer)
-    await update.message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
+    await update.effective_message.reply_photo(photo=buffer)
+    await update.effective_message.reply_text("Виберіть опцію:", reply_markup=reply_markup)
     logging.info(f"Yearly dashboard для {employee_name} за {year} рік відображено.")
 

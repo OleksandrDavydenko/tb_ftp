@@ -1,6 +1,6 @@
 import asyncio
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, BotCommandScopeDefault, BotCommand, MenuButtonCommands
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, CallbackContext
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import timezone
 from information.querryFinanceUa import store_exchange_rates
@@ -367,8 +367,10 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         elif text in ["2024", "2025", "2026", "2027", "2028", "2029", "2030"]:
             menu = context.user_data.get("menu")
             if menu == "workdays_years":
+                context.user_data["selected_year"] = text
                 await show_workdays_months(update, context)
             elif menu == "vsr_years":
+                context.user_data["selected_year"] = text
                 await show_vacation_sick_report(update, context)
             else:
                 await handle_year_choice(update, context)
@@ -378,6 +380,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
         ]:
             menu = context.user_data.get("menu")
             if menu == "workdays_months":
+                context.user_data["selected_month"] = text
                 await show_workdays_details(update, context)
             else:
                 await handle_month_choice(update, context)
@@ -416,6 +419,75 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
 
     
 
+
+
+async def handle_callback_query(update: Update, context: CallbackContext) -> None:
+    query = update.callback_query
+    await query.answer()
+    data = query.data
+
+    populate_user_context(context, update.effective_user.id)
+
+    try:
+        prefix, value = data.split(":", 1)
+    except ValueError:
+        return
+
+    try:
+        await query.edit_message_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+
+    if prefix == "salary_year":
+        context.user_data["selected_year"] = value
+        await show_salary_months(update, context)
+    elif prefix == "salary_month":
+        context.user_data["selected_month"] = value
+        await show_salary_details(update, context)
+    elif prefix == "bonuses_year":
+        context.user_data["selected_year"] = value
+        await show_bonuses_months(update, context)
+    elif prefix == "bonuses_month":
+        context.user_data["selected_month"] = value
+        await send_bonuses_excel(update, context)
+    elif prefix == "bonusmsg_year":
+        context.user_data["selected_year"] = value
+        await show_bonusmsg_months(update, context)
+    elif prefix == "bonusmsg_month":
+        context.user_data["selected_month"] = value
+        await send_bonuses_message(update, context)
+    elif prefix == "leadprize_year":
+        context.user_data["selected_year"] = value
+        await show_leadprize_months(update, context)
+    elif prefix == "leadprize_month":
+        context.user_data["selected_month"] = value
+        await send_leadprizes_message(update, context)
+    elif prefix == "leadreport_year":
+        context.user_data["selected_year"] = value
+        await show_leadreport_months(update, context)
+    elif prefix == "leadreport_month":
+        context.user_data["selected_month"] = value
+        await send_leadreport_excel(update, context)
+    elif prefix == "analytics_year":
+        context.user_data["selected_year"] = value
+        analytics_type = context.user_data.get("analytics_type")
+        if analytics_type == "yearly":
+            employee_name = context.user_data.get("employee_name")
+            await show_yearly_dashboard(update, context, employee_name, value)
+        else:
+            await show_analytics_months(update, context)
+    elif prefix == "analytics_month":
+        context.user_data["selected_month"] = value
+        await show_monthly_analytics(update, context)
+    elif prefix == "workdays_year":
+        context.user_data["selected_year"] = value
+        await show_workdays_months(update, context)
+    elif prefix == "workdays_month":
+        context.user_data["selected_month"] = value
+        await show_workdays_details(update, context)
+    elif prefix == "vsr_year":
+        context.user_data["selected_year"] = value
+        await show_vacation_sick_report(update, context)
 
 
 async def handle_back_navigation(update: Update, context: CallbackContext) -> None:
@@ -635,6 +707,7 @@ def main():
     scheduler.add_job(sync_user_statuses, 'interval', minutes=30)  # Синхронізація статусів кожні 30 хвилин
 
     scheduler.start()
+    app.add_handler(CallbackQueryHandler(handle_callback_query))
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_main_menu))
     app.add_handler(MessageHandler(filters.COMMAND, handle_main_menu))
