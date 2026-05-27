@@ -33,7 +33,7 @@ async def show_analytics_years(update: Update, context: CallbackContext) -> None
         return
     inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(y, callback_data=f"analytics_year:{y}")] for y in years])
     await msg.reply_text("Оберіть рік:", reply_markup=inline_kb)
-    await msg.reply_text("​", reply_markup=nav_kb)
+    await msg.reply_text("⠀", reply_markup=nav_kb)
 
 
 # Відображення місяців для помісячної аналітики
@@ -49,7 +49,7 @@ async def show_analytics_months(update: Update, context: CallbackContext) -> Non
         return
     inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(m, callback_data=f"analytics_month:{m}")] for m in months])
     await msg.reply_text("Оберіть місяць:", reply_markup=inline_kb)
-    await msg.reply_text("​", reply_markup=nav_kb)
+    await msg.reply_text("⠀", reply_markup=nav_kb)
 
 
 # Відображення аналітики за місяць (розумна картка)

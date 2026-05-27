@@ -171,7 +171,7 @@ async def show_workdays_years(update: Update, context: CallbackContext) -> None:
 
     inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(str(y), callback_data=f"workdays_year:{y}")] for y in years])
     await msg.reply_text("🗓 Оберіть рік:", reply_markup=inline_kb)
-    await msg.reply_text("​", reply_markup=nav_kb)
+    await msg.reply_text("⠀", reply_markup=nav_kb)
 
 
 async def show_workdays_months(update: Update, context: CallbackContext) -> None:
@@ -205,7 +205,7 @@ async def show_workdays_months(update: Update, context: CallbackContext) -> None
 
     inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(month, callback_data=f"workdays_month:{month}")] for month in months])
     await msg.reply_text("📅 Оберіть місяць:", reply_markup=inline_kb)
-    await msg.reply_text("​", reply_markup=nav_kb)
+    await msg.reply_text("⠀", reply_markup=nav_kb)
 
 
 async def show_workdays_details(update: Update, context: CallbackContext) -> None:
