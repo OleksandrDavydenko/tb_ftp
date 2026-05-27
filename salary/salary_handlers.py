@@ -99,7 +99,7 @@ async def show_leadreport_years(update: Update, context: CallbackContext) -> Non
         return
     inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(y, callback_data=f"leadreport_year:{y}")] for y in years])
     await msg.reply_text("Оберіть рік (Відомість керівника):", reply_markup=inline_kb)
-        await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
+    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 async def show_leadreport_months(update: Update, context: CallbackContext) -> None:
@@ -113,7 +113,7 @@ async def show_leadreport_months(update: Update, context: CallbackContext) -> No
         return
     inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(m, callback_data=f"leadreport_month:{m}")] for m in months])
     await msg.reply_text("Оберіть місяць (Відомість керівника):", reply_markup=inline_kb)
-        await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
+    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 async def send_leadreport_excel(update: Update, context: CallbackContext) -> None:
@@ -224,7 +224,7 @@ async def send_leadprizes_message(update: Update, context: CallbackContext) -> N
     except Exception as e:
         text = f"❌ Не вдалося завантажити премії: {e}"
     await msg.reply_text(text)
-        await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
+    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -278,7 +278,7 @@ async def send_bonuses_message(update: Update, context: CallbackContext) -> None
     except Exception as e:
         text = f"❌ Не вдалося завантажити бонуси: {e}"
     await msg.reply_text(text)
-        await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
+    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
