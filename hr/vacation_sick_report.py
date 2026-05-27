@@ -258,7 +258,7 @@ async def show_vacation_sick_years(update: Update, context: CallbackContext) -> 
 
     inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(str(y), callback_data=f"vsr_year:{y}")] for y in years])
     await update.effective_message.reply_text("📅 Оберіть рік для звіту:", reply_markup=inline_kb)
-    await update.effective_message.reply_text("​", reply_markup=nav_kb)
+        await update.effective_message.reply_text("Виберіть опцію:", reply_markup=nav_kb)
 
 
 async def show_vacation_sick_report(update: Update, context: CallbackContext) -> None:

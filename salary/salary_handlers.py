@@ -99,7 +99,7 @@ async def show_leadreport_years(update: Update, context: CallbackContext) -> Non
         return
     inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(y, callback_data=f"leadreport_year:{y}")] for y in years])
     await msg.reply_text("Оберіть рік (Відомість керівника):", reply_markup=inline_kb)
-    await msg.reply_text("​", reply_markup=_NAV_KB)
+        await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 async def show_leadreport_months(update: Update, context: CallbackContext) -> None:
@@ -113,7 +113,7 @@ async def show_leadreport_months(update: Update, context: CallbackContext) -> No
         return
     inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(m, callback_data=f"leadreport_month:{m}")] for m in months])
     await msg.reply_text("Оберіть місяць (Відомість керівника):", reply_markup=inline_kb)
-    await msg.reply_text("​", reply_markup=_NAV_KB)
+        await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 async def send_leadreport_excel(update: Update, context: CallbackContext) -> None:
@@ -164,7 +164,7 @@ async def send_leadreport_excel(update: Update, context: CallbackContext) -> Non
         except Exception:
             pass
 
-    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
+        await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 
@@ -186,7 +186,7 @@ async def show_leadprize_years(update: Update, context: CallbackContext) -> None
         return
     inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(y, callback_data=f"leadprize_year:{y}")] for y in years])
     await msg.reply_text("Оберіть рік (Премії керівників):", reply_markup=inline_kb)
-    await msg.reply_text("​", reply_markup=_NAV_KB)
+    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 async def show_leadprize_months(update: Update, context: CallbackContext) -> None:
@@ -200,7 +200,7 @@ async def show_leadprize_months(update: Update, context: CallbackContext) -> Non
         return
     inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(m, callback_data=f"leadprize_month:{m}")] for m in months])
     await msg.reply_text("Оберіть місяць (Премії керівників):", reply_markup=inline_kb)
-    await msg.reply_text("​", reply_markup=_NAV_KB)
+    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 async def send_leadprizes_message(update: Update, context: CallbackContext) -> None:
@@ -224,7 +224,7 @@ async def send_leadprizes_message(update: Update, context: CallbackContext) -> N
     except Exception as e:
         text = f"❌ Не вдалося завантажити премії: {e}"
     await msg.reply_text(text)
-    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
+        await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -240,7 +240,7 @@ async def show_bonusmsg_years(update: Update, context: CallbackContext) -> None:
         return
     inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(y, callback_data=f"bonusmsg_year:{y}")] for y in years])
     await msg.reply_text("Оберіть рік (Бонуси):", reply_markup=inline_kb)
-    await msg.reply_text("​", reply_markup=_NAV_KB)
+    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 async def show_bonusmsg_months(update: Update, context: CallbackContext) -> None:
@@ -254,7 +254,7 @@ async def show_bonusmsg_months(update: Update, context: CallbackContext) -> None
         return
     inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(m, callback_data=f"bonusmsg_month:{m}")] for m in months])
     await msg.reply_text("Оберіть місяць (Бонуси):", reply_markup=inline_kb)
-    await msg.reply_text("​", reply_markup=_NAV_KB)
+    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 async def send_bonuses_message(update: Update, context: CallbackContext) -> None:
@@ -278,7 +278,7 @@ async def send_bonuses_message(update: Update, context: CallbackContext) -> None
     except Exception as e:
         text = f"❌ Не вдалося завантажити бонуси: {e}"
     await msg.reply_text(text)
-    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
+        await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -294,7 +294,7 @@ async def show_bonuses_years(update: Update, context: CallbackContext) -> None:
         return
     inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(y, callback_data=f"bonuses_year:{y}")] for y in years])
     await msg.reply_text("Оберіть рік (Відомість Бонуси):", reply_markup=inline_kb)
-    await msg.reply_text("​", reply_markup=_NAV_KB)
+    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 async def show_bonuses_months(update: Update, context: CallbackContext) -> None:
@@ -308,7 +308,7 @@ async def show_bonuses_months(update: Update, context: CallbackContext) -> None:
         return
     inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(m, callback_data=f"bonuses_month:{m}")] for m in months])
     await msg.reply_text("Оберіть місяць (Відомість Бонуси):", reply_markup=inline_kb)
-    await msg.reply_text("​", reply_markup=_NAV_KB)
+    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 async def send_bonuses_excel(update: Update, context: CallbackContext) -> None:
@@ -381,7 +381,7 @@ async def show_salary_years(update: Update, context: CallbackContext) -> None:
         return
     inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(y, callback_data=f"salary_year:{y}")] for y in years])
     await msg.reply_text("Оберіть рік:", reply_markup=inline_kb)
-    await msg.reply_text("​", reply_markup=_NAV_KB)
+    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 async def show_salary_months(update: Update, context: CallbackContext) -> None:
@@ -395,7 +395,7 @@ async def show_salary_months(update: Update, context: CallbackContext) -> None:
         return
     inline_kb = InlineKeyboardMarkup([[InlineKeyboardButton(m, callback_data=f"salary_month:{m}")] for m in months])
     await msg.reply_text("Оберіть місяць:", reply_markup=inline_kb)
-    await msg.reply_text("​", reply_markup=_NAV_KB)
+    await msg.reply_text("Виберіть опцію:", reply_markup=_NAV_KB)
 
 
 async def show_salary_details(update: Update, context: CallbackContext) -> None:
