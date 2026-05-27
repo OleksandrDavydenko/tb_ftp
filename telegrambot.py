@@ -705,7 +705,7 @@ def main():
     ################################################################################
 
 
-    scheduler.add_job(sync_user_statuses, 'interval', minutes=3)  # Синхронізація статусів кожні 30 хвилин
+    scheduler.add_job(sync_user_statuses, 'interval', minutes=12)  # Синхронізація статусів кожні 30 хвилин
 
     scheduler.start()
     app.add_handler(CallbackQueryHandler(handle_callback_query))
