@@ -138,6 +138,11 @@ async def check_overdue_debts():
 
 
 
+def _esc(text) -> str:
+    """Екранує спецсимволи HTML у динамічних даних."""
+    return str(text).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+
 # Функція по натисканюю на кнопку
 async def send_overdue_debts_by_request(update, context):
     """Формує і надсилає протерміновану дебіторську заборгованість для поточного користувача."""
@@ -148,9 +153,8 @@ async def send_overdue_debts_by_request(update, context):
         await update.message.reply_text("❗ Вас не знайдено в базі користувачів.")
         return
 
-
     manager_name = user_data['employee_name']
-    nice_manager = display_name(manager_name)   # ← псевдонім лише для виводу
+    nice_manager = display_name(manager_name)
     debts = get_user_debt_data(manager_name)
 
     if debts:
@@ -174,18 +178,19 @@ async def send_overdue_debts_by_request(update, context):
                 })
 
         if overdue_debts:
-            message = f"📋 *Протермінована дебіторська заборгованість для {nice_manager}:*\n\n"
+            message = f"📋 <b>Протермінована дебіторська заборгованість для {_esc(nice_manager)}:</b>\n\n"
             for overdue in overdue_debts:
                 message += (
-                    f"▫️ *Клієнт:* {overdue['Client']}\n"
-                    f"   *Угода:* {overdue['Deal']}\n"
-                    f"   *Рахунок:* {overdue['Account']}\n"
-                    f"   *Дата рахунку:* {overdue['AccountDate']}\n"
-                    f"   *Планова дата оплати:* {overdue['PlanDatePay']}\n"
-                    f"   *Днів протерміновано:* {overdue['OverdueDays']}\n"
-                    f"   *Сума ($):* {overdue['Sum_$']}\n\n"
+                    f"▫️ <b>Клієнт:</b> {_esc(overdue['Client'])}\n"
+                    f"   <b>Угода:</b> {_esc(overdue['Deal'])}\n"
+                    f"   <b>Рахунок:</b> {_esc(overdue['Account'])}\n"
+                    f"   <b>Дата рахунку:</b> {_esc(overdue['AccountDate'])}\n"
+                    f"   <b>Планова дата оплати:</b> {_esc(overdue['PlanDatePay'])}\n"
+                    f"   <b>Днів протерміновано:</b> {_esc(overdue['OverdueDays'])}\n"
+                    f"   <b>Сума ($):</b> {_esc(overdue['Sum_$'])}\n\n"
                 )
-            await update.message.reply_text(message, parse_mode="Markdown")
+            for part in split_message(message):
+                await update.message.reply_text(part, parse_mode="HTML")
         else:
             await update.message.reply_text("✅ У вас немає протермінованої дебіторської заборгованості.")
     else:
