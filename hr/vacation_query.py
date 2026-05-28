@@ -1,10 +1,10 @@
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 from auth import get_power_bi_token
-from utils.get_inn import get_employee_inn  # Імпортуємо функцію для отримання INN
+from utils.get_inn import get_employee_inn
 import requests
 import logging
-from datetime import datetime
+from datetime import datetime, date
 
 from utils.name_aliases import display_name
 
@@ -39,43 +39,30 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
     dataset_id = '8b80be15-7b31-49e4-bc85-8b37a0d98f1c'
     power_bi_url = f'https://api.powerbi.com/v1.0/myorg/datasets/{dataset_id}/executeQueries'
 
-    # Якщо INN знайдено, фільтруємо по ньому, якщо ні — використовуємо фільтрацію по імені
+    def _build_dax(filter_expr: str) -> dict:
+        return {
+            "queries": [{
+                "query": f"""
+                    EVALUATE
+                    SELECTCOLUMNS(
+                        FILTER(employee_vacation_summary, {filter_expr}),
+                        "Year",         employee_vacation_summary[year],
+                        "AccrualStart", employee_vacation_summary[accrual_start_date],
+                        "Accrued",      employee_vacation_summary[accrued_days],
+                        "Used",         employee_vacation_summary[used_days],
+                        "Remaining",    employee_vacation_summary[remaining_days]
+                    )
+                """
+            }],
+            "serializerSettings": {"includeNulls": True}
+        }
+
     if tax_code:
-        dax_query = {
-            "queries": [
-                {
-                    "query": f"""
-                        EVALUATE
-                        SELECTCOLUMNS(
-                            FILTER(
-                                employee_vacation_summary,
-                                employee_vacation_summary[tax_code] = "{tax_code}"
-                            ),
-                            "Remaining", employee_vacation_summary[remaining_days]
-                        )
-                    """
-                }
-            ],
-            "serializerSettings": {"includeNulls": True}
-        }
+        dax_query = _build_dax(f'employee_vacation_summary[tax_code] = "{tax_code}"')
     else:
-        dax_query = {
-            "queries": [
-                {
-                    "query": f"""
-                        EVALUATE
-                        SELECTCOLUMNS(
-                            FILTER(
-                                employee_vacation_summary,
-                                LEFT(employee_vacation_summary[employee_name], LEN("{employee_name}")) = "{employee_name}"
-                            ),
-                            "Remaining", employee_vacation_summary[remaining_days]
-                        )
-                    """
-                }
-            ],
-            "serializerSettings": {"includeNulls": True}
-        }
+        dax_query = _build_dax(
+            f'LEFT(employee_vacation_summary[employee_name], LEN("{employee_name}")) = "{employee_name}"'
+        )
 
     logging.info(f"📤 Відправляємо запит до Power BI для {employee_name} з INN {tax_code if tax_code else 'не знайдено'}")
     response = requests.post(power_bi_url, headers=headers, json=dax_query)
@@ -99,16 +86,48 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
         await update.message.reply_text("ℹ️ Немає даних про залишки відпустки.")
         return
 
-    # Обчислення сумарного залишку
-    total_remaining = sum(float(row.get('[Remaining]', 0)) for row in rows)
+    today = date.today()
+    proportional = 0.0
+    full_remaining = 0.0
+    period_end_str = None
 
-    today = datetime.now().strftime('%d.%m.%Y')
+    for row in rows:
+        remaining = float(row.get('[Remaining]', 0) or 0)
+        accrued   = float(row.get('[Accrued]',   0) or 0)
+        year      = int(row.get('[Year]', 0))
+        start_raw = (row.get('[AccrualStart]') or '')[:10]
+
+        proportional += remaining
+
+        try:
+            accrual_start = datetime.strptime(start_raw, '%Y-%m-%d').date()
+            period_start  = date(year,     accrual_start.month, accrual_start.day)
+            period_end    = date(year + 1, accrual_start.month, accrual_start.day)
+        except ValueError:
+            full_remaining += remaining
+            continue
+
+        if period_start <= today < period_end:
+            days_elapsed = (today - period_start).days
+            if days_elapsed > 0:
+                daily_rate       = accrued / days_elapsed
+                days_left        = (period_end - today).days
+                still_to_accrue  = days_left * daily_rate
+            else:
+                still_to_accrue = 0
+            full_remaining += remaining + still_to_accrue
+            period_end_str  = period_end.strftime('%d.%m.%y')
+        else:
+            full_remaining += remaining
+
     nice_name = display_name(employee_name)
-    message = (
-        f"📅 Станом на {today} дату, пропорційно відпрацьованому часу.\n"
-        f"🧑 {nice_name}\n"
-        f"📌 Залишок відпустки: {total_remaining:.0f} днів"
-    )
+    lines = [f"🧑 {nice_name}"]
+    lines.append(f"1. Пропорційно (на сьогодні) — {proportional:.0f} дн")
+    if period_end_str:
+        lines.append(f"2. Загальний залишок — {full_remaining:.0f} дн до {period_end_str} (включно)")
+    else:
+        lines.append(f"2. Загальний залишок — {full_remaining:.0f} дн")
+    message = '\n'.join(lines)
 
     await update.message.reply_text(message)
 
