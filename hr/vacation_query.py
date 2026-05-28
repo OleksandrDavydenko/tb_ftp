@@ -122,11 +122,11 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
 
     nice_name = display_name(employee_name)
     lines = [f"🧑 {nice_name}"]
-    lines.append(f"1. Пропорційно (на сьогодні) — {proportional:.0f} дн")
+    lines.append(f"1. Пропорційно (на сьогодні) — {proportional:.0f} календарних днів")
     if period_end_str:
-        lines.append(f"2. Загальний залишок — {full_remaining:.0f} дн до {period_end_str} (включно)")
+        lines.append(f"2. Загальний залишок — {full_remaining:.0f} календарних днів до {period_end_str} (включно)")
     else:
-        lines.append(f"2. Загальний залишок — {full_remaining:.0f} дн")
+        lines.append(f"2. Загальний залишок — {full_remaining:.0f} календарних днів")
     message = '\n'.join(lines)
 
     await update.message.reply_text(message)
