@@ -241,7 +241,8 @@ def _draw_hero(draw, y, d):
               d["prev_short"], d["curr_short"], _fmt_usd, bar_h=12, gap=10)
 
 
-def _draw_metric_card(draw, x0, y, cw, title, curr, prev, fmt, delta_fn, note=None):
+def _draw_metric_card(draw, x0, y, cw, title, curr, prev, fmt, delta_fn,
+                      note=None, prev_lbl="", curr_lbl=""):
     x1 = x0 + cw
     draw.rounded_rectangle([x0, y, x1, y + CARD_H], radius=12, fill=SURFACE)
     cx = x0 + PADC
@@ -262,26 +263,31 @@ def _draw_metric_card(draw, x0, y, cw, title, curr, prev, fmt, delta_fn, note=No
             draw.text((cx, by + 6), line, font=F["tiny"], fill=TEXT3, anchor="lm")
             by += 16
     elif curr is not None:
-        _two_bars(draw, cx, by, iw, prev, curr, "Бер→", "Кві→", fmt,
+        _two_bars(draw, cx, by, iw, prev, curr, prev_lbl, curr_lbl, fmt,
                   bar_h=8, gap=8, label_w=0, value_w=78)
 
 
 def _draw_grid(draw, y, d):
     cw = ((W - 2 * MX) - GRID_GAP) // 2
     xL, xR = MX, MX + cw + GRID_GAP
+    pl, cl = d["prev_short"], d["curr_short"]
     # рядок 1: прибуток + маржа
     _draw_metric_card(draw, xL, y, cw, "Валовий прибуток",
-                      d["gp"]["curr"], d["gp"]["prev"], _fmt_usd, _pct_delta)
+                      d["gp"]["curr"], d["gp"]["prev"], _fmt_usd, _pct_delta,
+                      prev_lbl=pl, curr_lbl=cl)
     _draw_metric_card(draw, xR, y, cw, "Маржинальність",
-                      d["margin"]["curr"], d["margin"]["prev"], _fmt_pct, _pp_delta)
+                      d["margin"]["curr"], d["margin"]["prev"], _fmt_pct, _pp_delta,
+                      prev_lbl=pl, curr_lbl=cl)
     # рядок 2: угоди + середній чек
     y2 = y + CARD_H + GRID_GAP
     _draw_metric_card(draw, xL, y2, cw, "Кількість угод",
                       d["deals"]["curr"], d["deals"]["prev"],
-                      lambda v: _fmt_num(v), _pct_delta)
+                      lambda v: _fmt_num(v), _pct_delta,
+                      prev_lbl=pl, curr_lbl=cl)
     _draw_metric_card(draw, xR, y2, cw, "Середній чек",
                       d["avg"]["curr"], d["avg"]["prev"], _fmt_usd, _pct_delta,
-                      note=None if d["avg"]["curr"] is not None else "Угод не було")
+                      note=None if d["avg"]["curr"] is not None else "Угод не було",
+                      prev_lbl=pl, curr_lbl=cl)
 
 
 def _draw_bonus(draw, y, d):
