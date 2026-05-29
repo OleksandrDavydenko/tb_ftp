@@ -45,7 +45,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 # НАЛАШТУВАННЯ
 # ──────────────────────────────────────────────────────────────────────────────
 TEST_MODE = True
-TEST_TELEGRAM_IDS = {152087884, 203148640}  # сюди свої id для тестування (можна несколько)
+TEST_TELEGRAM_IDS = {152087884}  # сюди свої id для тестування (можна несколько)
 
 KYIV_TZ = pytz.timezone("Europe/Kiev")
 _KEY = os.getenv("TELEGRAM_BOT_TOKEN")

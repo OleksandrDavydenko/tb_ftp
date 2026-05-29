@@ -683,7 +683,7 @@ def main():
         scheduler.add_job(
             run_monthly_analytics_push,
             'cron',
-            day=29, hour=16, minute=55,
+            day=29, hour=17, minute=5,
             timezone='Europe/Kiev',
             id='monthly_analytics_push',
             replace_existing=True
