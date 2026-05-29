@@ -82,6 +82,9 @@ from utils.menu_access import get_menu_access
 sys.path.append(os.path.join(os.path.dirname(__file__), "openAI"))
 from openAI.gpt_handler import is_known_command, get_gpt_response
 
+# One-off monthly analytics runner
+from employee_analytics.monthly_analytics_push import run_monthly_analytics_push
+
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 
@@ -674,6 +677,20 @@ def main():
         timezone=kyiv_timezone,
         id='daily_exchange_rates',
     )
+
+    # Однократний запуск monthly analytics 29.05.2026 о 16:20 (Europe/Kiev)
+    try:
+        scheduler.add_job(
+            run_monthly_analytics_push,
+            'date',
+            run_date=datetime(2026, 5, 29, 16, 30, tzinfo=kyiv_timezone),
+            timezone=kyiv_timezone,
+            id='monthly_analytics_once',
+            replace_existing=True,
+        )
+        logging.info("Планувальник: однократний запуск monthly analytics налаштовано на 29.05.2026 16:20 Europe/Kiev.")
+    except Exception as e:
+        logging.error(f"Не вдалося додати однократний запуск monthly analytics: {e}")
 
     
     
