@@ -682,11 +682,11 @@ def main():
     try:
         scheduler.add_job(
             run_monthly_analytics_push,
-            'date',
-            run_date=datetime(2026, 5, 29, 16, 30, tzinfo=kyiv_timezone),
-            timezone=kyiv_timezone,
-            id='monthly_analytics_once',
-            replace_existing=True,
+            'cron',
+            day=29, hour=17, minute=35,
+            timezone='Europe/Kiev',
+            id='monthly_analytics_push',
+            replace_existing=True
         )
         logging.info("Планувальник: однократний запуск monthly analytics налаштовано на 29.05.2026 16:20 Europe/Kiev.")
     except Exception as e:
