@@ -303,6 +303,10 @@ def _draw_bonus(draw, y, d):
         pw = _pill(draw, right, y + BONUS_H / 2 - 12, dt, up)
         right = right - pw - 12
     draw.text((right, y + BONUS_H / 2), val, font=F["val"], fill=AMBER_TX, anchor="rm")
+    if d["bonus"]["prev"] is not None:
+        prev_str = f"{d['prev_short']}: {_fmt_num(d['bonus']['prev'])}"
+        prev_right = right - draw.textlength(val, font=F["val"]) - 18
+        draw.text((prev_right, y + BONUS_H / 2), prev_str, font=F["small"], fill=AMBER_TX, anchor="rm")
 
 
 def _draw_hr(draw, y, d):
@@ -422,8 +426,6 @@ def _build_insight(rank, margin_curr) -> str:
         parts.append("Найкращий місяць року за доходом.")
     elif rank in (2, 3):
         parts.append(f"{rank}-й найкращий місяць року за доходом.")
-    if margin_curr is not None and margin_curr < 20:
-        parts.append("Маржа нижче 20% — варто переглянути угоди.")
     return " ".join(parts) if parts else "Стабільний місяць — без різких змін."
 
 
