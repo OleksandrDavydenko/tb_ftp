@@ -91,6 +91,19 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
     full_remaining = 0.0
     period_end_str = None
 
+    # Шукаємо річну норму з останнього закритого року (щоб не екстраполювати темп)
+    annual_norm = None
+    for row in rows:
+        try:
+            y = int(row.get('[Year]', 0))
+            sr = (row.get('[AccrualStart]') or '')[:10]
+            ast = datetime.strptime(sr, '%Y-%m-%d').date()
+            pe = date(y + 1, ast.month, ast.day)
+            if pe <= today:
+                annual_norm = float(row.get('[Accrued]', 0) or 0)
+        except ValueError:
+            pass
+
     for row in rows:
         remaining = float(row.get('[Remaining]', 0) or 0)
         accrued   = float(row.get('[Accrued]',   0) or 0)
@@ -108,11 +121,16 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
             continue
 
         if period_start <= today < period_end:
-            days_elapsed = (today - period_start).days
-            if days_elapsed > 0:
-                daily_rate       = accrued / days_elapsed
-                days_left        = (period_end - today).days
-                still_to_accrue  = days_left * daily_rate
+            if annual_norm is not None and annual_norm > accrued:
+                # коректний підхід: донарахується рівно стільки, скільки лишилось до норми
+                still_to_accrue = annual_norm - accrued
+            elif accrued > 0:
+                # fallback: екстраполяція темпу (якщо немає закритого року для норми)
+                days_elapsed = (today - period_start).days
+                if days_elapsed > 0:
+                    still_to_accrue = (period_end - today).days * (accrued / days_elapsed)
+                else:
+                    still_to_accrue = 0
             else:
                 still_to_accrue = 0
             full_remaining += remaining + still_to_accrue
