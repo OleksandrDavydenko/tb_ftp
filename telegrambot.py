@@ -77,6 +77,7 @@ from messages.check_bonus_docs import check_bonus_docs
 
 from utils.name_aliases import display_name
 from utils.menu_access import get_menu_access
+from utils.thinking import with_typing_action
 
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "openAI"))
@@ -208,6 +209,7 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
 
 
 
+@with_typing_action
 async def show_main_menu(update: Update, context: CallbackContext) -> None:
     """Функція показує головне меню та працює з будь-якого місця бота."""
     logging.info("🔄 Виклик головного меню")

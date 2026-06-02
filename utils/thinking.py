@@ -23,6 +23,7 @@ def with_typing_action(func):
 
         logging.info(f"[typing] start | {func.__name__} | chat_id={chat_id}")
         task = asyncio.create_task(keep_typing())
+        await asyncio.sleep(0)  # yield to event loop so keep_typing starts immediately
         try:
             return await func(*args, **kwargs)
         finally:
