@@ -267,6 +267,7 @@ def populate_user_context(context: CallbackContext, telegram_id: int):
         })
 
 
+@with_typing_action
 async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     telegram_id = update.effective_user.id
     populate_user_context(context, telegram_id)
@@ -445,6 +446,7 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
 
 
 
+@with_typing_action
 async def handle_callback_query(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
     await query.answer()
