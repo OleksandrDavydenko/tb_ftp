@@ -540,7 +540,7 @@ async def handle_back_navigation(update: Update, context: CallbackContext) -> No
         await show_debt_options(update, context)
 
     # Довідкова інформація
-    elif menu in ['help_menu', 'devaluation_data']:
+    elif menu in ['currency_rates', 'user_guide', 'changelog', 'help_menu', 'devaluation_data']:
         await show_help_menu(update, context)
 
     # Кадровий облік

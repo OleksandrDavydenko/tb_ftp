@@ -7,7 +7,7 @@ async def show_help_menu(update: Update, context: CallbackContext) -> None:
     """
     Відображає меню 'Довідкова інформація' з додатковою кнопкою інструкції.
     """
-    context.user_data['current_menu'] = 'help_menu'
+    context.user_data['menu'] = 'help_menu'
 
     currency_button = KeyboardButton("💱 Курс валют")
     devaluation_button = KeyboardButton("Перевірка девальвації")
@@ -27,6 +27,7 @@ async def show_currency_rates(update: Update, context: CallbackContext) -> None:
     """
     Отримує та відображає останні курси валют з бази даних.
     """
+    context.user_data['menu'] = 'currency_rates'
     try:
         rates = get_latest_currency_rates(["USD", "EUR"])  # Отримати з БД
         message = "💱 Курси валют:\n"

@@ -58,6 +58,7 @@ async def show_user_guide(update: Update, context: CallbackContext):
     )
 
 
+    context.user_data['menu'] = 'user_guide'
     back_button = KeyboardButton("Назад")
     main_menu_button = KeyboardButton("Головне меню")
     reply_markup = ReplyKeyboardMarkup([[back_button, main_menu_button]], one_time_keyboard=True, resize_keyboard=True)

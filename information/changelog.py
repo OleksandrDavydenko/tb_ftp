@@ -108,6 +108,7 @@ async def show_changelog(update: Update, context: CallbackContext) -> None:
     Відображає changelog з цього файлу.
     Кнопки «Назад» і «Головне меню» — компактні та поруч (один ряд).
     """
+    context.user_data['menu'] = 'changelog'
     text = _build_changelog_text()
     await _send_long_html(update, text)
 
