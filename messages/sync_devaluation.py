@@ -25,8 +25,8 @@ async def async_add_devaluation_record(data):
         # Перевірка наявності унікального запису
         cursor.execute("""
             SELECT 1 FROM DevaluationAnalysis
-            WHERE client = %s AND payment_number = %s AND acc_number = %s
-        """, (cleaned_data.get("Client"), cleaned_data.get("PaymentNumber"), cleaned_data.get("AccNumber")))
+            WHERE payment_number = %s AND acc_number = %s AND contract_number = %s
+        """, (cleaned_data.get("PaymentNumber"), cleaned_data.get("AccNumber"), cleaned_data.get("ContractNumber")))
 
         if cursor.fetchone() is None:
             # Вставка даних у таблицю DevaluationAnalysis, якщо запис унікальний
