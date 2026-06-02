@@ -8,6 +8,7 @@ import pandas as pd
 import requests
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
+from utils.thinking import with_typing_action
 
 from auth import get_power_bi_token
 from utils.name_aliases import display_name
@@ -158,6 +159,7 @@ def _build_message(row: dict) -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 # Публічний Telegram-хендлер
 # ─────────────────────────────────────────────────────────────────────────────
+@with_typing_action
 async def show_tenure_info(update: Update, context: CallbackContext) -> None:
     """
     - бере ім'я співробітника з context.user_data['employee_name']

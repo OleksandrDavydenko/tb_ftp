@@ -8,6 +8,7 @@ from .analytics_table import (
 )
 from .analytics_chart import show_yearly_chart_for_parameter, show_yearly_dashboard
 import logging
+from utils.thinking import with_typing_action
 
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -53,6 +54,7 @@ async def show_analytics_months(update: Update, context: CallbackContext) -> Non
 
 
 # Відображення аналітики за місяць (розумна картка)
+@with_typing_action
 async def show_monthly_analytics(update: Update, context: CallbackContext) -> None:
     employee_name = context.user_data.get('employee_name')
     year  = context.user_data.get('selected_year')

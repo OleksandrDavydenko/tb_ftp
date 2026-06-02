@@ -411,12 +411,35 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
     log_user_action(user_id, "GPT-request", message_id)
     logging.info(f"🤖 GPT-request від користувача {user_id}: {text}")
 
-    gpt_response = get_gpt_response(
-        text,
-        user_id,
-        context.user_data.get("employee_name", "Користувач"),
-        message_id
-    )
+    chat_id = update.effective_chat.id
+    stop = asyncio.Event()
+
+    async def keep_typing():
+        while not stop.is_set():
+            try:
+                await context.bot.send_chat_action(chat_id=chat_id, action="typing")
+            except Exception:
+                pass
+            try:
+                await asyncio.wait_for(stop.wait(), timeout=4.0)
+            except asyncio.TimeoutError:
+                pass
+
+    typing_task = asyncio.create_task(keep_typing())
+    try:
+        loop = asyncio.get_event_loop()
+        gpt_response = await loop.run_in_executor(
+            None, get_gpt_response,
+            text, user_id, context.user_data.get("employee_name", "Користувач"), message_id
+        )
+    finally:
+        stop.set()
+        typing_task.cancel()
+        try:
+            await typing_task
+        except asyncio.CancelledError:
+            pass
+
     await update.message.reply_text(f"🤖 {gpt_response}", parse_mode="HTML")
 
 

@@ -8,6 +8,7 @@ import requests
 import logging
 
 from utils.name_aliases import display_name
+from utils.thinking import with_typing_action
 
 
 POWER_BI_URL = "https://api.powerbi.com/v1.0/myorg/datasets/8b80be15-7b31-49e4-bc85-8b37a0d98f1c/executeQueries"
@@ -208,6 +209,7 @@ async def show_workdays_months(update: Update, context: CallbackContext) -> None
     await msg.reply_text("або поверніться:", reply_markup=nav_kb)
 
 
+@with_typing_action
 async def show_workdays_details(update: Update, context: CallbackContext) -> None:
     selected_month = context.user_data.get("selected_month")
     context.user_data["menu"] = "workdays_details"

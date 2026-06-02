@@ -3,6 +3,7 @@ import datetime
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import CallbackContext
 import logging
+from utils.thinking import with_typing_action
 
 import os
 import shutil
@@ -116,6 +117,7 @@ async def show_leadreport_months(update: Update, context: CallbackContext) -> No
     await msg.reply_text("або поверніться:", reply_markup=_NAV_KB)
 
 
+@with_typing_action
 async def send_leadreport_excel(update: Update, context: CallbackContext) -> None:
     head = context.user_data.get("employee_name")  # Керівник = поточний користувач
     year = context.user_data.get("selected_year")
@@ -203,6 +205,7 @@ async def show_leadprize_months(update: Update, context: CallbackContext) -> Non
     await msg.reply_text("або поверніться:", reply_markup=_NAV_KB)
 
 
+@with_typing_action
 async def send_leadprizes_message(update: Update, context: CallbackContext) -> None:
     employee   = context.user_data.get("employee_name")
     year       = context.user_data.get("selected_year")
@@ -257,6 +260,7 @@ async def show_bonusmsg_months(update: Update, context: CallbackContext) -> None
     await msg.reply_text("або поверніться:", reply_markup=_NAV_KB)
 
 
+@with_typing_action
 async def send_bonuses_message(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     year = context.user_data.get("selected_year")
@@ -311,6 +315,7 @@ async def show_bonuses_months(update: Update, context: CallbackContext) -> None:
     await msg.reply_text("або поверніться:", reply_markup=_NAV_KB)
 
 
+@with_typing_action
 async def send_bonuses_excel(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     nice = display_name(employee)
@@ -398,6 +403,7 @@ async def show_salary_months(update: Update, context: CallbackContext) -> None:
     await msg.reply_text("або поверніться:", reply_markup=_NAV_KB)
 
 
+@with_typing_action
 async def show_salary_details(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     nice = display_name(employee)

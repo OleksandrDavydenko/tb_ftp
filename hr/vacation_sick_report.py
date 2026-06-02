@@ -14,6 +14,7 @@ from telegram.ext import CallbackContext
 
 from auth import get_power_bi_token
 from utils.name_aliases import display_name
+from utils.thinking import with_typing_action
 from .workdays_query import (
     _get_employee_periods_cached,
     _extract_year_month,
@@ -261,6 +262,7 @@ async def show_vacation_sick_years(update: Update, context: CallbackContext) -> 
     await update.effective_message.reply_text("або поверніться:", reply_markup=nav_kb)
 
 
+@with_typing_action
 async def show_vacation_sick_report(update: Update, context: CallbackContext) -> None:
     year_str = str(context.user_data.get("selected_year", ""))
     try:

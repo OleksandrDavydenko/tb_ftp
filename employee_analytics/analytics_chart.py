@@ -10,6 +10,7 @@ from datetime import datetime
 import pytz
 
 from utils.name_aliases import display_name
+from utils.thinking import with_typing_action
 
 MONTHS_UA_SHORT = ["Січ","Лют","Бер","Кві","Тра","Чер","Лип","Сер","Вер","Жов","Лис","Гру"]
 
@@ -17,6 +18,7 @@ MONTHS_UA_SHORT = ["Січ","Лют","Бер","Кві","Тра","Чер","Лип
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Функція для побудови річного графіка за обраним параметром
+@with_typing_action
 async def show_yearly_chart_for_parameter(update: Update, context: CallbackContext, employee_name: str, year: str, parameter: str):
     # Повідомлення користувачу про очікування
     await update.effective_message.reply_text("Зачекайте, будь ласка. Це може зайняти деякий час...")
@@ -104,6 +106,7 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
     logging.info(f"Графік {parameter.lower()} для {employee_name} за {year} рік відображено.")
 
 
+@with_typing_action
 async def show_yearly_dashboard(update: Update, context: CallbackContext, employee_name: str, year: str):
     """Composite yearly dashboard: KPI row + bar/margin combo chart + insights."""
     await update.effective_message.reply_text("Зачекайте, будь ласка. Це може зайняти деякий час...")

@@ -7,8 +7,10 @@ import logging
 from datetime import datetime, date
 
 from utils.name_aliases import display_name
+from utils.thinking import with_typing_action
 
 
+@with_typing_action
 async def show_vacation_balance(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'vacation_balance'
     employee_name = context.user_data.get('employee_name')

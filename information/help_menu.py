@@ -2,6 +2,7 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import CallbackContext
 from db import get_latest_currency_rates
 from information.devaluation_query import fetch_devaluation_data
+from utils.thinking import with_typing_action
 
 async def show_help_menu(update: Update, context: CallbackContext) -> None:
     """
@@ -23,6 +24,7 @@ async def show_help_menu(update: Update, context: CallbackContext) -> None:
 
     await update.message.reply_text("ℹ️ Довідкова інформація:", reply_markup=reply_markup)
 
+@with_typing_action
 async def show_currency_rates(update: Update, context: CallbackContext) -> None:
     """
     Отримує та відображає останні курси валют з бази даних.
@@ -52,6 +54,7 @@ async def show_currency_rates(update: Update, context: CallbackContext) -> None:
 
 
 
+@with_typing_action
 async def show_devaluation_data(update, context):
 
     context.user_data['menu'] = 'devaluation_data'  # Зберігаємо стан меню

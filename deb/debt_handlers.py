@@ -6,6 +6,7 @@ from .generate_debt_graph import generate_debt_graph
 from .generate_pie_chart import generate_pie_chart
 from messages.weekly_overdue_debts import send_overdue_debts_by_request  # Імпорт функції для конкретного користувача
 from utils.name_aliases import display_name
+from utils.thinking import with_typing_action
 
 
 TEMP_DIR = 'temp'
@@ -45,6 +46,7 @@ async def show_debt_options(update: Update, context: CallbackContext) -> None:
 
 
 # Обробка натискання кнопки "Протермінована дебіторська заборгованість"
+@with_typing_action
 async def handle_overdue_debt(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'overdue_debt'  # Встановлюємо стан меню
 
@@ -95,6 +97,7 @@ def fmt(n: float) -> str:
     """Форматує число як 252 256.65 (пробіл між тисячами)."""
     return f"{n:,.2f}".replace(",", " ").replace("\xa0", " ")
 
+@with_typing_action
 async def show_debt_details(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'debt_details'
     phone_number = context.user_data['phone_number']
@@ -177,6 +180,7 @@ async def show_debt_details(update: Update, context: CallbackContext) -> None:
 
 
 # Функція для показу гістограми
+@with_typing_action
 async def show_debt_histogram(update: Update, context: CallbackContext):
     context.user_data['menu'] = 'debt_histogram'
     phone_number = context.user_data['phone_number']
@@ -214,6 +218,7 @@ async def show_debt_histogram(update: Update, context: CallbackContext):
     
 
 # Функція для показу секторної діаграми
+@with_typing_action
 async def show_debt_pie_chart(update: Update, context: CallbackContext):
     context.user_data['menu'] = 'debt_pie_chart'
     phone_number = context.user_data['phone_number']
