@@ -35,6 +35,9 @@ MONTHS_UA = {
     "09": "Вересень", "10": "Жовтень", "11": "Листопад", "12": "Грудень"
 }
 
+def _fmt_amount(amount: float) -> str:
+    return f"{amount:,.2f}".replace(",", " ")
+
 def _format_month(raw_month: str) -> str:
     # Підтримуємо 'YYYY-MM-DD' і 'YYYY-MM'
     for fmt in ("%Y-%m-%d", "%Y-%m"):
@@ -215,13 +218,13 @@ async def _send_notification_with_type(telegram_id, amounts_by_type_and_month, t
         lines = []
         total_amount = 0.0
         for m, amt in months_map.items():
-            lines.append(f"• {_format_month(m)} – {amt:.2f} {currency}")
+            lines.append(f"• {_format_month(m)}: {_fmt_amount(amt)} {currency}")
             total_amount += amt
 
         body = (
             f"{kind_line}\n"
             f"📅 *Періоди та суми:*\n" + "\n".join(lines) +
-            f"\n\n💰 *Загальна сума:* {total_amount:.2f} {currency}"
+            f"\n\n💰 *Загальна сума:* {_fmt_amount(total_amount)} {currency}"
         )
         msg = header + "\n" + body
     else:
@@ -234,10 +237,10 @@ async def _send_notification_with_type(telegram_id, amounts_by_type_and_month, t
             if not months_map:
                 continue
             title = f"— *{TYPE_UA.get(t, t.capitalize())}* —"
-            lines = [f"• {_format_month(m)} – {amt:.2f} {currency}" for m, amt in months_map.items()]
+            lines = [f"• {_format_month(m)}: {_fmt_amount(amt)} {currency}" for m, amt in months_map.items()]
             subtotal = sum(months_map.values())
             grand_total += subtotal
-            sections.append(f"{title}\n" + "\n".join(lines) + f"\n_Разом по {TYPE_UA.get(t, t)}:_ *{subtotal:.2f} {currency}*")
+            sections.append(f"{title}\n" + "\n".join(lines) + f"\n_Разом по {TYPE_UA.get(t, t)}:_ *{_fmt_amount(subtotal)} {currency}*")
 
         if not sections:
             # На випадок, якщо типів немає (усі пусті) — відправляємо технічний заголовок
@@ -246,7 +249,7 @@ async def _send_notification_with_type(telegram_id, amounts_by_type_and_month, t
         body = (
             "🏷️ У документі є кілька типів виплат.\n\n" +
             "\n\n".join(sections) +
-            f"\n\n💰 *Загальна сума по документу:* {grand_total:.2f} {currency}"
+            f"\n\n💰 *Загальна сума по документу:* {_fmt_amount(grand_total)} {currency}"
         )
         msg = header + "\n" + body
 
@@ -270,7 +273,7 @@ async def _send_notification_simple(telegram_id, amounts_by_month, currency, pay
         except ValueError:
             formatted_periods[raw_month] = amount
 
-    details = "\n".join([f"• {month} – {amount:.2f} {currency}" for month, amount in formatted_periods.items()])
+    details = "\n".join([f"• {month}: {_fmt_amount(amount)} {currency}" for month, amount in formatted_periods.items()])
     total_amount = sum(amounts_by_month.values())
     formatted_date = payment_date.strftime('%d.%m.%Y')
 
@@ -279,7 +282,7 @@ async def _send_notification_simple(telegram_id, amounts_by_month, currency, pay
         f"📄 *Документ №:* {payment_number} від {formatted_date}\n\n"
         f"📅 *Періоди та суми:*\n"
         f"{details}\n\n"
-        f"💰 *Загальна сума:* {total_amount:.2f} {currency}"
+        f"💰 *Загальна сума:* {_fmt_amount(total_amount)} {currency}"
     )
 
     try:
