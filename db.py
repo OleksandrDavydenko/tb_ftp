@@ -25,8 +25,20 @@ def create_tables():
         telegram_name VARCHAR(50),
         employee_name VARCHAR(50),
         joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        status VARCHAR(20) DEFAULT 'active'
+        status VARCHAR(20) DEFAULT 'active',
+        is_blocked BOOLEAN DEFAULT FALSE
     )
+    """)
+    cursor.execute("""
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name='users' AND column_name='is_blocked'
+        ) THEN
+            ALTER TABLE users ADD COLUMN is_blocked BOOLEAN DEFAULT FALSE;
+        END IF;
+    END$$;
     """)
 
     # Створюємо таблицю виплат

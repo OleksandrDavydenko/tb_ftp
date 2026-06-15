@@ -4,6 +4,7 @@ import logging
 import requests
 from collections import defaultdict
 from telegram import Bot
+from telegram.error import Forbidden
 from datetime import datetime
 from auth import get_power_bi_token  # <-- додаємо токен для PBI
 
@@ -167,7 +168,7 @@ async def check_new_payments():
                 total_by_type[pay_type] += amt
 
             # Якщо Power BI дав нам хоч щось — відправляємо “розумне” повідомлення з типом
-            await _send_notification_with_type(
+            blocked = await _send_notification_with_type(
                 telegram_id=telegram_id,
                 amounts_by_type_and_month=amounts_by_type_and_month,
                 total_by_type=total_by_type,
@@ -181,7 +182,7 @@ async def check_new_payments():
             for p in payments:
                 accrual_month = p[5]
                 amounts_by_month[accrual_month] += float(p[1])
-            await _send_notification_simple(
+            blocked = await _send_notification_simple(
                 telegram_id=telegram_id,
                 amounts_by_month=amounts_by_month,
                 currency=currency,
@@ -195,6 +196,12 @@ async def check_new_payments():
         SET is_notified = TRUE
         WHERE payment_number = %s AND phone_number = %s
         """, (payment_number, phone_number))
+
+        # Оновлюємо ознаку блокування бота користувачем за результатом відправки
+        cursor.execute(
+            "UPDATE users SET is_blocked = %s WHERE telegram_id = %s",
+            (blocked, telegram_id)
+        )
 
     conn.commit()
     cursor.close()
@@ -256,8 +263,13 @@ async def _send_notification_with_type(telegram_id, amounts_by_type_and_month, t
     try:
         await bot.send_message(chat_id=telegram_id, text=msg, parse_mode="Markdown")
         logging.info(f"Сповіщення (з типом) відправлено: {msg}")
+        return False            # доставлено — не заблоковано
+    except Forbidden:
+        logging.warning(f"Користувач {telegram_id} заблокував бота.")
+        return True             # заблоковано
     except Exception as e:
         logging.error(f"Помилка при відправці сповіщення: {e}")
+        return False            # інша помилка — статус блокування не змінюємо на True
 
 async def _send_notification_simple(telegram_id, amounts_by_month, currency, payment_number, payment_date):
     """Fallback-повідомлення без типів (як було раніше)."""
@@ -288,5 +300,10 @@ async def _send_notification_simple(telegram_id, amounts_by_month, currency, pay
     try:
         await bot.send_message(chat_id=telegram_id, text=message, parse_mode="Markdown")
         logging.info(f"Сповіщення (fallback) відправлено: {message}")
+        return False            # доставлено — не заблоковано
+    except Forbidden:
+        logging.warning(f"Користувач {telegram_id} заблокував бота.")
+        return True             # заблоковано
     except Exception as e:
         logging.error(f"Помилка при відправці сповіщення: {e}")
+        return False            # інша помилка — статус блокування не змінюємо на True
