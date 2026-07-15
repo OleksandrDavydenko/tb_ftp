@@ -14,11 +14,12 @@ async def show_help_menu(update: Update, context: CallbackContext) -> None:
     devaluation_button = KeyboardButton("Перевірка девальвації")
     guide_button = KeyboardButton("📘 Довідка")
     changelog_button = KeyboardButton(text="🧾 Опис змін")
+    idea_bounty_button = KeyboardButton("💡 Нові ідеї")
     bug_bounty_button = KeyboardButton("🐞 Bug Bounty")
     main_menu_button = KeyboardButton("Головне меню")
 
     reply_markup = ReplyKeyboardMarkup(
-        [[currency_button, devaluation_button], [guide_button, changelog_button], [bug_bounty_button, main_menu_button]],
+        [[currency_button, devaluation_button], [guide_button, changelog_button], [idea_bounty_button, bug_bounty_button], [main_menu_button]],
         one_time_keyboard=True,
         resize_keyboard=True
     )
