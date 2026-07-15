@@ -70,6 +70,7 @@ from hr.vacation_sick_report import show_vacation_sick_years, show_vacation_sick
 from information.help_menu import show_help_menu, show_currency_rates, show_devaluation_data
 from information.changelog import show_changelog
 from information.user_guide import show_user_guide
+from information.bug_bounty import show_bug_bounty
 from messages.weekly_overdue_debts import check_overdue_debts
 from sync_status import sync_user_statuses
 from messages.sync_bonus_docs import sync_bonus_docs
@@ -340,6 +341,8 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
             await show_user_guide(update, context)
         elif text == "🧾 Опис змін":
             await show_changelog(update, context)
+        elif text == "🐞 Bug Bounty":
+            await show_bug_bounty(update, context)
 
         # 🔹 Підменю дебіторки
         elif text == "Таблиця":
@@ -562,7 +565,7 @@ async def handle_back_navigation(update: Update, context: CallbackContext) -> No
         await show_debt_options(update, context)
 
     # Довідкова інформація
-    elif menu in ['currency_rates', 'user_guide', 'changelog', 'help_menu', 'devaluation_data']:
+    elif menu in ['currency_rates', 'user_guide', 'changelog', 'help_menu', 'devaluation_data', 'bug_bounty']:
         await show_help_menu(update, context)
 
     # Кадровий облік
@@ -768,7 +771,7 @@ def main():
 
     app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     
-    app.add_handler(MessageHandler(filters.Regex("^(📉 Дебіторка (AR)|Назад|Таблиця|Гістограма|Діаграма|💼 Зарплата|💼 Оклад|🎁 Відомість Бонуси|ℹ️ Інформація|💱 Курс валют|Перевірка девальвації|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|2026|2027|2028|2029|2030|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод|Протермінована дебіторська заборгованість|📘 Довідка|💰 Бонуси|👑 Премії керівників|🧾 Кадровий облік|🗓 Залишки відпусток|👔 Інформація про стаж|🕓 Відпрацьовані дні|📜 Відомість керівника|🧾 Опис змін|📊 Звіт відпусток та лікарняних)$"), handle_main_menu))
+    app.add_handler(MessageHandler(filters.Regex("^(📉 Дебіторка (AR)|Назад|Таблиця|Гістограма|Діаграма|💼 Зарплата|💼 Оклад|🎁 Відомість Бонуси|ℹ️ Інформація|💱 Курс валют|Перевірка девальвації|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|2026|2027|2028|2029|2030|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод|Протермінована дебіторська заборгованість|📘 Довідка|💰 Бонуси|👑 Премії керівників|🧾 Кадровий облік|🗓 Залишки відпусток|👔 Інформація про стаж|🕓 Відпрацьовані дні|📜 Відомість керівника|🧾 Опис змін|📊 Звіт відпусток та лікарняних|🐞 Bug Bounty)$"), handle_main_menu))
 
     #app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_main_menu))
 
