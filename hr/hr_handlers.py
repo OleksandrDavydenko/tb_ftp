@@ -8,7 +8,7 @@ from .tenure_info import show_tenure_info
 async def show_hr_menu(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'hr_main'
     keyboard = [
-        [KeyboardButton("🗓 Залишки"), KeyboardButton("🕓 Відпрацьовано")],
+        [KeyboardButton("🗓 Залишки відпусток"), KeyboardButton("🕓 Відпрацьовано")],
         [KeyboardButton("👔 Стаж"), KeyboardButton("📊 Звіт В/Л")],
         [KeyboardButton("Головне меню")]
     ]
