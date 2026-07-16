@@ -8,10 +8,8 @@ from .tenure_info import show_tenure_info
 async def show_hr_menu(update: Update, context: CallbackContext) -> None:
     context.user_data['menu'] = 'hr_main'
     keyboard = [
-        [KeyboardButton("🗓 Залишки відпусток")],
-        [KeyboardButton("🕓 Відпрацьовані дні")],
-        [KeyboardButton("👔 Інформація про стаж")],
-        [KeyboardButton("📊 Звіт відпусток та лікарняних")],
+        [KeyboardButton("🗓 Залишки"), KeyboardButton("🕓 Відпрацьовано")],
+        [KeyboardButton("👔 Стаж"), KeyboardButton("📊 Звіт В/Л")],
         [KeyboardButton("Головне меню")]
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
