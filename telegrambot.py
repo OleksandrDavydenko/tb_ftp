@@ -702,7 +702,7 @@ def main():
         store_exchange_rates,
         'cron',
         hour=10,
-        minute=55,
+        minute=5,
         timezone=kyiv_timezone,
         id='daily_exchange_rates',
     )
@@ -726,8 +726,8 @@ def main():
     scheduler.add_job(
        send_message_to_users,
        'cron',
-       hour=10,
-       minute=36,
+       hour=11,
+       minute=00,
        timezone=kyiv_timezone
    )
 
