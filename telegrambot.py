@@ -42,6 +42,7 @@ from messages.work_anniversary_greetings import send_work_anniversary_greetings
 #from messages.oneTimeMessages.update16 import send_message_to_users
 #from messages.oneTimeMessages.update17 import send_message_to_users
 #from messages.oneTimeMessages.update18 import send_message_to_users
+from messages.oneTimeMessages.update19 import send_message_to_users
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart, handle_overdue_debt
@@ -722,13 +723,13 @@ def main():
 
     
     
-#    scheduler.add_job(
-#       send_message_to_users,
-#       'cron',
-#       hour=15,
-#       minute=55,
-#       timezone=kyiv_timezone
-#   )
+    scheduler.add_job(
+       send_message_to_users,
+       'cron',
+       hour=10,
+       minute=36,
+       timezone=kyiv_timezone
+   )
 
 
     scheduler.add_job(
