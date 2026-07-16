@@ -148,7 +148,7 @@ async def start(update: Update, context: CallbackContext) -> None:
 async def prompt_for_phone_number(update: Update, context: CallbackContext) -> None:
     logging.info(f"[AUTH] Користувача не знайдено. Просимо поділитися номером. Telegram ID: {update.message.from_user.id}")
     contact_button = KeyboardButton(text="Поділитися номером телефоном", request_contact=True)
-    reply_markup = ReplyKeyboardMarkup([[contact_button]], one_time_keyboard=True)
+    reply_markup = ReplyKeyboardMarkup([[contact_button]], one_time_keyboard=True, resize_keyboard=True)
     await update.message.reply_text(
         "Будь ласка, поділіться своїм номером телефону, натиснувши кнопку 'Поділитися номером телефоном' нижче.",
         reply_markup=reply_markup
@@ -643,7 +643,7 @@ async def show_parameter_selection(update: Update, context: CallbackContext) -> 
         [KeyboardButton("Кількість угод")],
         [KeyboardButton("Назад")]
     ]
-    reply_markup = ReplyKeyboardMarkup(parameter_buttons, one_time_keyboard=True)
+    reply_markup = ReplyKeyboardMarkup(parameter_buttons, one_time_keyboard=True, resize_keyboard=True)
     await update.message.reply_text("Оберіть параметр для відображення графіка:", reply_markup=reply_markup)
     context.user_data['menu'] = 'parameter_selection'
 

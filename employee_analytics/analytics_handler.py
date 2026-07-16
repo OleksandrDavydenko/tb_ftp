@@ -19,7 +19,7 @@ async def show_analytics_options(update: Update, context: CallbackContext) -> No
         [KeyboardButton("Аналітика за місяць"), KeyboardButton("Аналітика за рік")],
         [KeyboardButton("Головне меню")]
     ]
-    reply_markup = ReplyKeyboardMarkup(options_keyboard, one_time_keyboard=True)
+    reply_markup = ReplyKeyboardMarkup(options_keyboard, one_time_keyboard=True, resize_keyboard=True)
     await update.message.reply_text("Оберіть тип аналітики:", reply_markup=reply_markup)
 
 # Відображення років для аналітики
@@ -105,7 +105,7 @@ async def show_yearly_parameters(update: Update, context: CallbackContext) -> No
         [KeyboardButton("Дохід"), KeyboardButton("Валовий прибуток"), KeyboardButton("Маржинальність"), KeyboardButton("Кількість угод")],
         [KeyboardButton("Назад"), KeyboardButton("Головне меню")]
     ]
-    reply_markup = ReplyKeyboardMarkup(parameter_keyboard, one_time_keyboard=True)
+    reply_markup = ReplyKeyboardMarkup(parameter_keyboard, one_time_keyboard=True, resize_keyboard=True)
     context.user_data['menu'] = 'analytics_parameters'
     await update.message.reply_text("Оберіть параметр для аналізу:", reply_markup=reply_markup)
 
