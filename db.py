@@ -151,6 +151,25 @@ def create_tables():
     ON bonus_docs (doc_number)
     """)
 
+    # Таблиця SWIFT-платежів (дані з PBI-таблиці telegram_swift_payment_info)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS swift_payments (
+        doc_number      VARCHAR(50)  NOT NULL,
+        doc_date        TIMESTAMP    NOT NULL,
+        currency        VARCHAR(20),
+        amount_currency NUMERIC(18,2),
+        amount_usd      NUMERIC(18,2),
+        counterparty    TEXT,
+        payment_type    TEXT,
+        account_code    VARCHAR(20),
+        has_swift       VARCHAR(5),
+        employee_name   TEXT,
+        is_notified     BOOLEAN      NOT NULL DEFAULT FALSE,
+        created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (doc_number, doc_date)
+    )
+    """)
+
     
 
 
@@ -660,6 +679,98 @@ def mark_bonus_docs_notified(doc_numbers):
             WHERE doc_number = ANY(%s) AND is_notified = FALSE
         """, (list(doc_numbers),))
         affected = cursor.rowcount
+        conn.commit()
+        return affected
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_existing_swift_payment_keys():
+    """
+    Повертає set ключів (doc_number, doc_date у форматі 'YYYY-MM-DDTHH:MM:SS')
+    для всіх записів у swift_payments.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT doc_number, doc_date FROM swift_payments")
+        return {(r[0], r[1].strftime("%Y-%m-%dT%H:%M:%S")) for r in cursor.fetchall()}
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def bulk_add_swift_payments(rows):
+    """
+    Додає нові SWIFT-платежі. Кожен елемент rows — кортеж:
+    (doc_number, doc_date, currency, amount_currency, amount_usd,
+     counterparty, payment_type, account_code, has_swift, employee_name).
+    Використовує ON CONFLICT (doc_number, doc_date) DO NOTHING.
+    """
+    if not rows:
+        return 0
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        args_str = ",".join(
+            cursor.mogrify("(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,FALSE)", r).decode("utf-8")
+            for r in rows
+        )
+        cursor.execute(f"""
+            INSERT INTO swift_payments (
+                doc_number, doc_date, currency, amount_currency, amount_usd,
+                counterparty, payment_type, account_code, has_swift, employee_name,
+                is_notified
+            )
+            VALUES {args_str}
+            ON CONFLICT (doc_number, doc_date) DO NOTHING
+        """)
+        inserted = cursor.rowcount
+        conn.commit()
+        return inserted
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_unnotified_swift_payments():
+    """
+    Повертає список невідправлених SWIFT-платежів (is_notified = FALSE).
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT doc_number, doc_date, currency, amount_currency, amount_usd,
+                   counterparty, payment_type, account_code, has_swift, employee_name
+            FROM swift_payments
+            WHERE is_notified = FALSE
+            ORDER BY doc_date
+        """)
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def mark_swift_payments_notified(keys):
+    """
+    Встановлює is_notified = TRUE для вказаних ключів (doc_number, doc_date).
+    """
+    if not keys:
+        return 0
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        affected = 0
+        for doc_number, doc_date in keys:
+            cursor.execute("""
+                UPDATE swift_payments
+                SET is_notified = TRUE
+                WHERE doc_number = %s AND doc_date = %s AND is_notified = FALSE
+            """, (doc_number, doc_date))
+            affected += cursor.rowcount
         conn.commit()
         return affected
     finally:
