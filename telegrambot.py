@@ -77,6 +77,8 @@ from messages.weekly_overdue_debts import check_overdue_debts
 from sync_status import sync_user_statuses
 from messages.sync_bonus_docs import sync_bonus_docs
 from messages.check_bonus_docs import check_bonus_docs
+from messages.sync_swift_payments import sync_swift_payments
+from messages.check_swift_payments import check_swift_payments
 
 from utils.name_aliases import display_name
 from utils.menu_access import get_menu_access
@@ -748,6 +750,10 @@ def main():
     # Синхронізація бонусних документів і перевірка нових документів
     scheduler.add_job(sync_bonus_docs, 'interval', minutes=12)
     scheduler.add_job(check_bonus_docs, 'interval', minutes=14)
+
+    # Синхронізація SWIFT-платежів і відправка повідомлень про нові платежі
+    scheduler.add_job(sync_swift_payments, 'interval', minutes=12)
+    scheduler.add_job(check_swift_payments, 'interval', minutes=14)
     ################################################################################
 
 
