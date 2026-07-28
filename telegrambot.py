@@ -753,7 +753,7 @@ def main():
 
     # Синхронізація SWIFT-платежів і відправка повідомлень про нові платежі
     scheduler.add_job(sync_swift_payments, 'interval', minutes=6)
-    scheduler.add_job(check_swift_payments, 'interval', minutes=8)
+    #scheduler.add_job(check_swift_payments, 'interval', minutes=8)
     ################################################################################
 
 
