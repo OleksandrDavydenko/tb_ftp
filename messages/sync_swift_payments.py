@@ -48,6 +48,7 @@ def _normalize_date(d):
 async def sync_swift_payments():
     token = get_power_bi_token()
     if not token:
+        print("❌ SWIFT sync: не вдалося отримати токен Power BI")
         return
 
     url = f"https://api.powerbi.com/v1.0/myorg/datasets/{DATASET_ID}/executeQueries"
@@ -56,25 +57,31 @@ async def sync_swift_payments():
 
     r = requests.post(url, headers=headers, json=payload, timeout=60)
     if r.status_code != 200:
-        print(f"❌ SWIFT sync: Power BI повернув статус {r.status_code}")
+        print(f"❌ SWIFT sync: Power BI повернув статус {r.status_code}: {r.text[:300]}")
         return
 
     data = r.json()
     rows = data["results"][0]["tables"][0].get("rows", [])
+    print(f"📥 SWIFT sync: Power BI повернув {len(rows)} рядк(ів)")
 
-    # існуючі ключі (doc_number, doc_date) у БД
+    # існуючі ключі (doc_number, has_swift, employee) у БД
     existing = get_existing_swift_payment_keys()
 
+    skipped_no_key = 0   # немає номера/дати документа
+    skipped_old = 0      # дата раніше SYNC_START_DATE
+    skipped_exist = 0    # вже є в БД
     to_insert = []
     for row in rows:
         values = {col: _get(row, col) for col in COLUMNS}
         doc_number = values["DocumentNumber"]
         doc_date = _normalize_date(values["DocumentDate"])
         if not doc_number or not doc_date:
+            skipped_no_key += 1
             continue
 
         # захисний фільтр: не беремо документи, старіші за дату старту
         if doc_date[:10] < SYNC_START_DATE:
+            skipped_old += 1
             continue
 
         has_swift = values["HasSwift"]
@@ -89,6 +96,7 @@ async def sync_swift_payments():
             (employee or ""),
         )
         if key in existing:
+            skipped_exist += 1
             continue
 
         to_insert.append((
@@ -103,6 +111,12 @@ async def sync_swift_payments():
             has_swift,
             employee,
         ))
+
+    print(
+        f"🔎 SWIFT sync: до вставки {len(to_insert)}; "
+        f"пропущено: без ключа={skipped_no_key}, стара дата={skipped_old}, "
+        f"вже в БД={skipped_exist}; всього в БД було {len(existing)} ключ(ів)"
+    )
 
     if not to_insert:
         return
