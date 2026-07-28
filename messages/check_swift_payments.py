@@ -106,7 +106,7 @@ def check_swift_payments():
                 seen_ids.add(tg_id)
 
         if sent_any:
-            docs_to_mark.append((doc_number, doc_date))
+            docs_to_mark.append((doc_number, doc_date, has_swift, employee_name))
 
     if docs_to_mark:
         mark_swift_payments_notified(docs_to_mark)

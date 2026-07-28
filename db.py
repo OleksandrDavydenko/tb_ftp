@@ -170,6 +170,42 @@ def create_tables():
     )
     """)
 
+    # Міграція: дедуплікація за (doc_number, has_swift, employee_name) — БЕЗ doc_date.
+    # Поява SWIFT або зміна відповідального -> новий запис (і нова нотифікація),
+    # а редагування лише дати документа НЕ створює нового запису й не шле повторно.
+    cursor.execute("""
+    DO $$
+    BEGIN
+        -- прибираємо старий первинний ключ (doc_number, doc_date)
+        IF EXISTS (
+            SELECT 1 FROM pg_constraint WHERE conname = 'swift_payments_pkey'
+        ) THEN
+            ALTER TABLE swift_payments DROP CONSTRAINT swift_payments_pkey;
+        END IF;
+
+        -- прибираємо попередній варіант індексу, що включав doc_date
+        DROP INDEX IF EXISTS ux_swift_payments_key;
+
+        -- створюємо новий унікальний ключ лише один раз
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_class WHERE relname = 'ux_swift_payments_dedup'
+        ) THEN
+            -- захисна де-дуплікація існуючих даних (лишаємо одну фіз. копію на ключ)
+            DELETE FROM swift_payments a
+            USING swift_payments b
+            WHERE a.ctid > b.ctid
+              AND a.doc_number = b.doc_number
+              AND COALESCE(a.has_swift, '') = COALESCE(b.has_swift, '')
+              AND COALESCE(a.employee_name, '') = COALESCE(b.employee_name, '');
+
+            CREATE UNIQUE INDEX ux_swift_payments_dedup
+            ON swift_payments (
+                doc_number, COALESCE(has_swift, ''), COALESCE(employee_name, '')
+            );
+        END IF;
+    END$$;
+    """)
+
     
 
 
@@ -688,14 +724,20 @@ def mark_bonus_docs_notified(doc_numbers):
 
 def get_existing_swift_payment_keys():
     """
-    Повертає set ключів (doc_number, doc_date у форматі 'YYYY-MM-DDTHH:MM:SS')
-    для всіх записів у swift_payments.
+    Повертає set ключів для всіх записів у swift_payments у форматі
+    (doc_number, has_swift, employee_name) — БЕЗ doc_date, бо дату документа
+    можуть редагувати, і це не має створювати новий запис/повторну нотифікацію.
+    has_swift/employee_name нормалізовані (None -> '', з обрізанням пробілів),
+    щоб збігатися з ключем, який будує синхронізація.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT doc_number, doc_date FROM swift_payments")
-        return {(r[0], r[1].strftime("%Y-%m-%dT%H:%M:%S")) for r in cursor.fetchall()}
+        cursor.execute("SELECT doc_number, has_swift, employee_name FROM swift_payments")
+        return {
+            (r[0], (r[1] or "").strip(), (r[2] or "").strip())
+            for r in cursor.fetchall()
+        }
     finally:
         cursor.close()
         conn.close()
@@ -706,7 +748,9 @@ def bulk_add_swift_payments(rows):
     Додає нові SWIFT-платежі. Кожен елемент rows — кортеж:
     (doc_number, doc_date, currency, amount_currency, amount_usd,
      counterparty, payment_type, account_code, has_swift, employee_name).
-    Використовує ON CONFLICT (doc_number, doc_date) DO NOTHING.
+    Дедуплікація за (doc_number, has_swift, employee_name):
+    поява SWIFT або зміна відповідального дають новий запис,
+    а редагування лише дати документа — ні.
     """
     if not rows:
         return 0
@@ -724,7 +768,8 @@ def bulk_add_swift_payments(rows):
                 is_notified
             )
             VALUES {args_str}
-            ON CONFLICT (doc_number, doc_date) DO NOTHING
+            ON CONFLICT (doc_number, COALESCE(has_swift, ''), COALESCE(employee_name, ''))
+            DO NOTHING
         """)
         inserted = cursor.rowcount
         conn.commit()
@@ -756,7 +801,10 @@ def get_unnotified_swift_payments():
 
 def mark_swift_payments_notified(keys):
     """
-    Встановлює is_notified = TRUE для вказаних ключів (doc_number, doc_date).
+    Встановлює is_notified = TRUE для вказаних ключів
+    (doc_number, doc_date, has_swift, employee_name). has_swift/employee_name
+    входять у ключ, бо один документ може мати кілька рядків (списання / поява
+    SWIFT / інший відповідальний), і позначати треба саме конкретний рядок.
     """
     if not keys:
         return 0
@@ -764,12 +812,15 @@ def mark_swift_payments_notified(keys):
     cursor = conn.cursor()
     try:
         affected = 0
-        for doc_number, doc_date in keys:
+        for doc_number, doc_date, has_swift, employee_name in keys:
             cursor.execute("""
                 UPDATE swift_payments
                 SET is_notified = TRUE
-                WHERE doc_number = %s AND doc_date = %s AND is_notified = FALSE
-            """, (doc_number, doc_date))
+                WHERE doc_number = %s AND doc_date = %s
+                  AND COALESCE(has_swift, '') = COALESCE(%s, '')
+                  AND COALESCE(employee_name, '') = COALESCE(%s, '')
+                  AND is_notified = FALSE
+            """, (doc_number, doc_date, has_swift, employee_name))
             affected += cursor.rowcount
         conn.commit()
         return affected

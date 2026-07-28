@@ -77,7 +77,17 @@ async def sync_swift_payments():
         if doc_date[:10] < SYNC_START_DATE:
             continue
 
-        key = (str(doc_number), doc_date)
+        has_swift = values["HasSwift"]
+        employee = str(values["Employee"]).strip() if values["Employee"] else None
+
+        # Ключ дедуплікації: (doc_number, has_swift, employee) — БЕЗ doc_date.
+        # Поява SWIFT або зміна відповідального -> новий ключ -> новий запис ->
+        # нова нотифікація; редагування лише дати документа нічого не змінює.
+        key = (
+            str(doc_number),
+            (str(has_swift).strip() if has_swift is not None else ""),
+            (employee or ""),
+        )
         if key in existing:
             continue
 
@@ -90,8 +100,8 @@ async def sync_swift_payments():
             values["Counterparty"],
             values["PaymentType"],
             values["AccountInLocalCurrency"],
-            values["HasSwift"],
-            str(values["Employee"]).strip() if values["Employee"] else None,
+            has_swift,
+            employee,
         ))
 
     if not to_insert:
