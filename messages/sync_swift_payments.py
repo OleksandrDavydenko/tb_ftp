@@ -5,8 +5,15 @@ from db import bulk_add_swift_payments, get_existing_swift_payment_keys
 
 DATASET_ID = os.getenv("PBI_DATASET_ID", "8b80be15-7b31-49e4-bc85-8b37a0d98f1c")
 
+# Синхронізуємо і відправляємо лише платежі, створені починаючи з цієї дати
+SYNC_START_DATE = "2026-07-28"
+
 DAX_QUERY = """
-EVALUATE 'telegram_swift_payment_info'
+EVALUATE
+FILTER(
+    'telegram_swift_payment_info',
+    'telegram_swift_payment_info'[DocumentDate] >= DATE(2026, 7, 28)
+)
 """
 
 # Назви колонок у PBI-таблиці telegram_swift_payment_info
@@ -64,6 +71,10 @@ async def sync_swift_payments():
         doc_number = values["DocumentNumber"]
         doc_date = _normalize_date(values["DocumentDate"])
         if not doc_number or not doc_date:
+            continue
+
+        # захисний фільтр: не беремо документи, старіші за дату старту
+        if doc_date[:10] < SYNC_START_DATE:
             continue
 
         key = (str(doc_number), doc_date)
