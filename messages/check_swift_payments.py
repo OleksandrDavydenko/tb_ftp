@@ -77,13 +77,17 @@ def check_swift_payments():
         amount_str = f"{_fmt_amount(amount_currency)} {currency or ''}".strip()
         comment_str = _fmt_comment(comment)
 
+        # Якщо валюта вже USD — не дублюємо приблизний еквівалент у USD
+        is_usd = str(currency or "").strip().upper() == "USD"
+        usd_str = "" if is_usd else f" (≈{_fmt_amount(amount_usd)} USD)"
+
         if _is_true(has_swift):
             # У платіжного доручення з'явився SWIFT
             msg = (
                 "📄 До платіжного доручення з'явився <b>SWIFT</b>:\n"
                 f"• Платіжка: <b>{doc_number}</b> від <b>{date_str}</b>\n"
                 f"• Контрагент: <b>{counterparty or '—'}</b>\n"
-                f"• Сума: <b>{amount_str}</b> (≈{_fmt_amount(amount_usd)} USD)\n"
+                f"• Сума: <b>{amount_str}</b>{usd_str}\n"
                 f"• Коментар: {comment_str}\n"
                 f"• Відповідальний: {employee_name or '—'}"
             )
@@ -93,7 +97,7 @@ def check_swift_payments():
                 f"💸 Списання коштів у <b>{currency or '—'}</b>:\n"
                 f"• Платіжка: <b>{doc_number}</b> від <b>{date_str}</b>\n"
                 f"• Контрагент: <b>{counterparty or '—'}</b>\n"
-                f"• Сума: <b>{amount_str}</b> (≈{_fmt_amount(amount_usd)} USD)\n"
+                f"• Сума: <b>{amount_str}</b>{usd_str}\n"
                 f"• Відповідальний: {employee_name or '—'}\n"
                 f"• Коментар: {comment_str}"
                 
