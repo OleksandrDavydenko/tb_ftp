@@ -94,8 +94,9 @@ def check_swift_payments():
                 f"• Платіжка: <b>{doc_number}</b> від <b>{date_str}</b>\n"
                 f"• Контрагент: <b>{counterparty or '—'}</b>\n"
                 f"• Сума: <b>{amount_str}</b> (≈{_fmt_amount(amount_usd)} USD)\n"
-                f"• Коментар: {comment_str}\n"
-                f"• Відповідальний: {employee_name or '—'}"
+                f"• Відповідальний: {employee_name or '—'}\n"
+                f"• Коментар: {comment_str}"
+                
             )
 
         sent_any = False
