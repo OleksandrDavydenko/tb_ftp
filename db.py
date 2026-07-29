@@ -164,11 +164,15 @@ def create_tables():
         account_code    VARCHAR(20),
         has_swift       VARCHAR(5),
         employee_name   TEXT,
+        comment         TEXT,
         is_notified     BOOLEAN      NOT NULL DEFAULT FALSE,
         created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (doc_number, doc_date)
     )
     """)
+
+    # Міграція: колонка comment (для вже існуючих таблиць)
+    cursor.execute("ALTER TABLE swift_payments ADD COLUMN IF NOT EXISTS comment TEXT")
 
     # Міграція: дедуплікація за (doc_number, has_swift, employee_name) — БЕЗ doc_date.
     # Поява SWIFT або зміна відповідального -> новий запис (і нова нотифікація),
@@ -747,7 +751,7 @@ def bulk_add_swift_payments(rows):
     """
     Додає нові SWIFT-платежі. Кожен елемент rows — кортеж:
     (doc_number, doc_date, currency, amount_currency, amount_usd,
-     counterparty, payment_type, account_code, has_swift, employee_name).
+     counterparty, payment_type, account_code, has_swift, employee_name, comment).
     Дедуплікація за (doc_number, has_swift, employee_name):
     поява SWIFT або зміна відповідального дають новий запис,
     а редагування лише дати документа — ні.
@@ -758,14 +762,14 @@ def bulk_add_swift_payments(rows):
     cursor = conn.cursor()
     try:
         args_str = ",".join(
-            cursor.mogrify("(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,FALSE)", r).decode("utf-8")
+            cursor.mogrify("(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,FALSE)", r).decode("utf-8")
             for r in rows
         )
         cursor.execute(f"""
             INSERT INTO swift_payments (
                 doc_number, doc_date, currency, amount_currency, amount_usd,
                 counterparty, payment_type, account_code, has_swift, employee_name,
-                is_notified
+                comment, is_notified
             )
             VALUES {args_str}
             ON CONFLICT (doc_number, COALESCE(has_swift, ''), COALESCE(employee_name, ''))
@@ -788,7 +792,8 @@ def get_unnotified_swift_payments():
     try:
         cursor.execute("""
             SELECT doc_number, doc_date, currency, amount_currency, amount_usd,
-                   counterparty, payment_type, account_code, has_swift, employee_name
+                   counterparty, payment_type, account_code, has_swift, employee_name,
+                   comment
             FROM swift_payments
             WHERE is_notified = FALSE
             ORDER BY doc_date

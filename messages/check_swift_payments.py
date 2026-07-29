@@ -1,5 +1,6 @@
 import os
 import time
+import html
 import requests
 
 from db import get_unnotified_swift_payments, mark_swift_payments_notified, get_active_users
@@ -21,6 +22,14 @@ def _fmt_amount(value):
 def _is_true(value) -> bool:
     """PBI повертає HasSwift рядком ('True'/'False'/'1'/'0'/'Так' тощо)."""
     return str(value).strip().lower() in {"true", "1", "yes", "так", "да", "y"}
+
+
+def _fmt_comment(value) -> str:
+    """Коментар у моноспейсі; якщо порожній — прочерк."""
+    text = str(value).strip() if value is not None else ""
+    if not text:
+        return "—"
+    return f"<code>{html.escape(text)}</code>"
 
 
 def _send(telegram_id: int | str, text: str) -> bool:
@@ -61,11 +70,12 @@ def check_swift_payments():
     docs_to_mark = []
 
     for (doc_number, doc_date, currency, amount_currency, amount_usd,
-         counterparty, payment_type, account_code, has_swift, employee_name) in payments:
+         counterparty, payment_type, account_code, has_swift, employee_name, comment) in payments:
 
         date_str = doc_date.strftime("%d.%m.%Y") if hasattr(doc_date, "strftime") else str(doc_date)
 
         amount_str = f"{_fmt_amount(amount_currency)} {currency or ''}".strip()
+        comment_str = _fmt_comment(comment)
 
         if _is_true(has_swift):
             # У платіжного доручення з'явився SWIFT
@@ -74,6 +84,7 @@ def check_swift_payments():
                 f"• Платіжка: <b>{doc_number}</b> від <b>{date_str}</b>\n"
                 f"• Контрагент: <b>{counterparty or '—'}</b>\n"
                 f"• Сума: <b>{amount_str}</b> (≈{_fmt_amount(amount_usd)} USD)\n"
+                f"• Коментар: {comment_str}\n"
                 f"• Відповідальний: {employee_name or '—'}"
             )
         else:
@@ -83,6 +94,7 @@ def check_swift_payments():
                 f"• Платіжка: <b>{doc_number}</b> від <b>{date_str}</b>\n"
                 f"• Контрагент: <b>{counterparty or '—'}</b>\n"
                 f"• Сума: <b>{amount_str}</b> (≈{_fmt_amount(amount_usd)} USD)\n"
+                f"• Коментар: {comment_str}\n"
                 f"• Відповідальний: {employee_name or '—'}"
             )
 

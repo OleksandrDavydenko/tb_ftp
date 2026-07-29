@@ -6,13 +6,13 @@ from db import bulk_add_swift_payments, get_existing_swift_payment_keys
 DATASET_ID = os.getenv("PBI_DATASET_ID", "8b80be15-7b31-49e4-bc85-8b37a0d98f1c")
 
 # Синхронізуємо і відправляємо лише платежі, створені починаючи з цієї дати
-SYNC_START_DATE = "2026-07-28"
+SYNC_START_DATE = "2026-07-29"
 
 DAX_QUERY = """
 EVALUATE
 FILTER(
     'telegram_swift_payment_info',
-    'telegram_swift_payment_info'[DocumentDate] >= DATE(2026, 7, 28)
+    'telegram_swift_payment_info'[DocumentDate] >= DATE(2026, 7, 29)
 )
 """
 
@@ -28,6 +28,7 @@ COLUMNS = [
     "AccountInLocalCurrency",
     "HasSwift",
     "Employee",
+    "Comment",
 ]
 
 
@@ -86,6 +87,7 @@ async def sync_swift_payments():
 
         has_swift = values["HasSwift"]
         employee = str(values["Employee"]).strip() if values["Employee"] else None
+        comment = str(values["Comment"]).strip() if values["Comment"] else None
 
         # Ключ дедуплікації: (doc_number, has_swift, employee) — БЕЗ doc_date.
         # Поява SWIFT або зміна відповідального -> новий ключ -> новий запис ->
@@ -110,6 +112,7 @@ async def sync_swift_payments():
             values["AccountInLocalCurrency"],
             has_swift,
             employee,
+            comment,
         ))
 
     print(
