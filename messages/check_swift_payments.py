@@ -89,7 +89,7 @@ def check_swift_payments():
                 f"• Контрагент: <b>{counterparty or '—'}</b>\n"
                 f"• Сума: <b>{amount_str}</b>{usd_str}\n"
                 f"• Відповідальний: {employee_name or '—'}\n"
-                f"• Коментар: {comment_str}"
+                #f"• Коментар: {comment_str}"
                 
             )
         else:
