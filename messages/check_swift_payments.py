@@ -88,8 +88,9 @@ def check_swift_payments():
                 f"• Платіжка: <b>{doc_number}</b> від <b>{date_str}</b>\n"
                 f"• Контрагент: <b>{counterparty or '—'}</b>\n"
                 f"• Сума: <b>{amount_str}</b>{usd_str}\n"
-                f"• Коментар: {comment_str}\n"
-                f"• Відповідальний: {employee_name or '—'}"
+                f"• Відповідальний: {employee_name or '—'}\n"
+                f"• Коментар: {comment_str}"
+                
             )
         else:
             # Списання коштів (SWIFT ще немає)
