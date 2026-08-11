@@ -2,6 +2,7 @@ import os
 import requests
 from auth import get_power_bi_token
 from db import bulk_add_swift_payments, get_existing_swift_payment_keys
+from messages.swift_orgs import is_internal_org, normalize_org_code
 
 DATASET_ID = os.getenv("PBI_DATASET_ID", "8b80be15-7b31-49e4-bc85-8b37a0d98f1c")
 
@@ -29,12 +30,18 @@ COLUMNS = [
     "HasSwift",
     "Employee",
     "Comment",
+    "OrganizationCode",
+    "TypeOfExpense",
 ]
 
 
 def _get(row, col_name):
     # ключі мають вигляд 'telegram_swift_payment_info[DocumentNumber]'
-    k = next((k for k in row if col_name in k), None)
+    # шукаємо точний збіг у дужках, щоб 'Currency' не підхопив 'AmountInCurrency'
+    suffix = f"[{col_name}]"
+    k = next((k for k in row if k.endswith(suffix)), None)
+    if k is None:
+        k = next((k for k in row if col_name in k), None)
     return row.get(k) if k else None
 
 
@@ -67,6 +74,8 @@ async def sync_swift_payments():
 
     # існуючі ключі (doc_number, has_swift, employee) у БД
     existing = get_existing_swift_payment_keys()
+    # той самий набір без has_swift — для внутрішніх організацій
+    existing_no_swift = {(d, e) for d, _s, e in existing}
 
     skipped_no_key = 0   # немає номера/дати документа
     skipped_old = 0      # дата раніше SYNC_START_DATE
@@ -88,6 +97,10 @@ async def sync_swift_payments():
         has_swift = values["HasSwift"]
         employee = str(values["Employee"]).strip() if values["Employee"] else None
         comment = str(values["Comment"]).strip() if values["Comment"] else None
+        org_code = normalize_org_code(values["OrganizationCode"])
+        type_of_expense = (
+            str(values["TypeOfExpense"]).strip() if values["TypeOfExpense"] else None
+        )
 
         # Ключ дедуплікації: (doc_number, has_swift, employee) — БЕЗ doc_date.
         # Поява SWIFT або зміна відповідального -> новий ключ -> новий запис ->
@@ -97,9 +110,22 @@ async def sync_swift_payments():
             (str(has_swift).strip() if has_swift is not None else ""),
             (employee or ""),
         )
-        if key in existing:
+        # Для внутрішніх організацій повідомлення не залежить від HasSwift
+        # (завжди списання коштів), тому поява SWIFT НЕ має створювати другий
+        # запис — інакше прилетить дубль. Тут ключ — лише (doc_number, employee).
+        key_no_swift = (str(doc_number), (employee or ""))
+
+        if is_internal_org(org_code):
+            if key_no_swift in existing_no_swift:
+                skipped_exist += 1
+                continue
+        elif key in existing:
             skipped_exist += 1
             continue
+
+        # щоб дубль не проліз у межах одного батчу
+        existing.add(key)
+        existing_no_swift.add(key_no_swift)
 
         to_insert.append((
             str(doc_number),
@@ -113,6 +139,8 @@ async def sync_swift_payments():
             has_swift,
             employee,
             comment,
+            org_code,
+            type_of_expense,
         ))
 
     print(

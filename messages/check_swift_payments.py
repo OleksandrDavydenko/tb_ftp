@@ -4,6 +4,7 @@ import html
 import requests
 
 from db import get_unnotified_swift_payments, mark_swift_payments_notified, get_active_users
+from messages.swift_orgs import is_internal_org
 
 KEY = os.getenv("TELEGRAM_BOT_TOKEN")
 ADDITIONAL_TELEGRAM_IDS = [203148640]  # Додаткові Telegram ID, які отримують повідомлення про всі платежі
@@ -30,6 +31,12 @@ def _fmt_comment(value) -> str:
     if not text:
         return "—"
     return f"<code>{html.escape(text)}</code>"
+
+
+def _fmt_text(value) -> str:
+    """Довільний текст для HTML-повідомлення; якщо порожній — прочерк."""
+    text = str(value).strip() if value is not None else ""
+    return html.escape(text) if text else "—"
 
 
 def _send(telegram_id: int | str, text: str) -> bool:
@@ -70,38 +77,46 @@ def check_swift_payments():
     docs_to_mark = []
 
     for (doc_number, doc_date, currency, amount_currency, amount_usd,
-         counterparty, payment_type, account_code, has_swift, employee_name, comment) in payments:
+         counterparty, payment_type, account_code, has_swift, employee_name, comment,
+         org_code, type_of_expense) in payments:
 
         date_str = doc_date.strftime("%d.%m.%Y") if hasattr(doc_date, "strftime") else str(doc_date)
 
         amount_str = f"{_fmt_amount(amount_currency)} {currency or ''}".strip()
         comment_str = _fmt_comment(comment)
+        expense_str = _fmt_text(type_of_expense)
 
         # Якщо валюта вже USD — не дублюємо приблизний еквівалент у USD
         is_usd = str(currency or "").strip().upper() == "USD"
         #usd_str = "" if is_usd else f" (≈{_fmt_amount(amount_usd)} USD)"
 
-        if _is_true(has_swift):
+        # Для внутрішніх організацій SWIFT не є подією: навіть якщо HasSwift = yes,
+        # шлемо повідомлення про списання коштів (з коментарем).
+        internal = is_internal_org(org_code)
+
+        if _is_true(has_swift) and not internal:
             # У платіжного доручення з'явився SWIFT
             msg = (
                 "📄 До платіжного доручення з'явився <b>SWIFT</b>:\n"
                 f"• Платіжка: <b>{doc_number}</b> від <b>{date_str}</b>\n"
                 f"• Контрагент: <b>{counterparty or '—'}</b>\n"
                 f"• Сума: <b>{amount_str}</b>\n"
+                f"• Стаття витрат: {expense_str}\n"
                 f"• Відповідальний: {employee_name or '—'}\n"
                 #f"• Коментар: {comment_str}"
-                
+
             )
         else:
-            # Списання коштів (SWIFT ще немає)
+            # Списання коштів (SWIFT ще немає або це внутрішня організація)
             msg = (
                 f"💸 Списання коштів у <b>{currency or '—'}</b>:\n"
                 f"• Платіжка: <b>{doc_number}</b> від <b>{date_str}</b>\n"
                 f"• Контрагент: <b>{counterparty or '—'}</b>\n"
                 f"• Сума: <b>{amount_str}</b>\n"
+                f"• Стаття витрат: {expense_str}\n"
                 f"• Відповідальний: {employee_name or '—'}\n"
                 f"• Коментар: {comment_str}"
-                
+
             )
 
         sent_any = False
