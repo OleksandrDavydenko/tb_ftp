@@ -32,6 +32,7 @@ COLUMNS = [
     "Comment",
     "OrganizationCode",
     "TypeOfExpense",
+    "OperationCode",
 ]
 
 
@@ -101,6 +102,12 @@ async def sync_swift_payments():
         type_of_expense = (
             str(values["TypeOfExpense"]).strip() if values["TypeOfExpense"] else None
         )
+        # Код операції: 33 -> у платіжки є таблична частина (рахунки й угоди)
+        operation_code = (
+            str(values["OperationCode"]).strip()
+            if values["OperationCode"] is not None
+            else None
+        )
 
         # Ключ дедуплікації: (doc_number, has_swift, employee) — БЕЗ doc_date.
         # Поява SWIFT або зміна відповідального -> новий ключ -> новий запис ->
@@ -141,6 +148,7 @@ async def sync_swift_payments():
             comment,
             org_code,
             type_of_expense,
+            operation_code,
         ))
 
     print(

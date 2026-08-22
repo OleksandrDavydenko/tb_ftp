@@ -80,6 +80,10 @@ from messages.sync_bonus_docs import sync_bonus_docs
 from messages.check_bonus_docs import check_bonus_docs
 from messages.sync_swift_payments import sync_swift_payments
 from messages.check_swift_payments import check_swift_payments
+from messages.payment_tablepart import (
+    CALLBACK_PREFIX as PAYMENT_TABLEPART_PREFIX,
+    show_payment_tablepart,
+)
 
 from utils.name_aliases import display_name
 from utils.menu_access import get_menu_access
@@ -467,6 +471,12 @@ async def handle_callback_query(update: Update, context: CallbackContext) -> Non
     try:
         prefix, value = data.split(":", 1)
     except ValueError:
+        return
+
+    # Розшифровку рахунків/угод показуємо окремим повідомленням,
+    # а кнопку лишаємо — рахунки можуть підтягнутись пізніше.
+    if prefix == PAYMENT_TABLEPART_PREFIX:
+        await show_payment_tablepart(update, context, value)
         return
 
     try:

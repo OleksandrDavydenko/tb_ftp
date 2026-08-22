@@ -1,23 +1,19 @@
 import os
 import time
 import html
+import json
 import requests
 
 from db import get_unnotified_swift_payments, mark_swift_payments_notified, get_active_users
 from messages.swift_orgs import is_internal_org
+from messages.payment_tablepart import _fmt_amount, build_deals_keyboard
 
 KEY = os.getenv("TELEGRAM_BOT_TOKEN")
 ADDITIONAL_TELEGRAM_IDS = [203148640]  # Додаткові Telegram ID, які отримують повідомлення про всі платежі
 TG_API = f"https://api.telegram.org/bot{KEY}/sendMessage"
 
-
-def _fmt_amount(value):
-    if value is None:
-        return "—"
-    try:
-        return f"{float(value):,.2f}".replace(",", " ")
-    except (TypeError, ValueError):
-        return str(value)
+# OperationCode, за якого у платіжки є таблична частина (рахунки й угоди)
+TABLEPART_OPERATION_CODE = 33
 
 
 def _is_true(value) -> bool:
@@ -39,28 +35,36 @@ def _fmt_text(value) -> str:
     return html.escape(text) if text else "—"
 
 
-def _send(telegram_id: int | str, text: str) -> bool:
+def _is_tablepart_operation(value) -> bool:
+    """PBI може віддати код операції як 33, '33' або '33.0'."""
+    if value is None:
+        return False
+    text = str(value).strip()
+    if not text:
+        return False
+    try:
+        return int(float(text)) == TABLEPART_OPERATION_CODE
+    except (TypeError, ValueError):
+        return text == str(TABLEPART_OPERATION_CODE)
+
+
+def _send(telegram_id: int | str, text: str, reply_markup: dict | None = None) -> bool:
     if not KEY:
         return False
     try:
         chat_id = int(telegram_id)
     except Exception:
         return False
-    r = requests.post(
-        TG_API,
-        data={"chat_id": chat_id, "text": text, "parse_mode": "HTML"},
-        timeout=15,
-    )
+    data = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
+    if reply_markup:
+        data["reply_markup"] = json.dumps(reply_markup, ensure_ascii=False)
+    r = requests.post(TG_API, data=data, timeout=15)
     if r.status_code == 200 and r.json().get("ok"):
         return True
     if r.status_code == 429:  # flood control
         wait = int(r.json().get("parameters", {}).get("retry_after", 2))
         time.sleep(wait)
-        r = requests.post(
-            TG_API,
-            data={"chat_id": chat_id, "text": text, "parse_mode": "HTML"},
-            timeout=15,
-        )
+        r = requests.post(TG_API, data=data, timeout=15)
         return r.status_code == 200 and r.json().get("ok")
     return False
 
@@ -78,7 +82,7 @@ def check_swift_payments():
 
     for (doc_number, doc_date, currency, amount_currency, amount_usd,
          counterparty, payment_type, account_code, has_swift, employee_name, comment,
-         org_code, type_of_expense) in payments:
+         org_code, type_of_expense, operation_code) in payments:
 
         date_str = doc_date.strftime("%d.%m.%Y") if hasattr(doc_date, "strftime") else str(doc_date)
 
@@ -119,13 +123,20 @@ def check_swift_payments():
 
             )
 
+        # Якщо у платіжки є таблична частина — даємо кнопку з розшифровкою
+        markup = (
+            build_deals_keyboard(doc_number)
+            if _is_tablepart_operation(operation_code)
+            else None
+        )
+
         sent_any = False
         seen_ids = set()
 
         u = active_map.get(str(employee_name).strip()) if employee_name else None
         if u:
             tg_id = u.get("telegram_id")
-            if tg_id and _send(tg_id, msg):
+            if tg_id and _send(tg_id, msg, markup):
                 print(f"✅ SWIFT: відправлено {employee_name} (tg:{tg_id})")
                 sent_any = True
                 seen_ids.add(tg_id)
@@ -133,7 +144,7 @@ def check_swift_payments():
         for tg_id in ADDITIONAL_TELEGRAM_IDS:
             if tg_id in seen_ids:
                 continue
-            if _send(tg_id, msg):
+            if _send(tg_id, msg, markup):
                 print(f"✅ SWIFT: відправлено додатковому отримувачу (tg:{tg_id})")
                 sent_any = True
                 seen_ids.add(tg_id)

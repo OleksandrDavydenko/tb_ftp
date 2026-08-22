@@ -167,6 +167,7 @@ def create_tables():
         comment         TEXT,
         org_code        VARCHAR(20),
         type_of_expense TEXT,
+        operation_code  VARCHAR(20),
         is_notified     BOOLEAN      NOT NULL DEFAULT FALSE,
         created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (doc_number, doc_date)
@@ -179,6 +180,9 @@ def create_tables():
     # Міграція: код організації та стаття витрат (для вже існуючих таблиць)
     cursor.execute("ALTER TABLE swift_payments ADD COLUMN IF NOT EXISTS org_code VARCHAR(20)")
     cursor.execute("ALTER TABLE swift_payments ADD COLUMN IF NOT EXISTS type_of_expense TEXT")
+
+    # Міграція: код операції (33 -> у платіжки є таблична частина з рахунками й угодами)
+    cursor.execute("ALTER TABLE swift_payments ADD COLUMN IF NOT EXISTS operation_code VARCHAR(20)")
 
     # Міграція: дедуплікація за (doc_number, has_swift, employee_name) — БЕЗ doc_date.
     # Поява SWIFT або зміна відповідального -> новий запис (і нова нотифікація),
@@ -758,7 +762,7 @@ def bulk_add_swift_payments(rows):
     Додає нові SWIFT-платежі. Кожен елемент rows — кортеж:
     (doc_number, doc_date, currency, amount_currency, amount_usd,
      counterparty, payment_type, account_code, has_swift, employee_name, comment,
-     org_code, type_of_expense).
+     org_code, type_of_expense, operation_code).
     Дедуплікація за (doc_number, has_swift, employee_name):
     поява SWIFT або зміна відповідального дають новий запис,
     а редагування лише дати документа — ні.
@@ -769,14 +773,14 @@ def bulk_add_swift_payments(rows):
     cursor = conn.cursor()
     try:
         args_str = ",".join(
-            cursor.mogrify("(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,FALSE)", r).decode("utf-8")
+            cursor.mogrify("(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,FALSE)", r).decode("utf-8")
             for r in rows
         )
         cursor.execute(f"""
             INSERT INTO swift_payments (
                 doc_number, doc_date, currency, amount_currency, amount_usd,
                 counterparty, payment_type, account_code, has_swift, employee_name,
-                comment, org_code, type_of_expense, is_notified
+                comment, org_code, type_of_expense, operation_code, is_notified
             )
             VALUES {args_str}
             ON CONFLICT (doc_number, COALESCE(has_swift, ''), COALESCE(employee_name, ''))
@@ -800,7 +804,7 @@ def get_unnotified_swift_payments():
         cursor.execute("""
             SELECT doc_number, doc_date, currency, amount_currency, amount_usd,
                    counterparty, payment_type, account_code, has_swift, employee_name,
-                   comment, org_code, type_of_expense
+                   comment, org_code, type_of_expense, operation_code
             FROM swift_payments
             WHERE is_notified = FALSE
             ORDER BY doc_date
