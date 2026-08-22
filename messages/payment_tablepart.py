@@ -213,14 +213,22 @@ def format_tablepart_message(payment_number, rows: list[dict]) -> list[str]:
         invoice = str(_get(row, "InvoiceNumber") or "").strip()
         deal = str(_get(row, "DealNumber") or "").strip()
         currency = str(_get(row, "Currency") or "").strip()
-        amount = _to_float(_get(row, "SUMInCur"))
+        raw_amount = _get(row, "SUMInCur")
+        amount = _to_float(raw_amount)
+
+        # Для доларових платежів 1С кладе 0 у SUMInCur, а справжню суму —
+        # лише в SUM_USD. Тоді показуємо суму з SUM_USD і позначаємо її як USD.
+        if not amount:
+            amount_usd = _to_float(_get(row, "SUM_USD"))
+            if amount_usd:
+                raw_amount, amount, currency = amount_usd, amount_usd, "USD"
 
         if invoice:
             invoices.add(invoice)
         if deal:
             deals.add(deal)
 
-        amount_str = f"{_fmt_amount(_get(row, 'SUMInCur'))} {currency}".strip()
+        amount_str = f"{_fmt_amount(raw_amount)} {currency}".strip()
 
         items.append(
             f"{idx}. Рахунок {_fmt_code(invoice)}\n"
