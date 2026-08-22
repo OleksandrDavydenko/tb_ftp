@@ -103,6 +103,14 @@ def _fmt_text(value) -> str:
     return html.escape(text) if text else "—"
 
 
+def _fmt_code(value) -> str:
+    """Номер у моноспейсі — щоб його можна було скопіювати тапом."""
+    text = str(value).strip() if value is not None else ""
+    if not text:
+        return "—"
+    return f"<code>{html.escape(text)}</code>"
+
+
 # ---------------------------
 # POWER BI
 # ---------------------------
@@ -198,8 +206,6 @@ def format_tablepart_message(payment_number, rows: list[dict]) -> list[str]:
 
     items: list[str] = []
     totals_by_currency: dict[str, float] = {}
-    total_usd = 0.0
-    has_usd = False
     invoices: set[str] = set()
     deals: set[str] = set()
 
@@ -208,7 +214,6 @@ def format_tablepart_message(payment_number, rows: list[dict]) -> list[str]:
         deal = str(_get(row, "DealNumber") or "").strip()
         currency = str(_get(row, "Currency") or "").strip()
         amount = _to_float(_get(row, "SUMInCur"))
-        amount_usd = _to_float(_get(row, "SUM_USD"))
 
         if invoice:
             invoices.add(invoice)
@@ -216,23 +221,16 @@ def format_tablepart_message(payment_number, rows: list[dict]) -> list[str]:
             deals.add(deal)
 
         amount_str = f"{_fmt_amount(_get(row, 'SUMInCur'))} {currency}".strip()
-        amount_line = f"   Сума: <b>{html.escape(amount_str)}</b>"
-        # Якщо валюта вже USD — не дублюємо приблизний еквівалент
-        if amount_usd is not None and currency.upper() != "USD":
-            amount_line += f" · ≈{_fmt_amount(amount_usd)} USD"
 
         items.append(
-            f"{idx}. Рахунок <b>{_fmt_text(invoice)}</b>\n"
-            f"   Угода: <b>{_fmt_text(deal)}</b>\n"
-            f"{amount_line}"
+            f"{idx}. Рахунок {_fmt_code(invoice)}\n"
+            f"   Угода: {_fmt_code(deal)}\n"
+            f"   Сума: <b>{html.escape(amount_str)}</b>"
         )
 
         if amount is not None:
             key = currency.upper() or "—"
             totals_by_currency[key] = totals_by_currency.get(key, 0.0) + amount
-        if amount_usd is not None:
-            total_usd += amount_usd
-            has_usd = True
 
     totals_parts = [
         f"<b>{_fmt_amount(total)} {html.escape(cur)}</b>".strip()
@@ -241,13 +239,6 @@ def format_tablepart_message(payment_number, rows: list[dict]) -> list[str]:
     footer_lines = [SEPARATOR]
     if totals_parts:
         footer_lines.append("Разом: " + " · ".join(totals_parts))
-        if has_usd and list(totals_by_currency) != ["USD"]:
-            if len(totals_by_currency) == 1:
-                # одна валюта (не USD) — еквівалент дописуємо в той самий рядок
-                footer_lines[-1] += f" · ≈{_fmt_amount(total_usd)} USD"
-            else:
-                # мультивалютна частина: окремий рядок, щоб USD не читався двічі
-                footer_lines.append(f"Еквівалент: ≈{_fmt_amount(total_usd)} USD")
     footer_lines.append(
         f"Рахунків: <b>{len(invoices) or len(rows)}</b> · Угод: <b>{len(deals)}</b>"
     )
