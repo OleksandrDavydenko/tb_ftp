@@ -112,7 +112,7 @@ async def generate_ai_work_anniversary_greeting(real_name: str, years: int | Non
 
     try:
         response = await gpt.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4.1",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.85,
         )
