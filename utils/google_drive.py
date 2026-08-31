@@ -26,6 +26,14 @@ _access_token: str | None = None
 _access_token_expires_at: float = 0.0
 
 
+def _clean_env(name: str) -> str | None:
+    """Значення змінної без пробілів, переносів рядка й випадкових лапок."""
+    value = os.getenv(name)
+    if value is None:
+        return None
+    return value.strip().strip('"').strip("'").strip() or None
+
+
 def _get_access_token() -> str | None:
     """Свіжий access_token; None — якщо немає налаштувань або Google відмовив."""
     global _access_token, _access_token_expires_at
@@ -33,9 +41,11 @@ def _get_access_token() -> str | None:
     if _access_token and time.time() < _access_token_expires_at:
         return _access_token
 
-    client_id = os.getenv("client_id")
-    client_secret = os.getenv("client_secret")
-    refresh_token = os.getenv("refresh_token")
+    # strip() — при копіюванні у змінні оточення легко прихопити пробіл, перенос
+    # рядка або лапки; Google тоді не впізнає клієнта (invalid_client)
+    client_id = _clean_env("client_id")
+    client_secret = _clean_env("client_secret")
+    refresh_token = _clean_env("refresh_token")
     if not (client_id and client_secret and refresh_token):
         logging.error(
             "❌ Google Drive: не задано client_id / client_secret / refresh_token"
@@ -56,11 +66,27 @@ def _get_access_token() -> str | None:
         return None
 
     if r.status_code != 200:
-        # Тіло може містити invalid_grant — найчастіше це відкликаний або
-        # протухлий refresh_token (7 днів, якщо застосунок у режимі Testing).
         logging.error(
             f"❌ Google Drive: не вдалося оновити токен, статус {r.status_code}: {r.text[:300]}"
         )
+        # Дві різні поломки, які легко сплутати — підказуємо, що саме лагодити.
+        # client_id не секрет, тому друкуємо його для звірки з консоллю Google.
+        error = ""
+        try:
+            error = r.json().get("error", "")
+        except ValueError:
+            pass
+        if error == "invalid_client":
+            logging.error(
+                "   ↳ Google не знайшов OAuth-клієнт. Звірте client_id з консоллю: "
+                f"довжина {len(client_id)}, значення {client_id!r}. "
+                "Якщо клієнт перестворювали — потрібні новий client_id/secret і новий refresh_token."
+            )
+        elif error == "invalid_grant":
+            logging.error(
+                "   ↳ refresh_token відкликаний або протух (7 днів у режимі Testing). "
+                "Потрібно видати новий і оновити змінну refresh_token."
+            )
         return None
 
     try:
