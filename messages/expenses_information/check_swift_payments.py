@@ -5,8 +5,12 @@ import json
 import requests
 
 from db import get_unnotified_swift_payments, mark_swift_payments_notified, get_active_users
-from messages.swift_orgs import is_internal_org
-from messages.payment_tablepart import _fmt_amount, build_deals_keyboard
+from messages.expenses_information.swift_orgs import is_internal_org
+from messages.expenses_information.payment_tablepart import (
+    _fmt_amount,
+    build_deals_keyboard,
+)
+from messages.expenses_information.swift_file import build_swift_file_button
 
 KEY = os.getenv("TELEGRAM_BOT_TOKEN")
 ADDITIONAL_TELEGRAM_IDS = [203148640]  # Додаткові Telegram ID, які отримують повідомлення про всі платежі
@@ -98,7 +102,9 @@ def check_swift_payments():
         # шлемо повідомлення про списання коштів (з коментарем).
         internal = is_internal_org(org_code)
 
-        if _is_true(has_swift) and not internal:
+        is_swift_message = _is_true(has_swift) and not internal
+
+        if is_swift_message:
             # У платіжного доручення з'явився SWIFT
             msg = (
                 "📄 До платіжного доручення з'явився <b>SWIFT</b>:\n"
@@ -123,12 +129,19 @@ def check_swift_payments():
 
             )
 
-        # Якщо у платіжки є таблична частина — даємо кнопку з розшифровкою
-        markup = (
-            build_deals_keyboard(doc_number)
-            if _is_tablepart_operation(operation_code)
-            else None
-        )
+        # Якщо у платіжки є таблична частина — даємо кнопку з розшифровкою,
+        # а для повідомлень про SWIFT — ще й кнопку перегляду файлу.
+        keyboard_rows = []
+        if _is_tablepart_operation(operation_code):
+            deals_markup = build_deals_keyboard(doc_number)
+            if deals_markup:
+                keyboard_rows.extend(deals_markup["inline_keyboard"])
+        if is_swift_message:
+            file_button = build_swift_file_button(doc_number)
+            if file_button:
+                keyboard_rows.append([file_button])
+
+        markup = {"inline_keyboard": keyboard_rows} if keyboard_rows else None
 
         sent_any = False
         seen_ids = set()

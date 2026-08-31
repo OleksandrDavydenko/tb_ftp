@@ -2,7 +2,7 @@ import os
 import requests
 from auth import get_power_bi_token
 from db import bulk_add_swift_payments, get_existing_swift_payment_keys
-from messages.swift_orgs import is_internal_org, normalize_org_code
+from messages.expenses_information.swift_orgs import is_internal_org, normalize_org_code
 
 DATASET_ID = os.getenv("PBI_DATASET_ID", "8b80be15-7b31-49e4-bc85-8b37a0d98f1c")
 

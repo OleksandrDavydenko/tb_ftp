@@ -78,11 +78,15 @@ from messages.weekly_overdue_debts import check_overdue_debts
 from sync_status import sync_user_statuses
 from messages.sync_bonus_docs import sync_bonus_docs
 from messages.check_bonus_docs import check_bonus_docs
-from messages.sync_swift_payments import sync_swift_payments
-from messages.check_swift_payments import check_swift_payments
-from messages.payment_tablepart import (
+from messages.expenses_information.sync_swift_payments import sync_swift_payments
+from messages.expenses_information.check_swift_payments import check_swift_payments
+from messages.expenses_information.payment_tablepart import (
     CALLBACK_PREFIX as PAYMENT_TABLEPART_PREFIX,
     show_payment_tablepart,
+)
+from messages.expenses_information.swift_file import (
+    CALLBACK_PREFIX as SWIFT_FILE_PREFIX,
+    show_swift_file,
 )
 
 from utils.name_aliases import display_name
@@ -477,6 +481,11 @@ async def handle_callback_query(update: Update, context: CallbackContext) -> Non
     # а кнопку лишаємо — рахунки можуть підтягнутись пізніше.
     if prefix == PAYMENT_TABLEPART_PREFIX:
         await show_payment_tablepart(update, context, value)
+        return
+
+    # Перегляд файлу SWIFT — теж окремим повідомленням, кнопку лишаємо.
+    if prefix == SWIFT_FILE_PREFIX:
+        await show_swift_file(update, context, value)
         return
 
     try:
