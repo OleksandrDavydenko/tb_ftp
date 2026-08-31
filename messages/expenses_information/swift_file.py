@@ -13,15 +13,25 @@ import logging
 
 from messages.expenses_information.payment_tablepart import (
     MAX_CALLBACK_DATA_BYTES,
+    _fmt_text,
     _safe_payment_number,
 )
 
 # callback_data має вигляд "swiftfile:<номер платіжки>"
 CALLBACK_PREFIX = "swiftfile"
-BUTTON_TEXT = "Переглянути файл"
+BUTTON_TEXT = "📎 Переглянути файл"
 
 # Тимчасова відповідь, поки перегляд файлу не реалізовано
-STUB_MESSAGE = "Функціонал ще в розробці"
+STUB_MESSAGE_TEMPLATE = (
+    "🛠 <b>Файл до документа № {number}</b>\n\n"
+    "Функціонал перегляду ще в розробці — незабаром сам файл SWIFT "
+    "можна буде відкрити прямо тут."
+)
+
+
+def format_stub_message(payment_number) -> str:
+    """Заглушка із зазначенням документа, по якому просили файл."""
+    return STUB_MESSAGE_TEMPLATE.format(number=_fmt_text(payment_number))
 
 
 def build_swift_file_button(doc_number) -> dict | None:
@@ -54,4 +64,4 @@ async def show_swift_file(update, context, payment_number: str) -> None:
     if not query or not query.message:
         return
 
-    await query.message.reply_text(STUB_MESSAGE, parse_mode="HTML")
+    await query.message.reply_text(format_stub_message(payment_number), parse_mode="HTML")
