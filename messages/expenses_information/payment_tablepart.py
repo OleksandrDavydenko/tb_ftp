@@ -27,9 +27,12 @@ BUTTON_TEXT = "🧾 Показати рахунки й угоди"
 COLLAPSE_PREFIX = "swiftdealsx"
 COLLAPSE_BUTTON_TEXT = "🔼 Згорнути розшифровку"
 
-# Розшифровку вписуємо в те саме повідомлення розгортним блоком; за цим маркером
-# потім відрізаємо її назад
-BLOCKQUOTE_MARKER = "<blockquote expandable>"
+# Розшифровку вписуємо в те саме повідомлення цитатою; за цим маркером потім
+# відрізаємо її назад. Префікс, а не повний тег — цитата буває і розгортною.
+BLOCKQUOTE_MARKER = "<blockquote"
+
+# До скількох рахунків показуємо список одразу, не ховаючи в розгортний блок
+MAX_ROWS_ALWAYS_VISIBLE = 3
 
 DATASET_ID = os.getenv("PBI_DATASET_ID", "8b80be15-7b31-49e4-bc85-8b37a0d98f1c")
 PBI_EXEC_URL = f"https://api.powerbi.com/v1.0/myorg/datasets/{DATASET_ID}/executeQueries"
@@ -276,9 +279,26 @@ def format_tablepart_message(payment_number, rows: list[dict]) -> list[str]:
 
 
 def format_tablepart_block(payment_number, rows: list[dict]) -> str:
-    """Те саме одним суцільним блоком — для вставки в <blockquote> повідомлення."""
-    header, items, footer = _build_tablepart_parts(payment_number, rows)
-    return "\n\n".join([header, *items, footer])
+    """
+    Те саме одним суцільним блоком — для вставки в повідомлення.
+
+    Без заголовка: номер платіжки й дата вже є в самому повідомленні вище, а
+    перші рядки згорнутого блоку треба віддати під самі рахунки — інакше у
+    прев'ю видно лише службовий текст.
+    """
+    _, items, footer = _build_tablepart_parts(payment_number, rows)
+    return "\n\n".join([*items, footer])
+
+
+def wrap_in_blockquote(block: str, rows_count: int) -> str:
+    """
+    Цитата навколо розшифровки.
+
+    Короткий список лишаємо розгорнутим — користувач натиснув «Показати рахунки»
+    і має одразу їх побачити. Згортаємо лише довгий, щоб не роздувати чат.
+    """
+    expandable = " expandable" if rows_count > MAX_ROWS_ALWAYS_VISIBLE else ""
+    return f"<blockquote{expandable}>{block}</blockquote>"
 
 
 def format_empty_message(payment_number) -> str:
@@ -367,8 +387,8 @@ async def show_payment_tablepart(update, context, payment_number: str) -> None:
         )
         return
 
-    block = format_tablepart_block(payment_number, rows)
-    new_text = f"{query.message.text_html}\n\n{BLOCKQUOTE_MARKER}{block}</blockquote>"
+    block = wrap_in_blockquote(format_tablepart_block(payment_number, rows), len(rows))
+    new_text = f"{query.message.text_html}\n\n{block}"
 
     # Не влізає в одне повідомлення — віддаємо як раніше, окремими відповідями
     if len(new_text) > MAX_MESSAGE_TEXT_LEN:
