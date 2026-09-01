@@ -83,8 +83,10 @@ from messages.expenses_information.check_swift_payments import check_swift_payme
 from messages.expenses_information.payment_tablepart import (
     CALLBACK_PREFIX as PAYMENT_TABLEPART_PREFIX,
     COLLAPSE_PREFIX as PAYMENT_TABLEPART_COLLAPSE_PREFIX,
+    PAGE_PREFIX as PAYMENT_TABLEPART_PAGE_PREFIX,
     hide_payment_tablepart,
     show_payment_tablepart,
+    show_payment_tablepart_page,
 )
 from messages.expenses_information.swift_file import (
     CALLBACK_PREFIX as SWIFT_FILE_PREFIX,
@@ -487,6 +489,11 @@ async def handle_callback_query(update: Update, context: CallbackContext) -> Non
 
     if prefix == PAYMENT_TABLEPART_COLLAPSE_PREFIX:
         await hide_payment_tablepart(update, context, value)
+        return
+
+    # Довга розшифровка гортається сторінками в тому ж повідомленні
+    if prefix == PAYMENT_TABLEPART_PAGE_PREFIX:
+        await show_payment_tablepart_page(update, context, value)
         return
 
     # Перегляд файлу SWIFT — теж окремим повідомленням, кнопку лишаємо.

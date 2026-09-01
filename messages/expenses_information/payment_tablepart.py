@@ -27,6 +27,14 @@ BUTTON_TEXT = "🧾 Показати рахунки й угоди"
 COLLAPSE_PREFIX = "swiftdealsx"
 COLLAPSE_BUTTON_TEXT = "🔼 Згорнути розшифровку"
 
+# Гортання сторінок — "swiftdealsp:<номер платіжки>:<сторінка>"
+PAGE_PREFIX = "swiftdealsp"
+PREV_BUTTON_TEXT = "◀ Попередні"
+NEXT_BUTTON_TEXT = "Наступні ▶"
+
+# Запас у бюджеті сторінки під теги цитати й рядок «Сторінка N з M»
+PAGE_OVERHEAD = 120
+
 # Розшифровку вписуємо в те саме повідомлення цитатою; за цим маркером потім
 # відрізаємо її назад
 BLOCKQUOTE_MARKER = "<blockquote"
@@ -275,16 +283,31 @@ def format_tablepart_message(payment_number, rows: list[dict]) -> list[str]:
     return _split_messages(header, items, footer)
 
 
-def format_tablepart_block(payment_number, rows: list[dict]) -> str:
-    """
-    Те саме одним суцільним блоком — для вставки в повідомлення.
+def paginate_items(items: list[str], budget: int) -> list[list[str]]:
+    """Розкладає рахунки по сторінках так, щоб кожна вміщалась у `budget` символів."""
+    pages: list[list[str]] = []
+    current: list[str] = []
+    current_len = 0
 
-    Без заголовка: номер платіжки й дата вже є в самому повідомленні вище, а
-    перші рядки згорнутого блоку треба віддати під самі рахунки — інакше у
-    прев'ю видно лише службовий текст.
-    """
-    _, items, footer = _build_tablepart_parts(payment_number, rows)
-    return "\n\n".join([*items, footer])
+    for item in items:
+        addition = len(item) + 2  # роздільник "\n\n"
+        if current and current_len + addition > budget:
+            pages.append(current)
+            current, current_len = [], 0
+        current.append(item)
+        current_len += addition
+
+    if current:
+        pages.append(current)
+    return pages or [[]]
+
+
+def format_tablepart_page(items: list[str], footer: str, page: int, total_pages: int) -> str:
+    """Одна сторінка розшифровки: рахунки + підсумок (+ номер сторінки)."""
+    tail = footer
+    if total_pages > 1:
+        tail = f"{footer}\nСторінка <b>{page}</b> з <b>{total_pages}</b>"
+    return "\n\n".join([*items, tail])
 
 
 def wrap_in_blockquote(block: str) -> str:
@@ -334,21 +357,28 @@ def build_deals_keyboard(doc_number) -> dict | None:
     return {"inline_keyboard": [[{"text": BUTTON_TEXT, "callback_data": callback_data}]]}
 
 
-def _swap_deals_button(reply_markup, payment_number: str, *, collapsed: bool) -> dict | None:
-    """
-    Клавіатура повідомлення з перемкнутою кнопкою розшифровки.
+def _page_callback_data(safe_number: str, page: int) -> str:
+    return f"{PAGE_PREFIX}:{safe_number}:{page}"
 
-    Проходимо наявні ряди й підміняємо лише кнопку розшифровки — решта (зокрема
+
+def _build_keyboard(
+    reply_markup, payment_number: str, *, collapsed: bool, page: int = 1, total_pages: int = 1
+) -> dict | None:
+    """
+    Клавіатура повідомлення: перемкнута кнопка розшифровки + гортання сторінок.
+
+    Проходимо наявні ряди й чіпаємо лише свої кнопки — решта (зокрема
     «📎 Отримати файли») лишається як була, тож знати про неї тут не треба.
+    Стару навігацію завжди відкидаємо й збираємо заново під поточну сторінку.
     """
     safe_number = _safe_payment_number(payment_number)
     if not safe_number or not reply_markup:
         return None
 
     if collapsed:
-        new_button = {"text": BUTTON_TEXT, "callback_data": f"{CALLBACK_PREFIX}:{safe_number}"}
+        toggle = {"text": BUTTON_TEXT, "callback_data": f"{CALLBACK_PREFIX}:{safe_number}"}
     else:
-        new_button = {
+        toggle = {
             "text": COLLAPSE_BUTTON_TEXT,
             "callback_data": f"{COLLAPSE_PREFIX}:{safe_number}",
         }
@@ -358,17 +388,36 @@ def _swap_deals_button(reply_markup, payment_number: str, *, collapsed: bool) ->
         new_row = []
         for button in row:
             data = button.callback_data or ""
+            if data.startswith(f"{PAGE_PREFIX}:"):
+                continue
             if data.startswith(f"{CALLBACK_PREFIX}:") or data.startswith(f"{COLLAPSE_PREFIX}:"):
-                new_row.append(new_button)
+                new_row.append(toggle)
             else:
                 new_row.append({"text": button.text, "callback_data": data})
-        rows.append(new_row)
+        if new_row:
+            rows.append(new_row)
+
+    if not collapsed and total_pages > 1:
+        nav = []
+        if page > 1:
+            nav.append({"text": PREV_BUTTON_TEXT, "callback_data": _page_callback_data(safe_number, page - 1)})
+        if page < total_pages:
+            nav.append({"text": NEXT_BUTTON_TEXT, "callback_data": _page_callback_data(safe_number, page + 1)})
+        if nav:
+            # Гортання — першим рядом, одразу під текстом розшифровки
+            rows.insert(0, nav)
 
     return {"inline_keyboard": rows}
 
 
-async def show_payment_tablepart(update, context, payment_number: str) -> None:
-    """Вписує розшифровку в те саме повідомлення розгортним блоком."""
+def _original_text(message) -> str:
+    """Текст повідомлення без раніше вставленої розшифровки."""
+    text = message.text_html
+    return text.split(BLOCKQUOTE_MARKER)[0].rstrip() if BLOCKQUOTE_MARKER in text else text
+
+
+async def show_payment_tablepart(update, context, payment_number: str, page: int = 1) -> None:
+    """Вписує розшифровку в те саме повідомлення; довгу — посторінково."""
     query = update.callback_query
     if not query or not query.message:
         return
@@ -385,11 +434,30 @@ async def show_payment_tablepart(update, context, payment_number: str) -> None:
         )
         return
 
-    block = wrap_in_blockquote(format_tablepart_block(payment_number, rows))
-    new_text = f"{query.message.text_html}\n\n{block}"
+    # Гортаючи сторінки, щоразу відштовхуємось від початкового тексту, інакше
+    # розшифровки накладались би одна на одну
+    original = _original_text(query.message)
+    _, items, footer = _build_tablepart_parts(payment_number, rows)
 
-    # Не влізає в одне повідомлення — віддаємо як раніше, окремими відповідями
-    if len(new_text) > MAX_MESSAGE_TEXT_LEN:
+    budget = MAX_MESSAGE_TEXT_LEN - len(original) - len(footer) - PAGE_OVERHEAD
+    pages = paginate_items(items, budget)
+    page = max(1, min(page, len(pages)))
+
+    block = wrap_in_blockquote(format_tablepart_page(pages[page - 1], footer, page, len(pages)))
+    new_text = f"{original}\n\n{block}"
+
+    # Запобіжник: навіть одна сторінка не влізла (аномально довге повідомлення
+    # або номер платіжки, з яким callback_data не вміщається) — віддаємо
+    # окремими відповідями, як робили раніше.
+    too_long = len(new_text) > MAX_MESSAGE_TEXT_LEN
+    nav_too_long = len(pages) > 1 and (
+        len(_page_callback_data(_safe_payment_number(payment_number) or "", len(pages)).encode("utf-8"))
+        > MAX_CALLBACK_DATA_BYTES
+    )
+    if too_long or nav_too_long:
+        logging.warning(
+            f"⚠️ Таблична частина {payment_number}: розшифровка не влазить у повідомлення, шлю окремо"
+        )
         for text in format_tablepart_message(payment_number, rows):
             await query.message.reply_text(
                 text, parse_mode="HTML", reply_to_message_id=query.message.message_id
@@ -399,8 +467,27 @@ async def show_payment_tablepart(update, context, payment_number: str) -> None:
     await _edit_message(
         query,
         new_text,
-        _swap_deals_button(query.message.reply_markup, payment_number, collapsed=False),
+        _build_keyboard(
+            query.message.reply_markup,
+            payment_number,
+            collapsed=False,
+            page=page,
+            total_pages=len(pages),
+        ),
     )
+
+
+async def show_payment_tablepart_page(update, context, value: str) -> None:
+    """Гортання сторінок: value має вигляд "<номер платіжки>:<сторінка>"."""
+    payment_number, _, page_raw = value.rpartition(":")
+    if not payment_number:
+        return
+    try:
+        page = int(page_raw)
+    except ValueError:
+        page = 1
+
+    await show_payment_tablepart(update, context, payment_number, page)
 
 
 async def hide_payment_tablepart(update, context, payment_number: str) -> None:
@@ -416,7 +503,7 @@ async def hide_payment_tablepart(update, context, payment_number: str) -> None:
     await _edit_message(
         query,
         text.split(BLOCKQUOTE_MARKER)[0].rstrip(),
-        _swap_deals_button(query.message.reply_markup, payment_number, collapsed=True),
+        _build_keyboard(query.message.reply_markup, payment_number, collapsed=True),
     )
 
 
