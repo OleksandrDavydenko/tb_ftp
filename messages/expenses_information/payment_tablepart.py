@@ -49,6 +49,7 @@ COLUMNS = [
     "PaymentNumber",
     "PaymentDate",
     "InvoiceNumber",
+    "OverheadInvoiceNumber",
     "DealNumber",
     "SUMInCur",
     "SUM_USD",
@@ -68,6 +69,11 @@ MAX_CALLBACK_DATA_BYTES = 64
 _SAFE_PAYMENT_NUMBER = re.compile(r"^[A-Za-z0-9_\-/.]{1,50}$")
 
 SEPARATOR = "━" * 20
+
+# Типи позицій платіжки: звичайний рахунок і накладна витрата (без угоди)
+KIND_INVOICE = "invoice"
+KIND_OVERHEAD = "overhead"
+LABELS = {KIND_INVOICE: "Рахунок", KIND_OVERHEAD: "Накладна витрата"}
 
 
 def _get(row, col_name):
@@ -211,28 +217,65 @@ def _split_messages(header: str, items: list[str], footer: str) -> list[str]:
     return messages
 
 
-def _build_tablepart_parts(payment_number, rows: list[dict]) -> tuple[str, list[str], str]:
-    """Заголовок, список рахунків і підсумок — окремо, щоб зібрати їх по-різному."""
-    safe_number = _fmt_text(payment_number)
+def _row_kind(row) -> tuple[str, str]:
+    """
+    Що це за позиція платіжки: ('invoice'|'overhead', номер).
 
+    Накладна витрата не йде в собівартість і угоди не має — у 1С вона приходить
+    з порожнім InvoiceNumber і заповненим OverheadInvoiceNumber. Якщо порожні
+    обидва — лишаємо рахунком без номера, як було до появи накладних витрат.
+    """
+    invoice = str(_get(row, "InvoiceNumber") or "").strip()
+    if invoice:
+        return KIND_INVOICE, invoice
+
+    overhead = str(_get(row, "OverheadInvoiceNumber") or "").strip()
+    if overhead:
+        return KIND_OVERHEAD, overhead
+
+    return KIND_INVOICE, ""
+
+
+def _build_header(payment_number, date_str: str | None, kinds: set[str]) -> str:
+    """Заголовок для окремих повідомлень — під те, що в платіжці насправді є."""
+    header = f"🧾 Розшифровка платіжки <b>{_fmt_text(payment_number)}</b>"
+    if date_str:
+        header += f" від <b>{date_str}</b>"
+
+    if kinds == {KIND_OVERHEAD}:
+        subtitle = "Накладні витрати:"
+    elif KIND_OVERHEAD in kinds:
+        subtitle = "Оплачені рахунки й накладні витрати:"
+    else:
+        subtitle = "Оплачені рахунки:"
+
+    return f"{header}\n\n{subtitle}"
+
+
+def _build_tablepart_parts(payment_number, rows: list[dict]) -> tuple[str, list[str], str]:
+    """Заголовок, список позицій і підсумок — окремо, щоб зібрати їх по-різному."""
     date_str = None
     for row in rows:
         date_str = _fmt_date(_get(row, "PaymentDate"))
         if date_str:
             break
 
-    header = f"🧾 Розшифровка платіжки <b>{safe_number}</b>"
-    if date_str:
-        header += f" від <b>{date_str}</b>"
-    header += "\n\nОплачені рахунки:"
+    # Спершу рахунки, потім накладні витрати. Сортування стабільне, тож порядок
+    # усередині групи лишається той, що віддав PBI. Заголовки секцій не потрібні —
+    # тип написано в кожному рядку.
+    ordered = sorted(rows, key=lambda r: _row_kind(r)[0] == KIND_OVERHEAD)
 
     items: list[str] = []
     totals_by_currency: dict[str, float] = {}
     invoices: set[str] = set()
+    overheads: set[str] = set()
     deals: set[str] = set()
+    kinds: set[str] = set()
+    invoice_rows = 0
+    overhead_rows = 0
 
-    for idx, row in enumerate(rows, start=1):
-        invoice = str(_get(row, "InvoiceNumber") or "").strip()
+    for idx, row in enumerate(ordered, start=1):
+        kind, number = _row_kind(row)
         deal = str(_get(row, "DealNumber") or "").strip()
         currency = str(_get(row, "Currency") or "").strip()
         raw_amount = _get(row, "SUMInCur")
@@ -245,18 +288,28 @@ def _build_tablepart_parts(payment_number, rows: list[dict]) -> tuple[str, list[
             if amount_usd:
                 raw_amount, amount, currency = amount_usd, amount_usd, "USD"
 
-        if invoice:
-            invoices.add(invoice)
-        if deal:
-            deals.add(deal)
+        kinds.add(kind)
+        if kind == KIND_OVERHEAD:
+            overhead_rows += 1
+            if number:
+                overheads.add(number)
+        else:
+            invoice_rows += 1
+            if number:
+                invoices.add(number)
+            if deal:
+                deals.add(deal)
 
         amount_str = f"{_fmt_amount(raw_amount)} {currency}".strip()
 
-        items.append(
-            f"{idx}. Рахунок {_fmt_code(invoice)}\n"
-            f"   Угода: {_fmt_code(deal)}\n"
-            f"   Сума: <b>{html.escape(amount_str)}</b>"
-        )
+        lines = [f"{idx}. {LABELS[kind]} {_fmt_code(number)}"]
+        # У накладної витрати угоди не буває, тож порожній рядок не малюємо.
+        # А от рахунок без угоди лишаємо з прочерком — це сигнал, що в 1С
+        # щось не заповнили.
+        if kind == KIND_INVOICE:
+            lines.append(f"   Угода: {_fmt_code(deal)}")
+        lines.append(f"   Сума: <b>{html.escape(amount_str)}</b>")
+        items.append("\n".join(lines))
 
         if amount is not None:
             key = currency.upper() or "—"
@@ -269,12 +322,19 @@ def _build_tablepart_parts(payment_number, rows: list[dict]) -> tuple[str, list[
     footer_lines = [SEPARATOR]
     if totals_parts:
         footer_lines.append("Разом: " + " · ".join(totals_parts))
-    footer_lines.append(
-        f"Рахунків: <b>{len(invoices) or len(rows)}</b> · Угод: <b>{len(deals)}</b>"
-    )
+
+    counters = []
+    if invoice_rows:
+        counters.append(f"Рахунків: <b>{len(invoices) or invoice_rows}</b>")
+        counters.append(f"Угод: <b>{len(deals)}</b>")
+    if overhead_rows:
+        counters.append(f"Накладних витрат: <b>{len(overheads) or overhead_rows}</b>")
+    if counters:
+        footer_lines.append(" · ".join(counters))
+
     footer = "\n".join(footer_lines)
 
-    return header, items, footer
+    return _build_header(payment_number, date_str, kinds), items, footer
 
 
 def format_tablepart_message(payment_number, rows: list[dict]) -> list[str]:
