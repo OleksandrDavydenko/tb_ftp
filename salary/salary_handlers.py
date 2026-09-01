@@ -144,7 +144,7 @@ async def send_leadreport_excel(update: Update, context: CallbackContext) -> Non
             await msg.reply_document(
                 document=f,
                 filename=os.path.basename(xlsx_path),
-                caption=f"Відомість керівника • {head} • {period_ym}"
+                caption=f"Відомість керівника • {display_name(head)} • {period_ym}"
             )
     except ValueError:
         await msg.reply_text(f"ℹ️ Відсутні дані за {month} {year}.")

@@ -2,6 +2,7 @@ import psycopg2
 import os
 import logging
 from telegram import Bot
+from utils.name_aliases import display_name
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 
@@ -33,6 +34,9 @@ async def check_new_devaluation_records():
         exchange_rate_acc_nbu, exchange_rate_payment_nbu, devaluation_percentage, \
         payment_sum, compensation, manager = record
 
+        # У тексті — псевдонім; пошук у БД нижче лишається за справжнім ім'ям
+        nice_manager = display_name(manager)
+
         # Формуємо повідомлення
         message = (
             f"📉 Новий запис девальвації:\n\n"
@@ -41,10 +45,10 @@ async def check_new_devaluation_records():
             f"Сума: {payment_sum} грн.\n"
             f"Валюта заявки: {currency_from_inform_acc}\n"
             f"Відсоток девальвації: {devaluation_percentage}%\n"
-            f"Менеджер: {manager}\n\n"
+            f"Менеджер: {nice_manager}\n\n"
 
             f"📝 Важливо:\n"
-            f"Відповідальний співробітник {manager}, будь ласка, перевірте наявність пункту про девальвацію в договорі з клієнтом.\n\n"
+            f"Відповідальний співробітник {nice_manager}, будь ласка, перевірте наявність пункту про девальвацію в договорі з клієнтом.\n\n"
 
             f"🔍 Деталі угоди:\n"
             f"Номер угоди: {contract_number}\n"

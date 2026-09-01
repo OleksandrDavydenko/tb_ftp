@@ -222,7 +222,7 @@ SELECTCOLUMNS(
         return
 
     if not rows:
-        await update.message.reply_text(f"ℹ️ Не знайдено співробітника: {employee}")
+        await update.message.reply_text(f"ℹ️ Не знайдено співробітника: {display_name(employee)}")
         return
 
     # перший запис (очікується унікальний)

@@ -75,7 +75,7 @@ FILTER(
 # ---- Формування повідомлення ----
 def build_bonus_message(df: pd.DataFrame, employee: str, period_date: datetime) -> str:
     if df.empty:
-        return f"Для {employee} за {period_date:%m.%Y} даних не знайдено."
+        return f"Для {display_name(employee)} за {period_date:%m.%Y} даних не знайдено."
 
     # типи
     for col in ["RegistrDate", "Subconto2Period"]:

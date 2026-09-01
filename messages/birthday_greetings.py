@@ -7,6 +7,7 @@ from auth import get_power_bi_token
 from db import get_active_users
 from openai import AsyncOpenAI
 from db import log_birthday_greeting
+from utils.name_aliases import display_name
 
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -58,8 +59,9 @@ def get_today_birthdays():
 
 # 🤖 Генерація AI-привітання
 async def generate_ai_birthday_greeting(name: str) -> str:
+    shown_name = display_name(name)  # у тексті — псевдонім, у логах — справжнє ім'я
     prompt = (
-        f"Привітай колегу на ім'я {name} з Днем народження. "
+        f"Привітай колегу на ім'я {shown_name} з Днем народження. "
         "Ця людина працює в компанії ТОВ 'ФТП'. Напиши коротке (2–5 речення) привітання українською мовою. "
         "Звертайся на 'ти'. Додай трохи емоцій, побажай добра, радості, мотивації, фінансового достатку та емодзі. "
         "Будь лаконічним, але щирим."
@@ -81,7 +83,7 @@ async def generate_ai_birthday_greeting(name: str) -> str:
         return f"🤖 {message}"
     except Exception as e:
         logging.error(f"Помилка генерації привітання для {name}: {e}")
-        return f"🤖 🎉 {name}, з Днем народження! Бажаю щастя, здоров'я та натхнення! 🎂"
+        return f"🤖 🎉 {shown_name}, з Днем народження! Бажаю щастя, здоров'я та натхнення! 🎂"
 
 # 📬 Основна функція розсилки привітань
 async def send_birthday_greetings():

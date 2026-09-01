@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os, re, math, tempfile
 import pandas as pd
+from utils.name_aliases import display_name
 import requests
 
 from auth import get_power_bi_token  # вже є в проєкті
@@ -92,14 +93,15 @@ def _build_sheet_for_head(wb, writer, df: pd.DataFrame, head: str, period_ym: st
     total_to_pay    = prev_to_pay + curr_to_pay
     balance         = accrued_current - curr_to_pay
 
-    ws.merge_range(0, 0, 0, 7, f"Керівник: {head}  •  Період звіту (по Period): {period_ym}", title_fmt)
+    nice_head = display_name(head)  # псевдонім лише для показу у звіті
+    ws.merge_range(0, 0, 0, 7, f"Керівник: {nice_head}  •  Період звіту (по Period): {period_ym}", title_fmt)
 
     headers = ["N","Менеджер","Нараховано в поточному періоді",
                "До виплати за минулі","До виплати за поточний",
                "До виплати в поточному","Залишок"]
     ws.write_row(1, 0, headers, header_fmt); ws.set_row(1, 28)
 
-    xwrite(2, 0, 1); xwrite(2, 1, head)
+    xwrite(2, 0, 1); xwrite(2, 1, nice_head)
     xwrite(2, 2, round(accrued_current, 2))
     xwrite(2, 3, round(prev_to_pay, 2))
     xwrite(2, 4, round(curr_to_pay, 2))
@@ -118,7 +120,7 @@ def _build_sheet_for_head(wb, writer, df: pd.DataFrame, head: str, period_ym: st
         ws.write_row(row, 0, cols, header_fmt); ws.set_row(row, 28); row += 1
 
         table = pd.DataFrame({
-            "Менеджер": head,
+            "Менеджер": nice_head,
             "Клієнт": sec_df.get("Client"),
             "Угода": sec_df.get("UgodaNumber"),
             "Період": sec_df.get("DealPeriod"),

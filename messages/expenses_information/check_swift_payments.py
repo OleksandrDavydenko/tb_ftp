@@ -11,6 +11,7 @@ from messages.expenses_information.payment_tablepart import (
     build_deals_keyboard,
 )
 from messages.expenses_information.swift_file import build_swift_file_button
+from utils.name_aliases import display_name
 
 KEY = os.getenv("TELEGRAM_BOT_TOKEN")
 ADDITIONAL_TELEGRAM_IDS = [203148640]  # Додаткові Telegram ID, які отримують повідомлення про всі платежі
@@ -109,10 +110,10 @@ def check_swift_payments():
             msg = (
                 "📄 До платіжного доручення з'явився <b>SWIFT</b>:\n"
                 f"• Платіжка: <b>{doc_number}</b> від <b>{date_str}</b>\n"
-                f"• Контрагент: <b>{counterparty or '—'}</b>\n"
+                f"• Контрагент: <b>{_fmt_text(counterparty)}</b>\n"
                 f"• Сума: <b>{amount_str}</b>\n"
                 f"• Стаття витрат: {expense_str}\n"
-                f"• Відповідальний: {employee_name or '—'}\n"
+                f"• Відповідальний: {_fmt_text(display_name(employee_name))}\n"
                 #f"• Коментар: {comment_str}"
 
             )
@@ -121,10 +122,10 @@ def check_swift_payments():
             msg = (
                 f"💸 Списання коштів у <b>{currency or '—'}</b>:\n"
                 f"• Платіжка: <b>{doc_number}</b> від <b>{date_str}</b>\n"
-                f"• Контрагент: <b>{counterparty or '—'}</b>\n"
+                f"• Контрагент: <b>{_fmt_text(counterparty)}</b>\n"
                 f"• Сума: <b>{amount_str}</b>\n"
                 f"• Стаття витрат: {expense_str}\n"
-                f"• Відповідальний: {employee_name or '—'}\n"
+                f"• Відповідальний: {_fmt_text(display_name(employee_name))}\n"
                 f"• Коментар: {comment_str}"
 
             )
