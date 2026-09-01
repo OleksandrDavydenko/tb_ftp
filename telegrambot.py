@@ -82,6 +82,8 @@ from messages.expenses_information.sync_swift_payments import sync_swift_payment
 from messages.expenses_information.check_swift_payments import check_swift_payments
 from messages.expenses_information.payment_tablepart import (
     CALLBACK_PREFIX as PAYMENT_TABLEPART_PREFIX,
+    COLLAPSE_PREFIX as PAYMENT_TABLEPART_COLLAPSE_PREFIX,
+    hide_payment_tablepart,
     show_payment_tablepart,
 )
 from messages.expenses_information.swift_file import (
@@ -477,10 +479,14 @@ async def handle_callback_query(update: Update, context: CallbackContext) -> Non
     except ValueError:
         return
 
-    # Розшифровку рахунків/угод показуємо окремим повідомленням,
-    # а кнопку лишаємо — рахунки можуть підтягнутись пізніше.
+    # Розшифровку рахунків/угод вписуємо в те саме повідомлення розгортним
+    # блоком — щоб вона не з'являлась у кінці чату, далеко від платіжки.
     if prefix == PAYMENT_TABLEPART_PREFIX:
         await show_payment_tablepart(update, context, value)
+        return
+
+    if prefix == PAYMENT_TABLEPART_COLLAPSE_PREFIX:
+        await hide_payment_tablepart(update, context, value)
         return
 
     # Перегляд файлу SWIFT — теж окремим повідомленням, кнопку лишаємо.

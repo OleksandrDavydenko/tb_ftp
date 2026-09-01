@@ -13,12 +13,23 @@ import os
 import re
 
 import requests
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.constants import MessageLimit
+from telegram.error import BadRequest
 
 from auth import get_power_bi_token
 
 # callback_data має вигляд "swiftdeals:<номер платіжки>"
 CALLBACK_PREFIX = "swiftdeals"
 BUTTON_TEXT = "🧾 Показати рахунки й угоди"
+
+# Згортання розшифровки назад — "swiftdealsx:<номер платіжки>"
+COLLAPSE_PREFIX = "swiftdealsx"
+COLLAPSE_BUTTON_TEXT = "🔼 Згорнути розшифровку"
+
+# Розшифровку вписуємо в те саме повідомлення розгортним блоком; за цим маркером
+# потім відрізаємо її назад
+BLOCKQUOTE_MARKER = "<blockquote expandable>"
 
 DATASET_ID = os.getenv("PBI_DATASET_ID", "8b80be15-7b31-49e4-bc85-8b37a0d98f1c")
 PBI_EXEC_URL = f"https://api.powerbi.com/v1.0/myorg/datasets/{DATASET_ID}/executeQueries"
@@ -38,6 +49,9 @@ COLUMNS = [
 
 # Ліміт повідомлення Telegram — 4096 символів; лишаємо запас
 MAX_MESSAGE_LEN = 3500
+
+# Жорсткий ліміт Telegram — понад це повідомлення просто не відредагується
+MAX_MESSAGE_TEXT_LEN = MessageLimit.MAX_TEXT_LENGTH
 
 # Ліміт callback_data у Telegram Bot API
 MAX_CALLBACK_DATA_BYTES = 64
@@ -189,8 +203,8 @@ def _split_messages(header: str, items: list[str], footer: str) -> list[str]:
     return messages
 
 
-def format_tablepart_message(payment_number, rows: list[dict]) -> list[str]:
-    """Плоский список оплачених рахунків + підсумок. Повертає список повідомлень."""
+def _build_tablepart_parts(payment_number, rows: list[dict]) -> tuple[str, list[str], str]:
+    """Заголовок, список рахунків і підсумок — окремо, щоб зібрати їх по-різному."""
     safe_number = _fmt_text(payment_number)
 
     date_str = None
@@ -252,7 +266,19 @@ def format_tablepart_message(payment_number, rows: list[dict]) -> list[str]:
     )
     footer = "\n".join(footer_lines)
 
+    return header, items, footer
+
+
+def format_tablepart_message(payment_number, rows: list[dict]) -> list[str]:
+    """Плоский список оплачених рахунків + підсумок. Повертає список повідомлень."""
+    header, items, footer = _build_tablepart_parts(payment_number, rows)
     return _split_messages(header, items, footer)
+
+
+def format_tablepart_block(payment_number, rows: list[dict]) -> str:
+    """Те саме одним суцільним блоком — для вставки в <blockquote> повідомлення."""
+    header, items, footer = _build_tablepart_parts(payment_number, rows)
+    return "\n\n".join([header, *items, footer])
 
 
 def format_empty_message(payment_number) -> str:
@@ -290,8 +316,41 @@ def build_deals_keyboard(doc_number) -> dict | None:
     return {"inline_keyboard": [[{"text": BUTTON_TEXT, "callback_data": callback_data}]]}
 
 
+def _swap_deals_button(reply_markup, payment_number: str, *, collapsed: bool) -> dict | None:
+    """
+    Клавіатура повідомлення з перемкнутою кнопкою розшифровки.
+
+    Проходимо наявні ряди й підміняємо лише кнопку розшифровки — решта (зокрема
+    «📎 Отримати файли») лишається як була, тож знати про неї тут не треба.
+    """
+    safe_number = _safe_payment_number(payment_number)
+    if not safe_number or not reply_markup:
+        return None
+
+    if collapsed:
+        new_button = {"text": BUTTON_TEXT, "callback_data": f"{CALLBACK_PREFIX}:{safe_number}"}
+    else:
+        new_button = {
+            "text": COLLAPSE_BUTTON_TEXT,
+            "callback_data": f"{COLLAPSE_PREFIX}:{safe_number}",
+        }
+
+    rows = []
+    for row in reply_markup.inline_keyboard:
+        new_row = []
+        for button in row:
+            data = button.callback_data or ""
+            if data.startswith(f"{CALLBACK_PREFIX}:") or data.startswith(f"{COLLAPSE_PREFIX}:"):
+                new_row.append(new_button)
+            else:
+                new_row.append({"text": button.text, "callback_data": data})
+        rows.append(new_row)
+
+    return {"inline_keyboard": rows}
+
+
 async def show_payment_tablepart(update, context, payment_number: str) -> None:
-    """Відповідає на натискання кнопки окремим повідомленням (кнопка лишається)."""
+    """Вписує розшифровку в те саме повідомлення розгортним блоком."""
     query = update.callback_query
     if not query or not query.message:
         return
@@ -299,12 +358,64 @@ async def show_payment_tablepart(update, context, payment_number: str) -> None:
     loop = asyncio.get_running_loop()
     rows = await loop.run_in_executor(None, fetch_payment_tablepart, payment_number)
 
-    if rows is None:
-        texts = [format_error_message(payment_number)]
-    elif not rows:
-        texts = [format_empty_message(payment_number)]
-    else:
-        texts = format_tablepart_message(payment_number, rows)
+    # Тимчасові стани (даних ще немає / PBI недоступний) у саме повідомлення не
+    # вписуємо — відповідаємо на нього, щоб відповідь була прив'язана до платіжки.
+    if rows is None or not rows:
+        text = format_error_message(payment_number) if rows is None else format_empty_message(payment_number)
+        await query.message.reply_text(
+            text, parse_mode="HTML", reply_to_message_id=query.message.message_id
+        )
+        return
 
-    for text in texts:
-        await query.message.reply_text(text, parse_mode="HTML")
+    block = format_tablepart_block(payment_number, rows)
+    new_text = f"{query.message.text_html}\n\n{BLOCKQUOTE_MARKER}{block}</blockquote>"
+
+    # Не влізає в одне повідомлення — віддаємо як раніше, окремими відповідями
+    if len(new_text) > MAX_MESSAGE_TEXT_LEN:
+        for text in format_tablepart_message(payment_number, rows):
+            await query.message.reply_text(
+                text, parse_mode="HTML", reply_to_message_id=query.message.message_id
+            )
+        return
+
+    await _edit_message(
+        query,
+        new_text,
+        _swap_deals_button(query.message.reply_markup, payment_number, collapsed=False),
+    )
+
+
+async def hide_payment_tablepart(update, context, payment_number: str) -> None:
+    """Прибирає розшифровку, повертаючи повідомлення до початкового вигляду."""
+    query = update.callback_query
+    if not query or not query.message:
+        return
+
+    text = query.message.text_html
+    if BLOCKQUOTE_MARKER not in text:
+        return
+
+    await _edit_message(
+        query,
+        text.split(BLOCKQUOTE_MARKER)[0].rstrip(),
+        _swap_deals_button(query.message.reply_markup, payment_number, collapsed=True),
+    )
+
+
+async def _edit_message(query, text: str, keyboard: dict | None) -> None:
+    """Редагує повідомлення; сирий JSON клавіатури перетворюємо на об'єкт PTB."""
+    markup = None
+    if keyboard:
+        markup = InlineKeyboardMarkup(
+            [
+                [InlineKeyboardButton(b["text"], callback_data=b["callback_data"]) for b in row]
+                for row in keyboard["inline_keyboard"]
+            ]
+        )
+
+    try:
+        await query.edit_message_text(text=text, parse_mode="HTML", reply_markup=markup)
+    except BadRequest as e:
+        # "message is not modified" — подвійне натискання; решта: повідомлення
+        # видалили або воно застаре. Падати через це не варто.
+        logging.warning(f"⚠️ Таблична частина: не вдалося оновити повідомлення: {e}")
