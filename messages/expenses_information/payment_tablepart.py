@@ -28,11 +28,8 @@ COLLAPSE_PREFIX = "swiftdealsx"
 COLLAPSE_BUTTON_TEXT = "🔼 Згорнути розшифровку"
 
 # Розшифровку вписуємо в те саме повідомлення цитатою; за цим маркером потім
-# відрізаємо її назад. Префікс, а не повний тег — цитата буває і розгортною.
+# відрізаємо її назад
 BLOCKQUOTE_MARKER = "<blockquote"
-
-# До скількох рахунків показуємо список одразу, не ховаючи в розгортний блок
-MAX_ROWS_ALWAYS_VISIBLE = 3
 
 DATASET_ID = os.getenv("PBI_DATASET_ID", "8b80be15-7b31-49e4-bc85-8b37a0d98f1c")
 PBI_EXEC_URL = f"https://api.powerbi.com/v1.0/myorg/datasets/{DATASET_ID}/executeQueries"
@@ -290,15 +287,16 @@ def format_tablepart_block(payment_number, rows: list[dict]) -> str:
     return "\n\n".join([*items, footer])
 
 
-def wrap_in_blockquote(block: str, rows_count: int) -> str:
+def wrap_in_blockquote(block: str) -> str:
     """
-    Цитата навколо розшифровки.
+    Цитата навколо розшифровки — завжди розгорнута.
 
-    Короткий список лишаємо розгорнутим — користувач натиснув «Показати рахунки»
-    і має одразу їх побачити. Згортаємо лише довгий, щоб не роздувати чат.
+    Розгортну (`<blockquote expandable>`) свідомо не використовуємо: Telegram
+    згортає її до кількох перших рядків, і користувач, який щойно натиснув
+    «Показати рахунки й угоди», бачить лише перший рахунок. За компактність
+    відповідає кнопка «Згорнути розшифровку», а не приховування даних.
     """
-    expandable = " expandable" if rows_count > MAX_ROWS_ALWAYS_VISIBLE else ""
-    return f"<blockquote{expandable}>{block}</blockquote>"
+    return f"<blockquote>{block}</blockquote>"
 
 
 def format_empty_message(payment_number) -> str:
@@ -387,7 +385,7 @@ async def show_payment_tablepart(update, context, payment_number: str) -> None:
         )
         return
 
-    block = wrap_in_blockquote(format_tablepart_block(payment_number, rows), len(rows))
+    block = wrap_in_blockquote(format_tablepart_block(payment_number, rows))
     new_text = f"{query.message.text_html}\n\n{block}"
 
     # Не влізає в одне повідомлення — віддаємо як раніше, окремими відповідями
