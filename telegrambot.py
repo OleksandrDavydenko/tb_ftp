@@ -94,7 +94,7 @@ from messages.expenses_information.swift_file import (
 )
 
 from utils.name_aliases import display_name
-from utils.menu_access import get_menu_access_async
+from utils.menu_access import get_menu_access_async, refresh_menu_access_cache
 from utils.thinking import with_typing_action
 
 
@@ -797,6 +797,9 @@ def main():
     ################################################################################
 
 
+    # Прогріваємо перелік доступів заздалегідь — тоді натискання меню
+    # взагалі не чекає на Power BI
+    scheduler.add_job(refresh_menu_access_cache, 'interval', minutes=10)
     scheduler.add_job(sync_user_statuses, 'interval', minutes=12)  # Синхронізація статусів кожні 30 хвилин
 
     scheduler.start()
