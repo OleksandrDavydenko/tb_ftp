@@ -32,6 +32,15 @@ options.add_argument('--headless')
 options.add_argument('--disable-gpu')
 options.add_argument('--no-sandbox')
 options.add_argument('--disable-dev-shm-usage')
+# Дино має 512 МБ, і Chrome — найважчий споживач у процесі (Error R14).
+# Нижче — те, що найбільше врізає RSS і не впливає на парсинг курсів.
+options.add_argument('--disable-extensions')
+options.add_argument('--disable-background-networking')
+options.add_argument('--disable-default-apps')
+options.add_argument('--disable-sync')
+options.add_argument('--no-first-run')
+options.add_argument('--window-size=1280,900')
+options.add_argument('--blink-settings=imagesEnabled=false')
 options.binary_location = CHROME_PATH
 
 

@@ -94,7 +94,7 @@ from messages.expenses_information.swift_file import (
 )
 
 from utils.name_aliases import display_name
-from utils.menu_access import get_menu_access
+from utils.menu_access import get_menu_access_async
 from utils.thinking import with_typing_action
 
 
@@ -232,13 +232,18 @@ async def show_main_menu(update: Update, context: CallbackContext) -> None:
     """Функція показує головне меню та працює з будь-якого місця бота."""
     logging.info("🔄 Виклик головного меню")
 
+    # Меню відкривається і напряму (/menu), де контекст ще не заповнено
+    if not context.user_data.get('registered', False):
+        populate_user_context(context, update.effective_user.id)
+
     if not context.user_data.get('registered', False):
         logging.warning("❌ Користувач не зареєстрований. Запит номера телефону.")
         await prompt_for_phone_number(update, context)
         return
 
     employee_name = context.user_data.get('employee_name', '')
-    access = get_menu_access(context, employee_name) if employee_name else {}
+    # В окремому потоці: всередині блокуючі запити до Power BI
+    access = await get_menu_access_async(context, employee_name) if employee_name else {}
     reply_markup = get_main_menu_keyboard(access)
 
     if update.message:
@@ -697,7 +702,9 @@ async def shutdown(app, scheduler):
     logging.info("Планувальник зупинено.")
 
 def main():
-    app = ApplicationBuilder().token(KEY).build()
+    # Без цього PTB обробляє оновлення строго по одному (max_concurrent_updates=1),
+    # і один повільний хендлер ставить у чергу натискання всіх користувачів
+    app = ApplicationBuilder().token(KEY).concurrent_updates(16).build()
 
     set_bot_menu_sync(app)
 
@@ -794,27 +801,29 @@ def main():
 
     scheduler.start()
     app.add_handler(CallbackQueryHandler(handle_callback_query))
+
+    # ✅ Команди — обов'язково ДО перехоплювачів нижче: усі хендлери в групі 0,
+    # тож PTB виконує лише перший збіг. Коли filters.COMMAND стояв вище,
+    # /menu, /debt, /salary, /analytics та /info не працювали взагалі.
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_main_menu))
-    app.add_handler(MessageHandler(filters.COMMAND, handle_main_menu))
-  
-
-    app.add_handler(MessageHandler(filters.Regex(r"^\s*Головне меню\s*$"), show_main_menu))
     app.add_handler(CommandHandler("menu", show_main_menu))
-
-    # ✅ Додаємо обробники для всіх команд
-    
     app.add_handler(CommandHandler("debt", show_debt_options))
     app.add_handler(CommandHandler("salary", show_salary_menu))
     app.add_handler(CommandHandler("analytics", show_analytics_options))
+    app.add_handler(CommandHandler("hr", show_hr_menu))
     app.add_handler(CommandHandler("info", show_help_menu))
 
 
 
 
-    app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
     
-    app.add_handler(MessageHandler(filters.Regex("^(📉 Дебіторка (AR)|Назад|Таблиця|Гістограма|Діаграма|💼 Зарплата|💼 Оклад|🎁 Відомість Бонуси|ℹ️ Інформація|💱 Курс валют|Перевірка девальвації|Головне меню|📊 Аналітика|Аналітика за місяць|Аналітика за рік|2024|2025|2026|2027|2028|2029|2030|Січень|Лютий|Березень|Квітень|Травень|Червень|Липень|Серпень|Вересень|Жовтень|Листопад|Грудень|Дохід|Валовий прибуток|Маржинальність|Кількість угод|Протермінована дебіторська заборгованість|📘 Довідка|💰 Бонуси|👑 Премії керівників|🧾 Кадровий облік|🗓 Залишки відпусток|👔 Стаж|🕓 Відпрацьовано|📜 Відомість керівника|🧾 Опис змін|📊 Звіт В/Л|🐞 Bug Bounty|💡 Нові ідеї)$"), handle_main_menu))
+    app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
+
+    # Перехоплювачі — останніми, інакше вони з'їдають усі конкретні хендлери вище.
+    # Regex-хендлер на ті самі кнопки тут не потрібен: він вів у ту саму
+    # handle_main_menu, тобто був точним дублем цього перехоплювача.
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_main_menu))
+    app.add_handler(MessageHandler(filters.COMMAND, handle_main_menu))
 
     #app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_main_menu))
 
