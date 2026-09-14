@@ -8,6 +8,7 @@ from db import get_active_users
 from openai import AsyncOpenAI
 from db import log_birthday_greeting
 from utils.name_aliases import display_name
+from utils.blocking import run_blocking
 
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -88,7 +89,7 @@ async def generate_ai_birthday_greeting(name: str) -> str:
 # 📬 Основна функція розсилки привітань
 async def send_birthday_greetings():
     logging.info("Перевіряємо, чи є сьогодні іменинники...")
-    birthday_people = get_today_birthdays()
+    birthday_people = await run_blocking(get_today_birthdays)
     if not birthday_people:
         logging.info("Сьогодні немає іменинників.")
         return

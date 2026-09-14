@@ -4,6 +4,7 @@ import psycopg2
 import os
 import logging
 from auth import get_power_bi_token
+from utils.blocking import run_blocking
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -56,7 +57,7 @@ async def async_add_devaluation_record(data):
         conn.close()
 
 async def sync_devaluation_data():
-    token = get_power_bi_token()
+    token = await run_blocking(get_power_bi_token)
     if not token:
         logging.error("Не вдалося отримати токен Power BI.")
         return

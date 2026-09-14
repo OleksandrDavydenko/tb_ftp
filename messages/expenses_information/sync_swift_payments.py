@@ -3,6 +3,7 @@ import requests
 from auth import get_power_bi_token
 from db import bulk_add_swift_payments, get_existing_swift_payment_keys
 from messages.expenses_information.swift_orgs import is_internal_org, normalize_org_code
+from utils.blocking import run_blocking
 
 DATASET_ID = os.getenv("PBI_DATASET_ID", "8b80be15-7b31-49e4-bc85-8b37a0d98f1c")
 
@@ -55,7 +56,7 @@ def _normalize_date(d):
 
 
 async def sync_swift_payments():
-    token = get_power_bi_token()
+    token = await run_blocking(get_power_bi_token)
     if not token:
         print("❌ SWIFT sync: не вдалося отримати токен Power BI")
         return

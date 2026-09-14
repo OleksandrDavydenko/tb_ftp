@@ -12,6 +12,7 @@ from utils.thinking import with_typing_action
 
 from auth import get_power_bi_token
 from utils.name_aliases import display_name
+from utils.blocking import run_blocking
 
 # Логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -171,7 +172,7 @@ async def show_tenure_info(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("❌ Неможливо визначити ім'я співробітника.")
         return
 
-    token = get_power_bi_token()
+    token = await run_blocking(get_power_bi_token)
     if not token:
         await update.message.reply_text("❌ Не вдалося отримати токен для доступу до Power BI.")
         return

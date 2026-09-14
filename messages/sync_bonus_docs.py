@@ -2,6 +2,7 @@ import os
 import requests
 from auth import get_power_bi_token
 from db import bulk_add_bonus_docs, get_existing_bonus_doc_numbers
+from utils.blocking import run_blocking
 
 DATASET_ID = os.getenv("PBI_DATASET_ID", "8b80be15-7b31-49e4-bc85-8b37a0d98f1c")
 
@@ -24,7 +25,7 @@ def _normalize_period(p):
     return s
 
 async def sync_bonus_docs():
-    token = get_power_bi_token()
+    token = await run_blocking(get_power_bi_token)
     if not token:
         return
 

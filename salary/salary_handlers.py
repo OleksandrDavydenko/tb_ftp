@@ -28,6 +28,7 @@ from .salary_queries import (
 
 
 from utils.name_aliases import display_name
+from utils.blocking import run_blocking
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Константи
@@ -61,7 +62,7 @@ _NAV_KB = ReplyKeyboardMarkup(
 
 async def show_salary_menu(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
-    codes = get_employee_accounts_3330_3320(employee) if employee else set()
+    codes = await run_blocking(get_employee_accounts_3330_3320, employee) if employee else set()
 
     # 1-й ряд — Оклад (повна ширина)
     rows = [[KeyboardButton("💼 Оклад")]]
@@ -139,7 +140,7 @@ async def send_leadreport_excel(update: Update, context: CallbackContext) -> Non
 
     xlsx_path = None
     try:
-        xlsx_path = generate_hod_excel(head, period_ym)
+        xlsx_path = await run_blocking(generate_hod_excel, head, period_ym)
         with open(xlsx_path, "rb") as f:
             await msg.reply_document(
                 document=f,
@@ -338,7 +339,7 @@ async def send_bonuses_excel(update: Update, context: CallbackContext) -> None:
 
     xlsx_path = None
     try:
-        xlsx_path = generate_excel(employee, period_ym)
+        xlsx_path = await run_blocking(generate_excel, employee, period_ym)
         if not xlsx_path or not os.path.exists(xlsx_path):
             await msg.reply_text(f"ℹ️ У вас відсутні нарахування бонусів за {month} {year}.")
             return
@@ -421,11 +422,11 @@ async def show_salary_details(update: Update, context: CallbackContext) -> None:
         await msg.reply_text("Невідомий місяць.")
         return
 
-    salary_rows = get_salary_data(employee, year, month_name)
-    payments_rows = get_salary_payments(employee, year, month_name)
-    bonus_rows = get_bonuses(employee, year, month_name)
-    bonus_payments = get_bonus_payments(employee, year, month_name)
-    prize_payments = get_prize_payments(employee, year, month_name)
+    salary_rows = await run_blocking(get_salary_data, employee, year, month_name)
+    payments_rows = await run_blocking(get_salary_payments, employee, year, month_name)
+    bonus_rows = await run_blocking(get_bonuses, employee, year, month_name)
+    bonus_payments = await run_blocking(get_bonus_payments, employee, year, month_name)
+    prize_payments = await run_blocking(get_prize_payments, employee, year, month_name)
 
     if not (salary_rows or payments_rows or bonus_rows or bonus_payments):
         await msg.reply_text("Немає даних для вибраного періоду.")

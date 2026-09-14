@@ -7,11 +7,19 @@ from .generate_pie_chart import generate_pie_chart
 from messages.weekly_overdue_debts import send_overdue_debts_by_request  # Імпорт функції для конкретного користувача
 from utils.name_aliases import display_name
 from utils.thinking import with_typing_action
+from utils.blocking import run_blocking
 
 
 TEMP_DIR = 'temp'
 if not os.path.exists(TEMP_DIR):
     os.makedirs(TEMP_DIR)
+
+
+def _debt_unavailable_text(employee_name: str) -> str:
+    """Запит до Power BI впав. Мовчати чи писати «немає боргів» тут не можна:
+    керівник вирішить, що дебіторки справді немає."""
+    return (f"⚠️ Не вдалося отримати дані по дебіторці для {display_name(employee_name)}.\n"
+            "Сервіс звітності зараз недоступний — спробуйте, будь ласка, за кілька хвилин.")
 
 
 def _has_debt(debt_data) -> bool:
@@ -103,7 +111,7 @@ async def show_debt_details(update: Update, context: CallbackContext) -> None:
     phone_number = context.user_data['phone_number']
 
     # Підтримка обох сигнатур is_phone_number_in_power_bi: 2 або 3 значення
-    res = is_phone_number_in_power_bi(phone_number)
+    res = await run_blocking(is_phone_number_in_power_bi, phone_number)
     if isinstance(res, tuple) and len(res) == 3:
         found, employee_name, _ = res
     else:
@@ -115,7 +123,16 @@ async def show_debt_details(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("Доступ заборонено. Поверніться в головне меню.", reply_markup=reply_markup)
         return
 
-    debt_data = get_user_debt_data(employee_name)
+    debt_data = await run_blocking(get_user_debt_data, employee_name)
+
+    # None — запит не вдався; [] — боргів справді немає
+    if debt_data is None:
+        reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Головне меню")]],
+                                           one_time_keyboard=True, resize_keyboard=True)
+        await update.message.reply_text(_debt_unavailable_text(employee_name),
+                                        reply_markup=reply_markup)
+        return
+
 
     if not _has_debt(debt_data):
         reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Головне меню")]],
@@ -184,8 +201,17 @@ async def show_debt_details(update: Update, context: CallbackContext) -> None:
 async def show_debt_histogram(update: Update, context: CallbackContext):
     context.user_data['menu'] = 'debt_histogram'
     phone_number = context.user_data['phone_number']
-    found, employee_name, _ = is_phone_number_in_power_bi(phone_number)
-    debt_data = get_user_debt_data(employee_name)
+    found, employee_name, _ = await run_blocking(is_phone_number_in_power_bi, phone_number)
+    debt_data = await run_blocking(get_user_debt_data, employee_name)
+
+    # None — запит не вдався; [] — боргів справді немає
+    if debt_data is None:
+        reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Головне меню")]],
+                                           one_time_keyboard=True, resize_keyboard=True)
+        await update.message.reply_text(_debt_unavailable_text(employee_name),
+                                        reply_markup=reply_markup)
+        return
+
 
     if not _has_debt(debt_data):
         reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Головне меню")]],
@@ -222,8 +248,17 @@ async def show_debt_histogram(update: Update, context: CallbackContext):
 async def show_debt_pie_chart(update: Update, context: CallbackContext):
     context.user_data['menu'] = 'debt_pie_chart'
     phone_number = context.user_data['phone_number']
-    found, employee_name, _ = is_phone_number_in_power_bi(phone_number)
-    debt_data = get_user_debt_data(employee_name)
+    found, employee_name, _ = await run_blocking(is_phone_number_in_power_bi, phone_number)
+    debt_data = await run_blocking(get_user_debt_data, employee_name)
+
+    # None — запит не вдався; [] — боргів справді немає
+    if debt_data is None:
+        reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Головне меню")]],
+                                           one_time_keyboard=True, resize_keyboard=True)
+        await update.message.reply_text(_debt_unavailable_text(employee_name),
+                                        reply_markup=reply_markup)
+        return
+
 
     if not _has_debt(debt_data):
         reply_markup = ReplyKeyboardMarkup([[KeyboardButton("Головне меню")]],

@@ -11,6 +11,7 @@ import pytz
 
 from utils.name_aliases import display_name
 from utils.thinking import with_typing_action
+from utils.blocking import run_blocking
 
 MONTHS_UA_SHORT = ["Січ","Лют","Бер","Кві","Тра","Чер","Лип","Сер","Вер","Жов","Лис","Гру"]
 
@@ -49,7 +50,7 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
 
     # Отримання даних про обраний параметр за кожен місяць року
     for month in months:
-        income_data = get_income_data(employee_name, "Менеджер", year, month) or get_income_data(employee_name, "Сейлс", year, month)
+        income_data = await run_blocking(get_income_data, employee_name, "Менеджер", year, month) or await run_blocking(get_income_data, employee_name, "Сейлс", year, month)
         
         # Розрахунок маржинальності, якщо вибрано цей параметр
         if parameter == "Маржинальність":

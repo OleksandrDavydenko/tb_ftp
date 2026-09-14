@@ -9,6 +9,7 @@ from .analytics_table import (
 from .analytics_chart import show_yearly_chart_for_parameter, show_yearly_dashboard
 import logging
 from utils.thinking import with_typing_action
+from utils.blocking import run_blocking
 
 # Налаштування логування
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -64,8 +65,8 @@ async def show_monthly_analytics(update: Update, context: CallbackContext) -> No
         await update.effective_message.reply_text("Помилка: необхідно вибрати рік і місяць.")
         return
 
-    income_data = (get_income_data(employee_name, "Менеджер", year, month) or
-                   get_income_data(employee_name, "Сейлс", year, month))
+    income_data = (await run_blocking(get_income_data, employee_name, "Менеджер", year, month) or
+                   await run_blocking(get_income_data, employee_name, "Сейлс", year, month))
 
     nav_kb = ReplyKeyboardMarkup([[KeyboardButton("Назад"), KeyboardButton("Головне меню")]], one_time_keyboard=True, resize_keyboard=True)
 
@@ -90,8 +91,8 @@ async def show_monthly_analytics(update: Update, context: CallbackContext) -> No
 
     previous_data = None
     if prev_month:
-        previous_data = (get_income_data(employee_name, "Менеджер", prev_year, prev_month) or
-                         get_income_data(employee_name, "Сейлс", prev_year, prev_month))
+        previous_data = (await run_blocking(get_income_data, employee_name, "Менеджер", prev_year, prev_month) or
+                         await run_blocking(get_income_data, employee_name, "Сейлс", prev_year, prev_month))
 
     ytd_months = get_yearly_breakdown(employee_name, year)
 

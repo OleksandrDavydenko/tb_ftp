@@ -3,6 +3,7 @@ from telegram.ext import CallbackContext
 from db import get_latest_currency_rates
 from information.devaluation_query import fetch_devaluation_data
 from utils.thinking import with_typing_action
+from utils.blocking import run_blocking
 
 async def show_help_menu(update: Update, context: CallbackContext) -> None:
     """
@@ -69,7 +70,7 @@ async def show_devaluation_data(update, context):
         return
 
     # Виконуємо запит
-    devaluation_data = fetch_devaluation_data(employee_name)
+    devaluation_data = await run_blocking(fetch_devaluation_data, employee_name)
 
     # Формуємо повідомлення для даних з девальвацією, наближеною до +5%
     if devaluation_data:

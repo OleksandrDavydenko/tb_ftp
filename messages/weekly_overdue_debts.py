@@ -6,6 +6,7 @@ from auth import get_user_debt_data
 import os
 import asyncio
 from utils.name_aliases import display_name
+from utils.blocking import run_blocking
 
 
 # Налаштування Telegram Bot Token
@@ -53,7 +54,7 @@ async def check_overdue_debts():
             logging.warning(f"Менеджер або Telegram ID не знайдено у записі: {user}")
             continue
 
-        debts = get_user_debt_data(manager_name)
+        debts = await run_blocking(get_user_debt_data, manager_name)
 
         if debts:
             overdue_debts = []
@@ -155,7 +156,7 @@ async def send_overdue_debts_by_request(update, context):
 
     manager_name = user_data['employee_name']
     nice_manager = display_name(manager_name)
-    debts = get_user_debt_data(manager_name)
+    debts = await run_blocking(get_user_debt_data, manager_name)
 
     if debts:
         overdue_debts = []

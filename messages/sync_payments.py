@@ -7,6 +7,7 @@ import pandas as pd
 from datetime import datetime
 from auth import get_power_bi_token, normalize_phone_number
 from db import add_payment
+from utils.blocking import run_blocking
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -51,7 +52,7 @@ async def async_add_payment(phone_number, amount, currency, payment_date, paymen
         logging.error(f"❌ Помилка при додаванні: {e}")
 
 async def sync_payments():
-    token = get_power_bi_token()
+    token = await run_blocking(get_power_bi_token)
     if not token:
         logging.error("❌ Не вдалося отримати токен Power BI.")
         return

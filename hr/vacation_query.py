@@ -8,6 +8,7 @@ from datetime import datetime, date
 
 from utils.name_aliases import display_name
 from utils.thinking import with_typing_action
+from utils.blocking import run_blocking
 
 
 @with_typing_action
@@ -20,13 +21,13 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
         return
 
     # Отримуємо токен для доступу до Power BI
-    token = get_power_bi_token()
+    token = await run_blocking(get_power_bi_token)
     if not token:
         await update.message.reply_text("❌ Не вдалося отримати токен для доступу до Power BI.")
         return
 
     # Отримуємо INN співробітника
-    tax_code = get_employee_inn(employee_name)
+    tax_code = await run_blocking(get_employee_inn, employee_name)
 
     if not tax_code:
         logging.info(f"⚠️ Не вдалося знайти INN для {employee_name}. Використовуємо фільтрацію по імені.")

@@ -7,6 +7,7 @@ from telegram import Bot
 from telegram.error import Forbidden
 from datetime import datetime
 from auth import get_power_bi_token  # <-- додаємо токен для PBI
+from utils.blocking import run_blocking
 
 KEY = os.getenv('TELEGRAM_BOT_TOKEN')
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -143,7 +144,7 @@ async def check_new_payments():
         payment_date = payments[0][3]
 
         # ---- Основний шлях: отримати з Power BI типи + суми по періодах ----
-        pbi_rows = _fetch_pbi_payment_lines(employee_name, payment_number)
+        pbi_rows = await run_blocking(_fetch_pbi_payment_lines, employee_name, payment_number)
 
         if pbi_rows:
             # Агрегуємо суми за (тип -> місяць)

@@ -9,6 +9,7 @@ import logging
 
 from utils.name_aliases import display_name
 from utils.thinking import with_typing_action
+from utils.blocking import run_blocking
 
 
 POWER_BI_URL = "https://api.powerbi.com/v1.0/myorg/datasets/8b80be15-7b31-49e4-bc85-8b37a0d98f1c/executeQueries"
@@ -226,7 +227,7 @@ async def show_workdays_details(update: Update, context: CallbackContext) -> Non
         await update.effective_message.reply_text("⚠️ Невідомий місяць.")
         return
 
-    headers = _get_headers()
+    headers = await run_blocking(_get_headers)
     if not headers:
         await update.effective_message.reply_text("❌ Не вдалося отримати токен для Power BI.")
         return
@@ -257,7 +258,7 @@ async def show_workdays_details(update: Update, context: CallbackContext) -> Non
         )
     """
 
-    rows = _execute_dax(headers, dax)
+    rows = await run_blocking(_execute_dax, headers, dax)
 
     if not rows:
         await update.effective_message.reply_text("ℹ️ Дані по відпрацьованих днях відсутні.")

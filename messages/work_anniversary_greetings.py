@@ -10,6 +10,7 @@ from telegram import Bot
 from auth import get_power_bi_token
 from db import get_active_users, log_birthday_greeting
 from utils.name_aliases import display_name
+from utils.blocking import run_blocking
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -130,7 +131,7 @@ async def generate_ai_work_anniversary_greeting(real_name: str, years: int | Non
 
 async def send_work_anniversary_greetings():
     logging.info("Перевіряємо, чи є сьогодні річниці роботи...")
-    anniversary_people = get_today_work_anniversaries()
+    anniversary_people = await run_blocking(get_today_work_anniversaries)
     if not anniversary_people:
         logging.info("Сьогодні немає річниць роботи.")
         return
