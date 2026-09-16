@@ -88,7 +88,7 @@ async def sync_payments():
     }
 
     try:
-        response = requests.post(power_bi_url, headers=headers, json=query_data)
+        response = await run_blocking(requests.post, power_bi_url, headers=headers, json=query_data, timeout=60)
         if response.status_code != 200:
             logging.error(f"❌ Power BI error: {response.status_code} | {response.text}")
             return

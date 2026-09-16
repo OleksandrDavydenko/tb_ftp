@@ -53,7 +53,7 @@ def get_income_data(employee_name, role, year, month):
     }
 
     logging.info(f"Виконуємо запит до Power BI для {role} {employee_name} за {formatted_date}.")
-    response = requests.post(power_bi_url, headers=headers, json=query_data)
+    response = requests.post(power_bi_url, headers=headers, json=query_data, timeout=60)
 
     if response.status_code == 200:
         logging.info(f"Запит до Power BI для {role} {employee_name} успішний.")

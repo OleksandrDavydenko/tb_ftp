@@ -207,7 +207,7 @@ SELECTCOLUMNS(
     }
 
     try:
-        resp = requests.post(PBI_URL, headers=headers, json=dax_query, timeout=60)
+        resp = await run_blocking(requests.post, PBI_URL, headers=headers, json=dax_query, timeout=60)
         logging.info(f"📥 Power BI tenure_info status: {resp.status_code}")
         logging.debug(f"Power BI response: {resp.text}")
 

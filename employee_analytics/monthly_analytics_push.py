@@ -33,6 +33,7 @@ from employee_analytics.analytics_table import get_yearly_breakdown, MONTHS_UA
 from salary.bonuses_message import fetch_3330
 from utils.name_aliases import display_name
 from db import get_active_users
+from utils.blocking import run_blocking
 
 try:
     from hr.vacation_sick_report import _fetch_yearly_data
@@ -521,7 +522,7 @@ async def run_monthly_analytics_push():
         if not tid or not emp:
             continue
         try:
-            payload = _build_payload(emp, now, year_cache)
+            payload = await run_blocking(_build_payload, emp, now, year_cache)
             if payload is None:
                 skipped += 1
                 continue

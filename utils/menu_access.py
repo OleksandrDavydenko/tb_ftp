@@ -30,16 +30,12 @@ _cache: dict[str, dict] = {}
 # формульний рушій; SUMMARIZE по одній колонці — це дешевий DISTINCT.
 _DAX_DEBT_PEOPLE = """
 EVALUATE
+VAR Filtered = FILTER(Deb, Deb[Inform] <> 1)
+RETURN
 DISTINCT(
   UNION(
-    SELECTCOLUMNS(
-      CALCULATETABLE(SUMMARIZE(Deb, Deb[Manager]), Deb[Inform] <> 1),
-      "Person", Deb[Manager]
-    ),
-    SELECTCOLUMNS(
-      CALCULATETABLE(SUMMARIZE(Deb, Deb[Seller]), Deb[Inform] <> 1),
-      "Person", Deb[Seller]
-    )
+    SELECTCOLUMNS(Filtered, "Person", Deb[Manager] & ""),
+    SELECTCOLUMNS(Filtered, "Person", Deb[Seller] & "")
   )
 )"""
 
@@ -83,7 +79,7 @@ def _fetch_people(dax: str, label: str) -> set[str] | None:
         return None
 
     if r.status_code != 200:
-        logging.warning(f"menu_access [{label}]: PBI {r.status_code}: {r.text[:200]}")
+        logging.warning(f"menu_access [{label}]: PBI {r.status_code}: {r.text[:800]}")
         return None
 
     try:
@@ -116,16 +112,66 @@ def _people(kind: str, dax: str, ttl: int) -> set[str] | None:
     return people
 
 
-def check_analytics(employee_name: str) -> bool:
-    people = _people('analytics', _DAX_ANALYTICS_PEOPLE, _ANALYTICS_TTL_SECONDS)
-    # Даних немає — показуємо розділ. Сам хендлер однаково перевіряє доступ,
+_DAX_ONE_DEBT = """
+EVALUATE ROW("C", COUNTROWS(FILTER(Deb,
+  (Deb[Manager] = "{emp}" || Deb[Seller] = "{emp}") && Deb[Inform] <> 1)))"""
+
+_DAX_ONE_ANALYTICS = """
+EVALUATE ROW("C", COUNTROWS(FILTER('GrossProfitFromDeals',
+  ('GrossProfitFromDeals'[Manager] = "{emp}" || 'GrossProfitFromDeals'[Seller] = "{emp}") &&
+  'GrossProfitFromDeals'[RegistrDate] >= DATE(2025, 1, 1))))"""
+
+
+def _check_one(employee_name: str, dax_template: str, label: str) -> bool | None:
+    """
+    Запасний шлях, коли масовий запит не вдався: питаємо по одній людині.
+
+    Повільніше (запит на кожне натискання), зате доступи лишаються правильними,
+    а не «показати все всім».
+    """
+    token = get_power_bi_token()
+    if not token:
+        return None
+    dax = dax_template.format(emp=employee_name.replace('"', '""'))
+    payload = {"queries": [{"query": dax}], "serializerSettings": {"includeNulls": True}}
+    try:
+        r = requests.post(_PBI_URL, headers={'Content-Type': 'application/json',
+                                             'Authorization': f'Bearer {token}'},
+                          json=payload, timeout=30)
+        if r.status_code != 200:
+            logging.warning(f"menu_access [{label} поодиноко]: PBI {r.status_code}: {r.text[:400]}")
+            return None
+        rows = r.json()['results'][0]['tables'][0].get('rows', [])
+    except Exception as e:
+        logging.warning(f"menu_access [{label} поодиноко]: {e}")
+        return None
+    return bool(rows) and int(rows[0].get('[C]', 0) or 0) > 0
+
+
+def _access(employee_name: str, kind: str, dax_all: str, ttl: int, dax_one: str) -> bool:
+    people = _people(kind, dax_all, ttl)
+    if people is not None:
+        return employee_name in people
+
+    # Масовий запит не вдався — питаємо по цій людині окремо
+    single = _check_one(employee_name, dax_one, kind)
+    if single is not None:
+        return single
+
+    # Не працює нічого — показуємо розділ. Хендлер однаково перевіряє доступ,
     # і краще зайва кнопка, ніж зникле меню через збій звітності.
-    return True if people is None else employee_name in people
+    logging.warning(f"menu_access [{kind}]: доступ не визначено, показую розділ")
+    return True
+
+
+def check_analytics(employee_name: str) -> bool:
+    return _access(employee_name, 'analytics', _DAX_ANALYTICS_PEOPLE,
+                   _ANALYTICS_TTL_SECONDS, _DAX_ONE_ANALYTICS)
 
 
 def check_debt(employee_name: str) -> bool:
-    people = _people('debt', _DAX_DEBT_PEOPLE, _DEBT_TTL_SECONDS)
-    return True if people is None else employee_name in people
+    return _access(employee_name, 'debt', _DAX_DEBT_PEOPLE,
+                   _DEBT_TTL_SECONDS, _DAX_ONE_DEBT)
 
 
 def get_menu_access(context, employee_name: str) -> dict:

@@ -26,7 +26,7 @@ async def show_yearly_chart_for_parameter(update: Update, context: CallbackConte
     nice_name = display_name(employee_name)
 
     # Місяці для отримання даних та побудови графіка
-    months = get_available_months_analytics(employee_name, year) or []
+    months = await run_blocking(get_available_months_analytics, employee_name, year) or []
     monthly_values = []
     if not months:
         custom_keyboard = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
@@ -113,7 +113,7 @@ async def show_yearly_dashboard(update: Update, context: CallbackContext, employ
     await update.effective_message.reply_text("Зачекайте, будь ласка. Це може зайняти деякий час...")
     nice_name = display_name(employee_name)
 
-    months_data = get_yearly_breakdown(employee_name, year)
+    months_data = await run_blocking(get_yearly_breakdown, employee_name, year)
 
     kb = [[KeyboardButton("Назад"), KeyboardButton("Головне меню")]]
     reply_markup = ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True)

@@ -68,7 +68,7 @@ async def show_vacation_balance(update: Update, context: CallbackContext) -> Non
         )
 
     logging.info(f"📤 Відправляємо запит до Power BI для {employee_name} з INN {tax_code if tax_code else 'не знайдено'}")
-    response = requests.post(power_bi_url, headers=headers, json=dax_query)
+    response = await run_blocking(requests.post, power_bi_url, headers=headers, json=dax_query, timeout=60)
 
     logging.info(f"📥 Статус відповіді Power BI: {response.status_code}")
     logging.info(f"📄 Вміст відповіді: {response.text}")

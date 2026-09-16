@@ -100,7 +100,7 @@ async def sync_devaluation_data():
     }
 
     try:
-        response = requests.post(power_bi_url, headers=headers, json=query_data)
+        response = await run_blocking(requests.post, power_bi_url, headers=headers, json=query_data, timeout=60)
         if response.status_code == 200:
             data = response.json()
             rows = data['results'][0]['tables'][0].get('rows', [])

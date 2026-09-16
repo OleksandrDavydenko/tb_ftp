@@ -22,6 +22,7 @@ from .workdays_query import (
     _execute_dax,
     _to_int,
 )
+from utils.blocking import run_blocking
 
 POWER_BI_URL = "https://api.powerbi.com/v1.0/myorg/datasets/8b80be15-7b31-49e4-bc85-8b37a0d98f1c/executeQueries"
 
@@ -248,7 +249,7 @@ async def show_vacation_sick_years(update: Update, context: CallbackContext) -> 
 
     await update.effective_message.reply_text("⏳ Завантаження даних...")
 
-    periods = _get_employee_periods_cached(context, employee_name)
+    periods = await run_blocking(_get_employee_periods_cached, context, employee_name)
     years = sorted({y for (y, _) in (_extract_year_month(p) for p in periods) if y is not None})
 
     nav_kb = ReplyKeyboardMarkup([[KeyboardButton("Назад"), KeyboardButton("Головне меню")]], resize_keyboard=True, one_time_keyboard=True)
@@ -281,7 +282,7 @@ async def show_vacation_sick_report(update: Update, context: CallbackContext) ->
 
     await update.effective_message.reply_text("⏳ Формую звіт, зачекайте...")
 
-    months_data = _fetch_yearly_data(employee_name, year)
+    months_data = await run_blocking(_fetch_yearly_data, employee_name, year)
 
     nav_kb = ReplyKeyboardMarkup([[KeyboardButton("Назад"), KeyboardButton("Головне меню")]], one_time_keyboard=True, resize_keyboard=True)
 

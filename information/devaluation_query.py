@@ -50,7 +50,7 @@ def fetch_devaluation_data(manager_name):
     }
 
     # Виконання запиту
-    response = requests.post(power_bi_url, headers=headers, json=query_data)
+    response = requests.post(power_bi_url, headers=headers, json=query_data, timeout=60)
 
     if response.status_code == 200:
         logging.info("Запит до Power BI успішний.")

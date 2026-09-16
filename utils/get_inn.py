@@ -38,7 +38,7 @@ def get_employee_inn(employee_name: str) -> str | None:
     }
 
     logging.info(f"📤 Шукаємо INN для {employee_name}")
-    response = requests.post(power_bi_url, headers=headers, json=dax_query)
+    response = requests.post(power_bi_url, headers=headers, json=dax_query, timeout=60)
 
     logging.info(f"📥 Статус: {response.status_code}")
     logging.info(f"📄 Відповідь: {response.text}")

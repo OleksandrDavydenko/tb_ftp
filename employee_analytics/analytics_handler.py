@@ -26,7 +26,7 @@ async def show_analytics_options(update: Update, context: CallbackContext) -> No
 # Відображення років для аналітики
 async def show_analytics_years(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
-    years = get_available_years_analytics(employee) if employee else []
+    years = await run_blocking(get_available_years_analytics, employee) if employee else []
     context.user_data['menu'] = 'analytics_years'
     msg = update.effective_message
     nav_kb = ReplyKeyboardMarkup([[KeyboardButton("Назад"), KeyboardButton("Головне меню")]], resize_keyboard=True, one_time_keyboard=True)
@@ -42,7 +42,7 @@ async def show_analytics_years(update: Update, context: CallbackContext) -> None
 async def show_analytics_months(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     year = context.user_data.get("selected_year")
-    months = get_available_months_analytics(employee, year) if (employee and year) else []
+    months = await run_blocking(get_available_months_analytics, employee, year) if (employee and year) else []
     context.user_data['menu'] = 'analytics_months'
     msg = update.effective_message
     nav_kb = ReplyKeyboardMarkup([[KeyboardButton("Назад"), KeyboardButton("Головне меню")]], resize_keyboard=True, one_time_keyboard=True)
@@ -94,7 +94,7 @@ async def show_monthly_analytics(update: Update, context: CallbackContext) -> No
         previous_data = (await run_blocking(get_income_data, employee_name, "Менеджер", prev_year, prev_month) or
                          await run_blocking(get_income_data, employee_name, "Сейлс", prev_year, prev_month))
 
-    ytd_months = get_yearly_breakdown(employee_name, year)
+    ytd_months = await run_blocking(get_yearly_breakdown, employee_name, year)
 
     card = format_smart_monthly_card(income_data, previous_data, ytd_months, employee_name, month, year)
     await update.effective_message.reply_text(card)

@@ -60,7 +60,7 @@ def _execute_dax(headers: dict, dax_query: str) -> list[dict]:
         "queries": [{"query": dax_query}],
         "serializerSettings": {"includeNulls": True}
     }
-    response = requests.post(POWER_BI_URL, headers=headers, json=payload)
+    response = requests.post(POWER_BI_URL, headers=headers, json=payload, timeout=60)
 
     logging.info(f"📥 Статус відповіді Power BI: {response.status_code}")
     logging.info(f"📄 Вміст відповіді: {response.text}")
@@ -161,7 +161,7 @@ async def show_workdays_years(update: Update, context: CallbackContext) -> None:
         await msg.reply_text("⚠️ Не знайдено працівника в контексті.")
         return
 
-    periods = _get_employee_periods_cached(context, employee_name)
+    periods = await run_blocking(_get_employee_periods_cached, context, employee_name)
     ym = [_extract_year_month(p) for p in periods]
     years = sorted({y for (y, m) in ym if y is not None})
 
@@ -192,7 +192,7 @@ async def show_workdays_months(update: Update, context: CallbackContext) -> None
         await msg.reply_text("⚠️ Невірний рік.")
         return
 
-    periods = _get_employee_periods_cached(context, employee_name)
+    periods = await run_blocking(_get_employee_periods_cached, context, employee_name)
     ym = [_extract_year_month(p) for p in periods]
 
     months_nums = sorted({m for (y, m) in ym if y == year_int and m is not None})

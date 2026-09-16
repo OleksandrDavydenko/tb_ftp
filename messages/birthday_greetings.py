@@ -49,7 +49,7 @@ def get_today_birthdays():
     response = requests.post(url, headers=headers, json={
         "queries": [{"query": query}],
         "serializerSettings": {"includeNulls": True}
-    })
+    }, timeout=60)
 
     if response.status_code == 200:
         rows = response.json()['results'][0]['tables'][0].get('rows', [])

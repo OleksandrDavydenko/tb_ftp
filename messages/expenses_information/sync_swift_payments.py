@@ -65,7 +65,7 @@ async def sync_swift_payments():
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     payload = {"queries": [{"query": DAX_QUERY}], "serializerSettings": {"includeNulls": True}}
 
-    r = requests.post(url, headers=headers, json=payload, timeout=60)
+    r = await run_blocking(requests.post, url, headers=headers, json=payload, timeout=60)
     if r.status_code != 200:
         print(f"❌ SWIFT sync: Power BI повернув статус {r.status_code}: {r.text[:300]}")
         return

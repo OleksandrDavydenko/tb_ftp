@@ -93,7 +93,7 @@ async def show_salary_menu(update: Update, context: CallbackContext) -> None:
 
 async def show_leadreport_years(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
-    years = get_available_years_prizes(employee) if employee else []
+    years = await run_blocking(get_available_years_prizes, employee) if employee else []
     context.user_data["menu"] = "leadreport_years"
     msg = update.effective_message
     if not years:
@@ -107,7 +107,7 @@ async def show_leadreport_years(update: Update, context: CallbackContext) -> Non
 async def show_leadreport_months(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     year = context.user_data.get("selected_year")
-    months = get_available_months_prizes(employee, year) if (employee and year) else []
+    months = await run_blocking(get_available_months_prizes, employee, year) if (employee and year) else []
     context.user_data["menu"] = "leadreport_months"
     msg = update.effective_message
     if not months:
@@ -181,7 +181,7 @@ async def show_lead_prizes_stub(update: Update, context: CallbackContext) -> Non
 
 async def show_leadprize_years(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
-    years = get_available_years_prizes(employee) if employee else []
+    years = await run_blocking(get_available_years_prizes, employee) if employee else []
     context.user_data["menu"] = "leadprize_years"
     msg = update.effective_message
     if not years:
@@ -195,7 +195,7 @@ async def show_leadprize_years(update: Update, context: CallbackContext) -> None
 async def show_leadprize_months(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     year = context.user_data.get("selected_year")
-    months = get_available_months_prizes(employee, year) if (employee and year) else []
+    months = await run_blocking(get_available_months_prizes, employee, year) if (employee and year) else []
     context.user_data["menu"] = "leadprize_months"
     msg = update.effective_message
     if not months:
@@ -224,7 +224,7 @@ async def send_leadprizes_message(update: Update, context: CallbackContext) -> N
         return
 
     try:
-        text = build_lead_prizes_message_for_period(employee, int(year), int(month_num))
+        text = await run_blocking(build_lead_prizes_message_for_period, employee, int(year), int(month_num))
     except Exception as e:
         text = f"❌ Не вдалося завантажити премії: {e}"
     await msg.reply_text(text)
@@ -236,7 +236,7 @@ async def send_leadprizes_message(update: Update, context: CallbackContext) -> N
 # ──────────────────────────────────────────────────────────────────────────────
 async def show_bonusmsg_years(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
-    years = get_available_years_bonuses(employee) if employee else []
+    years = await run_blocking(get_available_years_bonuses, employee) if employee else []
     context.user_data["menu"] = "bonusmsg_years"
     msg = update.effective_message
     if not years:
@@ -250,7 +250,7 @@ async def show_bonusmsg_years(update: Update, context: CallbackContext) -> None:
 async def show_bonusmsg_months(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     year = context.user_data.get("selected_year")
-    months = get_available_months_bonuses(employee, year) if (employee and year) else []
+    months = await run_blocking(get_available_months_bonuses, employee, year) if (employee and year) else []
     context.user_data["menu"] = "bonusmsg_months"
     msg = update.effective_message
     if not months:
@@ -279,7 +279,7 @@ async def send_bonuses_message(update: Update, context: CallbackContext) -> None
         return
 
     try:
-        text = build_bonus_message_for_period(employee, int(year), int(month_num))
+        text = await run_blocking(build_bonus_message_for_period, employee, int(year), int(month_num))
     except Exception as e:
         text = f"❌ Не вдалося завантажити бонуси: {e}"
     await msg.reply_text(text)
@@ -291,7 +291,7 @@ async def send_bonuses_message(update: Update, context: CallbackContext) -> None
 # ──────────────────────────────────────────────────────────────────────────────
 async def show_bonuses_years(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
-    years = get_available_years_bonuses(employee) if employee else []
+    years = await run_blocking(get_available_years_bonuses, employee) if employee else []
     context.user_data["menu"] = "bonuses_years"
     msg = update.effective_message
     if not years:
@@ -305,7 +305,7 @@ async def show_bonuses_years(update: Update, context: CallbackContext) -> None:
 async def show_bonuses_months(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     year = context.user_data.get("selected_year")
-    months = get_available_months_bonuses(employee, year) if (employee and year) else []
+    months = await run_blocking(get_available_months_bonuses, employee, year) if (employee and year) else []
     context.user_data["menu"] = "bonuses_months"
     msg = update.effective_message
     if not months:
@@ -379,7 +379,7 @@ async def send_bonuses_excel(update: Update, context: CallbackContext) -> None:
 # ──────────────────────────────────────────────────────────────────────────────
 async def show_salary_years(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
-    years = get_available_years_salary(employee) if employee else []
+    years = await run_blocking(get_available_years_salary, employee) if employee else []
     context.user_data["menu"] = "salary_years"
     msg = update.effective_message
     if not years:
@@ -393,7 +393,7 @@ async def show_salary_years(update: Update, context: CallbackContext) -> None:
 async def show_salary_months(update: Update, context: CallbackContext) -> None:
     employee = context.user_data.get("employee_name")
     year = context.user_data.get("selected_year")
-    months = get_available_months_salary(employee, year) if (employee and year) else []
+    months = await run_blocking(get_available_months_salary, employee, year) if (employee and year) else []
     context.user_data["menu"] = "salary_months"
     msg = update.effective_message
     if not months:

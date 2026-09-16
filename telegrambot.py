@@ -1,6 +1,7 @@
 import asyncio
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, BotCommandScopeDefault, BotCommand, MenuButtonCommands
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, CallbackContext
+from telegram.error import BadRequest
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pytz import timezone
 from information.querryFinanceUa import store_exchange_rates
@@ -100,6 +101,7 @@ from utils.thinking import with_typing_action
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "openAI"))
 from openAI.gpt_handler import is_known_command, get_gpt_response
+from utils.blocking import run_blocking
 
 # One-off monthly analytics runner
 #from employee_analytics.monthly_analytics_push import run_monthly_analytics_push
@@ -134,6 +136,26 @@ def set_bot_menu_sync(app):
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 scheduler = AsyncIOScheduler()
 
+
+
+async def on_error(update: object, context: CallbackContext) -> None:
+    """
+    Остання лінія оборони. Без неї PTB просто друкує трейсбек, користувач
+    лишається без відповіді, а ви дізнаєтесь про поломку лише з логів.
+    """
+    logging.error("❌ Необроблений виняток у хендлері", exc_info=context.error)
+
+    chat = getattr(update, "effective_chat", None)
+    if chat is None:
+        return
+    try:
+        await context.bot.send_message(
+            chat_id=chat.id,
+            text="⚠️ Сталася помилка під час обробки запиту. "
+                 "Спробуйте, будь ласка, ще раз за хвилину.",
+        )
+    except Exception:
+        logging.warning("[on_error] не вдалося повідомити користувача")
 
 
 async def start(update: Update, context: CallbackContext) -> None:
@@ -182,7 +204,7 @@ async def handle_contact(update: Update, context: CallbackContext) -> None:
         log_user_action(user_id, f"Надано номер телефону: {phone_number}", update.message.message_id)
 
         # Перевіряємо користувача в Power BI
-        verify_and_add_user(phone_number, update.message.from_user.id, update.message.from_user.first_name)
+        await run_blocking(verify_and_add_user, phone_number, update.message.from_user.id, update.message.from_user.first_name)
 
         # Отримуємо статус із бази
         status = get_user_status(phone_number)
@@ -476,7 +498,12 @@ async def handle_main_menu(update: Update, context: CallbackContext) -> None:
 @with_typing_action
 async def handle_callback_query(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
-    await query.answer()
+    # Callback живе лічені секунди. Якщо бот був зайнятий і той протух,
+    # це не привід кидати обробку — просто не буде «годинника» на кнопці.
+    try:
+        await query.answer()
+    except BadRequest as e:
+        logging.warning(f"[callback] не вдалося підтвердити натискання: {e}")
     data = query.data
 
     populate_user_context(context, update.effective_user.id)
@@ -803,6 +830,8 @@ def main():
     scheduler.add_job(sync_user_statuses, 'interval', minutes=12)  # Синхронізація статусів кожні 30 хвилин
 
     scheduler.start()
+    app.add_error_handler(on_error)
+
     app.add_handler(CallbackQueryHandler(handle_callback_query))
 
     # ✅ Команди — обов'язково ДО перехоплювачів нижче: усі хендлери в групі 0,

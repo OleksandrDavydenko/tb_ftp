@@ -33,7 +33,7 @@ async def sync_bonus_docs():
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     payload = {"queries": [{"query": DAX_QUERY}], "serializerSettings": {"includeNulls": True}}
 
-    r = requests.post(url, headers=headers, json=payload, timeout=60)
+    r = await run_blocking(requests.post, url, headers=headers, json=payload, timeout=60)
     if r.status_code != 200:
         return
 

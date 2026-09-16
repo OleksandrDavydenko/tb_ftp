@@ -18,7 +18,7 @@ def _exec_dax(token: str, dax: str) -> dict:
     url = f"https://api.powerbi.com/v1.0/myorg/datasets/{DATASET_ID}/executeQueries"
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     payload = {"queries": [{"query": dax}], "serializerSettings": {"includeNulls": True}}
-    r = requests.post(url, headers=headers, json=payload)
+    r = requests.post(url, headers=headers, json=payload, timeout=60)
     try:
         r.raise_for_status()
     except requests.exceptions.HTTPError as e:

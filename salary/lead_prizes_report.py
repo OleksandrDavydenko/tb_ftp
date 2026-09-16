@@ -14,7 +14,7 @@ def _exec_dax(token: str, dax: str) -> dict:
         url,
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         json={"queries":[{"query":dax}], "serializerSettings":{"includeNulls": True}}
-    )
+    , timeout=60)
     r.raise_for_status()
     return r.json()
 
