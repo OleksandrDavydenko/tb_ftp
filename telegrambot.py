@@ -1,3 +1,9 @@
+# Логування налаштовуємо ПЕРШИМ рядком файлу: модулі нижче роблять власний
+# logging.basicConfig прямо на імпорті, а він нічого не робить, якщо кореневий
+# логер уже налаштований. Хто перший — той і визначає формат та призначення.
+from utils.logging_setup import setup_logging
+_LOG_FILE = setup_logging()
+
 import asyncio
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, BotCommandScopeDefault, BotCommand, MenuButtonCommands
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, CallbackContext
@@ -133,7 +139,9 @@ def set_bot_menu_sync(app):
 
 
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Логування вже налаштоване на початку файлу (консоль + файл із ротацією)
+if _LOG_FILE:
+    logging.info(f"📝 Логи пишуться у файл: {_LOG_FILE}")
 scheduler = AsyncIOScheduler()
 
 
