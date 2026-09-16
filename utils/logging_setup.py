@@ -15,6 +15,12 @@ import os
 import re
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+
+# httpx друкує рядок на КОЖЕН виклик Telegram, а це getUpdates кожні 10 с —
+# 8 640 рядків на добу й ~85% усього обсягу логів. Помилки від цього не
+# губляться: на невдалий виклик PTB кидає виняток, який ловлять наші
+# обробники (handle_callback_query, on_error) і пишуть своїм рядком.
+HTTP_LOG_LEVEL = os.getenv("HTTP_LOG_LEVEL", "WARNING").upper()
 FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 
 # httpx логує кожен запит до Telegram разом із токеном прямо в URL
@@ -49,3 +55,7 @@ def setup_logging() -> None:
     console.setFormatter(logging.Formatter(FORMAT))
     console.addFilter(RedactSecrets())
     root.addHandler(console)
+
+    http_level = getattr(logging, HTTP_LOG_LEVEL, logging.WARNING)
+    for name in ("httpx", "httpcore"):
+        logging.getLogger(name).setLevel(http_level)
