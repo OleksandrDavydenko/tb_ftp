@@ -16,8 +16,9 @@ if not TELEGRAM_BOT_TOKEN:
 
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
-# Налаштування логування
-logging.basicConfig(filename='debts_log.log', level=logging.INFO, format='%(asctime)s - %(message)s')
+# Логування налаштовує utils/logging_setup.py при старті бота (консоль + файл).
+# Тут був власний basicConfig у debts_log.log, але він ніколи не спрацьовував:
+# basicConfig — no-op, якщо кореневий логер уже налаштований іншим модулем.
 
 # Поточна дата
 current_date = datetime.datetime.now().date()

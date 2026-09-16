@@ -2,7 +2,7 @@
 # logging.basicConfig прямо на імпорті, а він нічого не робить, якщо кореневий
 # логер уже налаштований. Хто перший — той і визначає формат та призначення.
 from utils.logging_setup import setup_logging
-_LOG_FILE = setup_logging()
+setup_logging()
 
 import asyncio
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, BotCommandScopeDefault, BotCommand, MenuButtonCommands
@@ -139,9 +139,7 @@ def set_bot_menu_sync(app):
 
 
 
-# Логування вже налаштоване на початку файлу (консоль + файл із ротацією)
-if _LOG_FILE:
-    logging.info(f"📝 Логи пишуться у файл: {_LOG_FILE}")
+# Логування вже налаштоване на початку файлу (див. utils/logging_setup.py)
 scheduler = AsyncIOScheduler()
 
 
