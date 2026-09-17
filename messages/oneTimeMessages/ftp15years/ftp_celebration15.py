@@ -25,7 +25,7 @@ from db import get_active_users, get_db_connection
 from utils.blocking import run_blocking
 
 TEST_MODE = True
-TEST_TELEGRAM_IDS = [203148640]
+TEST_TELEGRAM_IDS = [203148640, 225659191]
 
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
