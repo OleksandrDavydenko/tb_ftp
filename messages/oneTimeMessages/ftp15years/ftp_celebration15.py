@@ -82,9 +82,10 @@ STEPS = {
     7: {"file": "screen_7_ai.png", "caption": None},
     8: {"file": "screen_8_recap.png", "caption": None},
     # Передостанній кадр: від статистики бота переходимо до планів компанії.
-    # На картинці лише заголовок, суть — у підписі (ліміт Telegram 1024 символи).
+    # Без картинки — лише текст ("file": None), тож це звичайне текстове
+    # повідомлення, а не підпис під фото.
     9: {
-        "file": "screen_finance.png",
+        "file": None,
         "caption": (
             "💼 <b>Кілька слів від фінансового відділу</b>\n\n"
             "За 15 років FTP виросла в потужну компанію — і попереду в нас багато нових проєктів. "
@@ -123,8 +124,12 @@ LAST_STEP = max(STEPS)
 _file_ids: dict[int, str] = {}
 
 
+def _is_text(step: int) -> bool:
+    return STEPS[step]["file"] is None
+
+
 def _is_animation(step: int) -> bool:
-    return STEPS[step]["file"].lower().endswith(".gif")
+    return not _is_text(step) and STEPS[step]["file"].lower().endswith(".gif")
 
 
 def _media_source(step: int):
@@ -195,6 +200,10 @@ async def send_step(target_bot: Bot, chat_id: int, step: int, keyboard: InlineKe
     """Надсилає крок новим повідомленням."""
     caption = STEPS[step]["caption"]
     reply_markup = keyboard if keyboard is not None else build_keyboard(step)
+    if _is_text(step):
+        return await target_bot.send_message(
+            chat_id=chat_id, text=caption, parse_mode='HTML', reply_markup=reply_markup
+        )
     if _is_animation(step):
         message = await target_bot.send_animation(
             chat_id=chat_id, animation=_media_source(step), caption=caption,
@@ -221,7 +230,10 @@ def send_message_to_users():
 async def async_send_message_to_users():
     """ Відправляє перший екран кампанії «FTP × 15» (тестовим або всім активним користувачам). """
     # Без будь-якої картинки історія обірветься посередині — краще не слати нічого
-    missing = [data["file"] for data in STEPS.values() if not (IMAGES_DIR / data["file"]).is_file()]
+    missing = [
+        data["file"] for data in STEPS.values()
+        if data["file"] and not (IMAGES_DIR / data["file"]).is_file()
+    ]
     if missing:
         logging.error(f"❌ FTP15: розсилку скасовано, бракує файлів у {IMAGES_DIR}: {', '.join(missing)}")
         return
@@ -262,9 +274,31 @@ async def handle_ftp15_callback(update, context, value: str) -> None:
     step = int(raw_step)
 
     query = update.callback_query
-    media_class = InputMediaAnimation if _is_animation(step) else InputMediaPhoto
     keyboard = await _keyboard_for(step, update.effective_user.id)
 
+    # Telegram не вміє редагуванням перетворити фото на текст і навпаки.
+    # Тож на межі «фото ↔ текст» видаляємо поточне повідомлення і шлемо
+    # крок новим — у чаті все одно лишається одне повідомлення.
+    current = query.message
+    current_is_text = current is not None and not (current.photo or current.animation)
+    if current is not None and current_is_text != _is_text(step):
+        try:
+            await current.delete()
+        except BadRequest as e:
+            logging.warning(f"[ftp15] не вдалося видалити попередній крок: {e}")
+        await send_step(context.bot, update.effective_chat.id, step, keyboard=keyboard)
+        return
+
+    if _is_text(step):
+        try:
+            await query.edit_message_text(text=STEPS[step]["caption"], parse_mode='HTML', reply_markup=keyboard)
+        except BadRequest as e:
+            if "not modified" not in str(e).lower():
+                logging.warning(f"[ftp15] не вдалося перегорнути на крок {step}: {e} — надсилаємо новим повідомленням")
+                await send_step(context.bot, update.effective_chat.id, step, keyboard=keyboard)
+        return
+
+    media_class = InputMediaAnimation if _is_animation(step) else InputMediaPhoto
     cached_file_id = _file_ids.get(step)
     file_handle = None if cached_file_id else _open_local_file(step)
     try:
