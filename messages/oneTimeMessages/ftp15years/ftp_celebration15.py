@@ -25,7 +25,7 @@ from db import get_active_users, get_db_connection
 from utils.blocking import run_blocking
 
 TEST_MODE = True
-TEST_TELEGRAM_IDS = [203148640, 142311296]
+TEST_TELEGRAM_IDS = [203148640]
 
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
@@ -46,6 +46,10 @@ SEND_PAUSE_SECONDS = 0.05
 IMAGES_DIR = Path(__file__).resolve().parent / "images"
 
 STEPS = {
+    # Текст із розділу 4 ТЗ уже намальований на самих картинках (заголовок,
+    # цифри, підпис) — дублювати його підписом під фото не треба, інфографіки
+    # досить. Виняток — крок 1: на гіфці лише частинки, що збираються в лого,
+    # без жодного тексту, тому саме тут підпис несе весь зміст.
     1: {
         "file": "ftp_celebration.gif",
         "caption": (
@@ -56,82 +60,14 @@ STEPS = {
             "Натискайте — покажемо 👇"
         ),
     },
-    2: {
-        "file": "screen_2_actions.png",
-        "caption": (
-            "Почнемо з простого.\n"
-            "За один рік бот отримав…\n\n"
-            "<b>39 660 дій</b>\n\n"
-            "Відкривали функції, перевіряли інформацію, шукали потрібне, поверталися знову. "
-            "Це все — робоче життя одного бота."
-        ),
-    },
-    3: {
-        "file": "screen_3_users.png",
-        "caption": (
-            "<b>Ці цифри — не про бота. Вони про людей.</b>\n\n"
-            "<b>166</b> активних користувачів, із них <b>164</b> реально взаємодіяли "
-            "з ботом протягом року.\n\n"
-            "Це вже не «тестовий бот». Це інструмент, яким реально користуються в роботі."
-        ),
-    },
-    4: {
-        "file": "screen_4_functions.png",
-        "caption": (
-            "Найчастіше шукали зовсім не щось екзотичне:\n\n"
-            "Оклад — <b>2 291</b>\n"
-            "Відомість бонусів — <b>1 823</b>\n"
-            "Курс валют — <b>1 578</b>\n"
-            "Залишки відпусток — <b>1 276</b>\n"
-            "Бонуси — <b>1 203</b>\n\n"
-            "Коли потрібна конкретна відповідь — хочеться отримати її одразу."
-        ),
-    },
-    5: {
-        "file": "screen_5_salary.png",
-        "caption": (
-            "А потім ми знайшли цікаву закономірність.\n\n"
-            "У бота є <b>зарплатний сезон</b> 😄\n\n"
-            "12–15 числа — <b>≈31%</b> усіх дій із зарплатними функціями.\n\n"
-            "Саме тоді настає справжній ажіотаж."
-        ),
-    },
-    6: {
-        "file": "screen_6_night.png",
-        "caption": (
-            "Але є дещо цікавіше.\n\n"
-            "Хтось користується ботом навіть уночі:\n"
-            "00:00 – 05:59 → <b>1 657 дій</b>.\n\n"
-            "Бот не має робочого часу. Він працює <b>24/7</b>. "
-            "А максимум за один день — <b>800 дій</b>."
-        ),
-    },
-    7: {
-        "file": "screen_7_ai.png",
-        "caption": (
-            "І так, за останній рік бот став трохи розумнішим 🤖\n\n"
-            "<b>370</b> запитів до ШІ, і <b>132</b> користувачі вже скористалися ШІ-асистентом.\n\n"
-            "Бот поступово рухається від «де це знайти?» до «допоможи мені розібратися»."
-        ),
-    },
-    8: {
-        "file": "screen_8_recap.png",
-        "caption": (
-            "<b>Один рік:</b>\n"
-            "39 660 дій · 164 активних користувачі · 360 активних днів · 24/7 доступність.\n\n"
-            "Але вся ця статистика — лише маленький фрагмент значно більшої історії.\n\n"
-            "<b>FTP вже 15 років.</b> І найцікавіше те, що ця історія продовжується щодня."
-        ),
-    },
-    9: {
-        "file": "screen_9_final.png",
-        "caption": (
-            "❤️ Дякуємо, що ти — частина цієї історії.\n\n"
-            "15 років FTP — це не просто 15 років на календарі. Це люди. Команди. Робота. "
-            "Рішення. І тисячі маленьких дій, з яких щодня складається щось велике.\n\n"
-            "🎂 <b>З 15-річчям, FTP!</b>"
-        ),
-    },
+    2: {"file": "screen_2_actions.png", "caption": None},
+    3: {"file": "screen_3_users.png", "caption": None},
+    4: {"file": "screen_4_functions.png", "caption": None},
+    5: {"file": "screen_5_salary.png", "caption": None},
+    6: {"file": "screen_6_night.png", "caption": None},
+    7: {"file": "screen_7_ai.png", "caption": None},
+    8: {"file": "screen_8_recap.png", "caption": None},
+    9: {"file": "screen_9_final.png", "caption": None},
 }
 
 FIRST_STEP = min(STEPS)
@@ -148,6 +84,23 @@ def _is_animation(step: int) -> bool:
 
 def _media_source(step: int):
     return _file_ids.get(step) or IMAGES_DIR / STEPS[step]["file"]
+
+
+def _open_local_file(step: int):
+    """Відкриває картинку кроку в бінарному режимі.
+
+    ВАЖЛИВО: для InputMediaPhoto/InputMediaAnimation (edit_message_media)
+    не можна передавати шлях (str/Path) як send_photo/send_animation роблять
+    без проблем. PTB для InputMedia* завжди викликає parse_file_input
+    з local_mode=True (бо не знає реальних налаштувань бота) — а це означає,
+    що звичайний Path перетворюється на URI виду "file:///...". Такий URI
+    приймає лише локально розгорнутий Bot API сервер (--local), а не
+    api.telegram.org, тому Telegram у відповідь на editMessageMedia повертав
+    400 "Invalid file http url specified: unsupported url protocol". Відкритий
+    файловий об'єкт PTB натомість загортає в InputFile і аплоадить мультипартом
+    — так само, як це вже коректно працює в send_step().
+    """
+    return open(IMAGES_DIR / STEPS[step]["file"], "rb")
 
 
 def _remember_file_id(step: int, message) -> None:
@@ -243,17 +196,26 @@ async def handle_ftp15_callback(update, context, value: str) -> None:
 
     query = update.callback_query
     media_class = InputMediaAnimation if _is_animation(step) else InputMediaPhoto
-    media = media_class(media=_media_source(step), caption=STEPS[step]["caption"], parse_mode='HTML')
+
+    cached_file_id = _file_ids.get(step)
+    file_handle = None if cached_file_id else _open_local_file(step)
     try:
-        message = await query.edit_message_media(media=media, reply_markup=build_keyboard(step))
-        _remember_file_id(step, message)
-    except BadRequest as e:
-        # Подвійне натискання тієї самої кнопки — повідомлення вже на цьому кроці
-        if "not modified" in str(e).lower():
-            return
-        logging.warning(f"[ftp15] не вдалося перегорнути на крок {step}: {e} — надсилаємо новим повідомленням")
-        _file_ids.pop(step, None)
-        await send_step(context.bot, update.effective_chat.id, step)
+        media = media_class(
+            media=cached_file_id or file_handle, caption=STEPS[step]["caption"], parse_mode='HTML'
+        )
+        try:
+            message = await query.edit_message_media(media=media, reply_markup=build_keyboard(step))
+            _remember_file_id(step, message)
+        except BadRequest as e:
+            # Подвійне натискання тієї самої кнопки — повідомлення вже на цьому кроці
+            if "not modified" in str(e).lower():
+                return
+            logging.warning(f"[ftp15] не вдалося перегорнути на крок {step}: {e} — надсилаємо новим повідомленням")
+            _file_ids.pop(step, None)
+            await send_step(context.bot, update.effective_chat.id, step)
+    finally:
+        if file_handle:
+            file_handle.close()
 
 
 async def _greet(update, context) -> None:

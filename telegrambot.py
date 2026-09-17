@@ -812,7 +812,7 @@ def main():
        send_message_to_users,
        'cron',
        hour=12,
-       minute=15,
+       minute=30,
        timezone=kyiv_timezone
    )
 
