@@ -49,9 +49,10 @@ STEPS = {
     # Текст із розділу 4 ТЗ уже намальований на самих картинках (заголовок,
     # цифри, підпис) — дублювати його підписом під фото не треба, інфографіки
     # досить. Підписи лишаються там, де несуть НОВИЙ зміст, якого немає на
-    # картинці: крок 1 (на гіфці взагалі немає тексту), крок 8 (короткий
+    # картинці: крок 1 (на гіфці взагалі немає тексту), крок 2 (короткий
     # список функцій — не статистика, тож картинку не дублює) і крок 9
-    # (окрема подяка за ідеї — доповнює емоційний фінал, а не повторює його).
+    # (тепле привітання та побажання — доповнює емоційний фінал, а не
+    # повторює текст, який уже намальований на самій картинці).
     1: {
         "file": "ftp_celebration.gif",
         "caption": (
@@ -62,16 +63,8 @@ STEPS = {
             "Натискайте — покажемо 👇"
         ),
     },
-    2: {"file": "screen_2_actions.png", "caption": None},
-    3: {"file": "screen_3_users.png", "caption": None},
-    4: {"file": "screen_4_functions.png", "caption": None},
-    5: {"file": "screen_5_salary.png", "caption": None},
-    6: {"file": "screen_6_night.png", "caption": None},
-    7: {"file": "screen_7_ai.png", "caption": None},
-    # Підсумок року — тут на картинці лише статистика, тож під нею коротко
-    # нагадуємо, чим бот корисний просто зараз (без повторення цифр).
-    8: {
-        "file": "screen_8_recap.png",
+    2: {
+        "file": "screen_2_actions.png",
         "caption": (
             "Нагадаємо, чим бот може бути корисним просто зараз:\n\n"
             "💼 /salary — розрахунковий лист, оклад і бонуси\n"
@@ -82,10 +75,20 @@ STEPS = {
             "🤖 Просто напишіть запитання в чат — відповість AI"
         ),
     },
+    3: {"file": "screen_3_users.png", "caption": None},
+    4: {"file": "screen_4_functions.png", "caption": None},
+    5: {"file": "screen_5_salary.png", "caption": None},
+    6: {"file": "screen_6_night.png", "caption": None},
+    7: {"file": "screen_7_ai.png", "caption": None},
+    8: {"file": "screen_8_recap.png", "caption": None},
     9: {
         "file": "screen_9_final.png",
         "caption": (
-            "💡 І окремо дякуємо за кожну вашу ідею. За розвиток бота відповідає "
+            "Хай наступні роки принесуть FTP ще більше сміливих ідей, вдалих угод "
+            "і надійних людей поруч.\n\n"
+            "Нехай компанія й далі впевнено росте, надихає та рухається вперед — "
+            "разом із кожним із вас. 🚀💙\n\n"
+            "💡 І окремо дякуємо за кожну вашу ідею: за розвиток бота відповідає "
             "кожен із нас, тож ми завжди раді новим пропозиціям."
         ),
     },
@@ -147,25 +150,39 @@ def build_keyboard(step: int) -> InlineKeyboardMarkup:
 
 
 def _post_greet_keyboard() -> InlineKeyboardMarkup:
-    """Після привітання кнопку «Привітати» знімаємо (голос уже враховано),
-    але «← Назад» лишаємо — інакше з фінального екрана нікуди не гортається."""
+    """Клавіатура для того, хто вже привітав: кнопку «Привітати» знімаємо
+    (голос уже враховано), але «← Назад» лишаємо — інакше з фінального
+    екрана нікуди не гортається."""
     return InlineKeyboardMarkup([[
         InlineKeyboardButton(BACK_BUTTON_TEXT, callback_data=f"{CALLBACK_PREFIX}:step:{LAST_STEP - 1}")
     ]])
 
 
-async def send_step(target_bot: Bot, chat_id: int, step: int):
+async def _keyboard_for(step: int, telegram_id: int) -> InlineKeyboardMarkup:
+    """Клавіатура кроку з урахуванням того, чи людина вже привітала.
+
+    Перевірка в БД потрібна лише на останньому кроці — щоб той, хто вже
+    натискав «Привітати FTP», не бачив цю кнопку знову, якщо повернеться
+    сюди через «← Назад» → «Далі →». На кроках 1–8 жодного запиту немає.
+    """
+    if step == LAST_STEP and await run_blocking(has_greeted, telegram_id):
+        return _post_greet_keyboard()
+    return build_keyboard(step)
+
+
+async def send_step(target_bot: Bot, chat_id: int, step: int, keyboard: InlineKeyboardMarkup | None = None):
     """Надсилає крок новим повідомленням."""
     caption = STEPS[step]["caption"]
+    reply_markup = keyboard if keyboard is not None else build_keyboard(step)
     if _is_animation(step):
         message = await target_bot.send_animation(
             chat_id=chat_id, animation=_media_source(step), caption=caption,
-            parse_mode='HTML', reply_markup=build_keyboard(step)
+            parse_mode='HTML', reply_markup=reply_markup
         )
     else:
         message = await target_bot.send_photo(
             chat_id=chat_id, photo=_media_source(step), caption=caption,
-            parse_mode='HTML', reply_markup=build_keyboard(step)
+            parse_mode='HTML', reply_markup=reply_markup
         )
     _remember_file_id(step, message)
     return message
@@ -225,6 +242,7 @@ async def handle_ftp15_callback(update, context, value: str) -> None:
 
     query = update.callback_query
     media_class = InputMediaAnimation if _is_animation(step) else InputMediaPhoto
+    keyboard = await _keyboard_for(step, update.effective_user.id)
 
     cached_file_id = _file_ids.get(step)
     file_handle = None if cached_file_id else _open_local_file(step)
@@ -233,7 +251,7 @@ async def handle_ftp15_callback(update, context, value: str) -> None:
             media=cached_file_id or file_handle, caption=STEPS[step]["caption"], parse_mode='HTML'
         )
         try:
-            message = await query.edit_message_media(media=media, reply_markup=build_keyboard(step))
+            message = await query.edit_message_media(media=media, reply_markup=keyboard)
             _remember_file_id(step, message)
         except BadRequest as e:
             # Подвійне натискання тієї самої кнопки — повідомлення вже на цьому кроці
@@ -241,7 +259,7 @@ async def handle_ftp15_callback(update, context, value: str) -> None:
                 return
             logging.warning(f"[ftp15] не вдалося перегорнути на крок {step}: {e} — надсилаємо новим повідомленням")
             _file_ids.pop(step, None)
-            await send_step(context.bot, update.effective_chat.id, step)
+            await send_step(context.bot, update.effective_chat.id, step, keyboard=keyboard)
     finally:
         if file_handle:
             file_handle.close()
@@ -290,18 +308,34 @@ async def _greet(update, context) -> None:
 # Лічильник привітань
 # ──────────────────────────────────────────────────────────────────────────────
 
+def _ensure_greetings_table(cursor) -> None:
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS ftp15_greetings (
+        telegram_id   BIGINT PRIMARY KEY,
+        employee_name TEXT,
+        greeted_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+
+def has_greeted(telegram_id: int) -> bool:
+    """Чи ця людина вже натискала «Привітати FTP» (щоб на кроці 9 не показувати кнопку вдруге)."""
+    conn = get_db_connection()
+    try:
+        with conn, conn.cursor() as cursor:
+            _ensure_greetings_table(cursor)
+            cursor.execute("SELECT 1 FROM ftp15_greetings WHERE telegram_id = %s", (telegram_id,))
+            return cursor.fetchone() is not None
+    finally:
+        conn.close()
+
+
 def add_ftp15_greeting(telegram_id: int, employee_name: str) -> tuple[bool, int]:
     """Зараховує привітання (одне на telegram_id). Повертає (чи нове, скільки всього)."""
     conn = get_db_connection()
     try:
         with conn, conn.cursor() as cursor:
-            cursor.execute("""
-            CREATE TABLE IF NOT EXISTS ftp15_greetings (
-                telegram_id   BIGINT PRIMARY KEY,
-                employee_name TEXT,
-                greeted_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            """)
+            _ensure_greetings_table(cursor)
             # DO UPDATE замість DO NOTHING: кожне натискання оновлює час на
             # останній клік (а не лишається зі значенням першого), тож у таблиці
             # завжди видно, коли людина тиснула востаннє. Це не змінює кількість
