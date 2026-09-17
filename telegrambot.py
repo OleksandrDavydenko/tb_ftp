@@ -50,7 +50,8 @@ from messages.work_anniversary_greetings import send_work_anniversary_greetings
 #from messages.oneTimeMessages.update17 import send_message_to_users
 #from messages.oneTimeMessages.update18 import send_message_to_users
 #from messages.oneTimeMessages.update19 import send_message_to_users
-from messages.oneTimeMessages.update20 import send_message_to_users
+#from messages.oneTimeMessages.update20 import send_message_to_users
+from messages.oneTimeMessages.ftp15years.ftp_celebration15 import send_message_to_users
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart, handle_overdue_debt
@@ -98,6 +99,10 @@ from messages.expenses_information.payment_tablepart import (
 from messages.expenses_information.swift_file import (
     CALLBACK_PREFIX as SWIFT_FILE_PREFIX,
     show_swift_file,
+)
+from messages.oneTimeMessages.ftp15years.ftp_celebration15 import (
+    CALLBACK_PREFIX as FTP15_PREFIX,
+    handle_ftp15_callback,
 )
 
 from utils.name_aliases import display_name
@@ -539,6 +544,11 @@ async def handle_callback_query(update: Update, context: CallbackContext) -> Non
         await show_swift_file(update, context, value)
         return
 
+    # Кампанія «FTP × 15» гортає кроки в тому ж повідомленні — кнопки не знімаємо
+    if prefix == FTP15_PREFIX:
+        await handle_ftp15_callback(update, context, value)
+        return
+
     try:
         await query.edit_message_reply_markup(reply_markup=None)
     except Exception:
@@ -798,13 +808,13 @@ def main():
 
     
     
-#    scheduler.add_job(
-#       send_message_to_users,
-#       'cron',
-#       hour=16,
-#       minute=00,
-#       timezone=kyiv_timezone
-#   )
+    scheduler.add_job(
+       send_message_to_users,
+       'cron',
+       hour=12,
+       minute=15,
+       timezone=kyiv_timezone
+   )
 
 
     scheduler.add_job(
