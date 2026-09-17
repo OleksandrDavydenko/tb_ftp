@@ -48,8 +48,10 @@ IMAGES_DIR = Path(__file__).resolve().parent / "images"
 STEPS = {
     # Текст із розділу 4 ТЗ уже намальований на самих картинках (заголовок,
     # цифри, підпис) — дублювати його підписом під фото не треба, інфографіки
-    # досить. Виняток — крок 1: на гіфці лише частинки, що збираються в лого,
-    # без жодного тексту, тому саме тут підпис несе весь зміст.
+    # досить. Підписи лишаються там, де несуть НОВИЙ зміст, якого немає на
+    # картинці: крок 1 (на гіфці взагалі немає тексту), крок 8 (короткий
+    # список функцій — не статистика, тож картинку не дублює) і крок 9
+    # (окрема подяка за ідеї — доповнює емоційний фінал, а не повторює його).
     1: {
         "file": "ftp_celebration.gif",
         "caption": (
@@ -66,8 +68,27 @@ STEPS = {
     5: {"file": "screen_5_salary.png", "caption": None},
     6: {"file": "screen_6_night.png", "caption": None},
     7: {"file": "screen_7_ai.png", "caption": None},
-    8: {"file": "screen_8_recap.png", "caption": None},
-    9: {"file": "screen_9_final.png", "caption": None},
+    # Підсумок року — тут на картинці лише статистика, тож під нею коротко
+    # нагадуємо, чим бот корисний просто зараз (без повторення цифр).
+    8: {
+        "file": "screen_8_recap.png",
+        "caption": (
+            "Нагадаємо, чим бот може бути корисним просто зараз:\n\n"
+            "💼 /salary — розрахунковий лист, оклад і бонуси\n"
+            "📊 /analytics — аналітика по угодах і прибутку\n"
+            "📉 /debt — дебіторська заборгованість\n"
+            "🧾 /hr — відпустки та відпрацьовані дні\n"
+            "💱 Курс валют — оновлюється щодня\n"
+            "🤖 Просто напишіть запитання в чат — відповість AI"
+        ),
+    },
+    9: {
+        "file": "screen_9_final.png",
+        "caption": (
+            "💡 І окремо дякуємо за кожну вашу ідею. За розвиток бота відповідає "
+            "кожен із нас, тож ми завжди раді новим пропозиціям."
+        ),
+    },
 }
 
 FIRST_STEP = min(STEPS)
@@ -123,6 +144,14 @@ def build_keyboard(step: int) -> InlineKeyboardMarkup:
     else:
         row.append(InlineKeyboardButton(GREET_BUTTON_TEXT, callback_data=f"{CALLBACK_PREFIX}:greet"))
     return InlineKeyboardMarkup([row])
+
+
+def _post_greet_keyboard() -> InlineKeyboardMarkup:
+    """Після привітання кнопку «Привітати» знімаємо (голос уже враховано),
+    але «← Назад» лишаємо — інакше з фінального екрана нікуди не гортається."""
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton(BACK_BUTTON_TEXT, callback_data=f"{CALLBACK_PREFIX}:step:{LAST_STEP - 1}")
+    ]])
 
 
 async def send_step(target_bot: Bot, chat_id: int, step: int):
@@ -236,9 +265,9 @@ async def _greet(update, context) -> None:
         return
 
     try:
-        await query.edit_message_reply_markup(reply_markup=None)
+        await query.edit_message_reply_markup(reply_markup=_post_greet_keyboard())
     except BadRequest as e:
-        logging.warning(f"[ftp15] не вдалося прибрати кнопки: {e}")
+        logging.warning(f"[ftp15] не вдалося оновити кнопки: {e}")
 
     if is_new:
         logging.info(f"🎉 FTP15: нове привітання від {employee_name} (усього {total})")
@@ -273,12 +302,21 @@ def add_ftp15_greeting(telegram_id: int, employee_name: str) -> tuple[bool, int]
                 greeted_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """)
+            # DO UPDATE замість DO NOTHING: кожне натискання оновлює час на
+            # останній клік (а не лишається зі значенням першого), тож у таблиці
+            # завжди видно, коли людина тиснула востаннє. Це не змінює кількість
+            # у лічильнику — telegram_id все одно PRIMARY KEY, один рядок на
+            # людину незалежно від кількості кліків. Тризнак "xmax = 0" —
+            # стандартний спосіб у Postgres відрізнити, чи це був справжній
+            # INSERT (нова людина), чи спрацював ON CONFLICT (повторний клік).
             cursor.execute(
                 "INSERT INTO ftp15_greetings (telegram_id, employee_name) VALUES (%s, %s) "
-                "ON CONFLICT (telegram_id) DO NOTHING",
+                "ON CONFLICT (telegram_id) DO UPDATE SET "
+                "employee_name = EXCLUDED.employee_name, greeted_at = CURRENT_TIMESTAMP "
+                "RETURNING (xmax = 0) AS is_new",
                 (telegram_id, employee_name)
             )
-            is_new = cursor.rowcount == 1
+            is_new = cursor.fetchone()[0]
             cursor.execute("SELECT COUNT(*) FROM ftp15_greetings")
             total = cursor.fetchone()[0]
         return is_new, total
