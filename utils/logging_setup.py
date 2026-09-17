@@ -8,6 +8,8 @@ basicConfig нічого не робить, якщо кореневий логе
 
 Пишемо лише в stdout: на Heroku його підбирає платформа, а історію тримає
 log drain. Файл на дино сенсу не має — диск обнуляється при кожному рестарті.
+
+Звідси ж відкидаємо шум (опитування Telegram) і вирізаємо токен бота.
 """
 
 import logging
@@ -16,15 +18,30 @@ import re
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
-# httpx друкує рядок на КОЖЕН виклик Telegram, а це getUpdates кожні 10 с —
-# 8 640 рядків на добу й ~85% усього обсягу логів. Помилки від цього не
-# губляться: на невдалий виклик PTB кидає виняток, який ловлять наші
-# обробники (handle_callback_query, on_error) і пишуть своїм рядком.
-HTTP_LOG_LEVEL = os.getenv("HTTP_LOG_LEVEL", "WARNING").upper()
+# APScheduler на кожен джоб пише два довгих рядки ("Running job" +
+# "executed successfully"), а джоби йдуть кожні 3-15 хвилин — це близько
+# 31 МБ логів на місяць. WARNING лишає найцінніше: "Run time of job … was
+# missed by …", тобто сигнал, що бот підвисав. INFO — щоб бачити кожен запуск.
+SCHEDULER_LOG_LEVEL = os.getenv("SCHEDULER_LOG_LEVEL", "INFO").upper()
+
+# Рядки, які не несуть інформації й лише з'їдають обсяг. Опитування Telegram
+# (getUpdates кожні 10 с) — це 8 640 рядків на добу, ~34 МБ на місяць.
+# Відкидаємо тільки УСПІШНІ: якщо опитування почне падати, ми це побачимо.
+NOISE_PATTERNS = (
+    re.compile(r'/getUpdates .*"HTTP/1\.1 2\d\d'),
+)
 FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 
 # httpx логує кожен запит до Telegram разом із токеном прямо в URL
 _TOKEN_RE = re.compile(r"bot\d{6,}:[A-Za-z0-9_\-]{20,}")
+
+
+class DropNoise(logging.Filter):
+    """Відкидає рядки з NOISE_PATTERNS — решта логів проходить як є."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        message = record.getMessage()
+        return not any(p.search(message) for p in NOISE_PATTERNS)
 
 
 class RedactSecrets(logging.Filter):
@@ -53,9 +70,9 @@ def setup_logging() -> None:
 
     console = logging.StreamHandler()
     console.setFormatter(logging.Formatter(FORMAT))
+    console.addFilter(DropNoise())
     console.addFilter(RedactSecrets())
     root.addHandler(console)
 
-    http_level = getattr(logging, HTTP_LOG_LEVEL, logging.WARNING)
-    for name in ("httpx", "httpcore"):
-        logging.getLogger(name).setLevel(http_level)
+    scheduler_level = getattr(logging, SCHEDULER_LOG_LEVEL, logging.INFO)
+    logging.getLogger("apscheduler").setLevel(scheduler_level)
