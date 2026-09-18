@@ -48,7 +48,7 @@ STEPS = {
     # не треба. Підписи лишаються тільки там, де несуть НОВИЙ зміст: крок 1
     # (привід і річниця бота), крок 2 (нагадування функцій) і крок 8
     # (куди писати ідеї). Гіфка з ребрендингом йде в кінці останнім слайдом.
-    1: {"file": "screen_2_intro.png",         
+    1: {"file": "screen_1_intro.png",
         "caption": (
             "🎉 <b>FTPFinanceBot — рік у роботі!</b>\n\n"
             "1 вересня виповнився рік, як FTPFinanceBot працює в компанії. "
@@ -57,7 +57,7 @@ STEPS = {
 
         ),},
     2: {
-        "file": "screen_3_actions.png",
+        "file": "screen_2_actions.png",
         "caption": (
             "Нагадаємо, чим FTPFinanceBot може бути корисним просто зараз:\n\n"
             "💼 /salary — розрахунковий лист, оклад і бонуси\n"
@@ -68,13 +68,13 @@ STEPS = {
             "🤖 Просто напишіть запитання в чат — відповість AI"
         ),
     },
-    3: {"file": "screen_4_users.png", "caption": None},
-    4: {"file": "screen_5_functions.png", "caption": None},
-    5: {"file": "screen_6_salary.png", "caption": None},
-    6: {"file": "screen_7_night.png", "caption": None},
-    7: {"file": "screen_8_ai.png", "caption": None},
+    3: {"file": "screen_3_users.png", "caption": None},
+    4: {"file": "screen_4_functions.png", "caption": None},
+    5: {"file": "screen_5_salary.png", "caption": None},
+    6: {"file": "screen_6_night.png", "caption": None},
+    7: {"file": "screen_7_ai.png", "caption": None},
     8: {
-        "file": "screen_9_recap.png",
+        "file": "screen_8_recap.png",
         "caption": (
             "💡 Є ідея, як зробити FTPFinanceBot зручнішим? Напишіть на <b>od@ftpua.com</b> — "
             "за ідею, яку візьмемо в роботу, діє винагорода <b>500 грн</b>.\n\n"
@@ -82,7 +82,7 @@ STEPS = {
         ),
     },
     9: {
-        "file": "screen_1_emblem.gif",
+        "file": "screen_9_emblem.gif",
         "caption": (
             "З цієї нагоди ми зробили ребрендинг — оновили візуальну айдентику бота "
             "на знак річниці, розвитку і нового етапу в житті продукту.\n\n"
