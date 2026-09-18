@@ -23,7 +23,7 @@ from telegram.error import BadRequest
 
 from db import get_active_users
 
-TEST_MODE = False
+TEST_MODE = True
 TEST_TELEGRAM_IDS = [203148640] #225659191
 
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
