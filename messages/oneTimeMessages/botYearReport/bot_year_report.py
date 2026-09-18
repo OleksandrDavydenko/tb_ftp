@@ -5,7 +5,9 @@
 редагує те саме повідомлення, щоб не засмічувати чат.
 
 Розсилка: send_message_to_users() — вставляється в планувальник, як update*.py.
-Кнопки: handle_ftp15_callback() — підключено в handle_callback_query (telegrambot.py).
+Кнопки: handle_bot_year_callback() — підключено в handle_callback_query
+(telegrambot.py); цей імпорт має бути активним завжди, бо кнопки на вже
+надісланих повідомленнях можуть натиснути будь-коли після розсилки.
 
 ТЕСТУВАННЯ: поки TEST_MODE=True розсилка йде лише на TEST_TELEGRAM_IDS.
 Щоб увімкнути для всіх активних — постав TEST_MODE = False.
@@ -29,8 +31,8 @@ bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# callback_data: "ftp15:step:<номер кроку>"
-CALLBACK_PREFIX = "ftp15"
+# callback_data: "botyear:step:<номер кроку>"
+CALLBACK_PREFIX = "botyear"
 
 NEXT_BUTTON_TEXT = "Далі →"
 BACK_BUTTON_TEXT = "← Назад"
@@ -45,7 +47,7 @@ STEPS = {
     # не треба. Підписи лишаються тільки там, де несуть НОВИЙ зміст: крок 1
     # (привід і нагадування функцій) і крок 7 (куди писати ідеї).
     1: {
-        "file": "screen_2_actions.png",
+        "file": "screen_1_actions.png",
         "caption": (
             "🎉 <b>Боту — рік!</b>\n\n"
             "1 вересня виповнився рік, як бот працює в компанії. Зібрали короткий "
@@ -59,13 +61,13 @@ STEPS = {
             "🤖 Просто напишіть запитання в чат — відповість AI"
         ),
     },
-    2: {"file": "screen_3_users.png", "caption": None},
-    3: {"file": "screen_4_functions.png", "caption": None},
-    4: {"file": "screen_5_salary.png", "caption": None},
-    5: {"file": "screen_6_night.png", "caption": None},
-    6: {"file": "screen_7_ai.png", "caption": None},
+    2: {"file": "screen_2_users.png", "caption": None},
+    3: {"file": "screen_3_functions.png", "caption": None},
+    4: {"file": "screen_4_salary.png", "caption": None},
+    5: {"file": "screen_5_night.png", "caption": None},
+    6: {"file": "screen_6_ai.png", "caption": None},
     7: {
-        "file": "screen_8_recap.png",
+        "file": "screen_7_recap.png",
         "caption": (
             "💡 Є ідея, як зробити бота зручнішим? Напишіть на <b>od@ftpua.com</b> — "
             "за ідею, яку візьмемо в роботу, діє винагорода <b>500 грн</b>.\n\n"
@@ -143,7 +145,7 @@ async def async_send_message_to_users():
     # Без будь-якої картинки історія обірветься посередині — краще не слати нічого
     missing = [data["file"] for data in STEPS.values() if not (IMAGES_DIR / data["file"]).is_file()]
     if missing:
-        logging.error(f"❌ FTP15: розсилку скасовано, бракує файлів у {IMAGES_DIR}: {', '.join(missing)}")
+        logging.error(f"❌ Звіт про рік бота: розсилку скасовано, бракує файлів у {IMAGES_DIR}: {', '.join(missing)}")
         return
 
     if TEST_MODE:
@@ -157,23 +159,23 @@ async def async_send_message_to_users():
         if telegram_id:
             try:
                 await send_step(bot, telegram_id, FIRST_STEP)
-                logging.info(f"✅ FTP15: повідомлення відправлено: {employee_name} (Telegram ID: {telegram_id})")
+                logging.info(f"✅ Звіт про рік бота: повідомлення відправлено: {employee_name} (Telegram ID: {telegram_id})")
             except Exception as e:
-                logging.error(f"❌ FTP15: помилка при відправці повідомлення {employee_name}: {e}")
+                logging.error(f"❌ Звіт про рік бота: помилка при відправці повідомлення {employee_name}: {e}")
             await asyncio.sleep(SEND_PAUSE_SECONDS)
         else:
-            logging.warning(f"⚠️ FTP15: відсутній Telegram ID для користувача: {employee_name}")
+            logging.warning(f"⚠️ Звіт про рік бота: відсутній Telegram ID для користувача: {employee_name}")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Кнопки
 # ──────────────────────────────────────────────────────────────────────────────
 
-async def handle_ftp15_callback(update, context, value: str) -> None:
-    """value — частина callback_data після "ftp15:" (формат "step:N")."""
+async def handle_bot_year_callback(update, context, value: str) -> None:
+    """value — частина callback_data після "botyear:" (формат "step:N")."""
     action, _, raw_step = value.partition(":")
     if action != "step" or not raw_step.isdigit() or int(raw_step) not in STEPS:
-        logging.warning(f"[ftp15] невідомий callback: {value}")
+        logging.warning(f"[botyear] невідомий callback: {value}")
         return
     step = int(raw_step)
 
@@ -193,7 +195,7 @@ async def handle_ftp15_callback(update, context, value: str) -> None:
             # Подвійне натискання тієї самої кнопки — повідомлення вже на цьому кроці
             if "not modified" in str(e).lower():
                 return
-            logging.warning(f"[ftp15] не вдалося перегорнути на крок {step}: {e} — надсилаємо новим повідомленням")
+            logging.warning(f"[botyear] не вдалося перегорнути на крок {step}: {e} — надсилаємо новим повідомленням")
             _file_ids.pop(step, None)
             await send_step(context.bot, update.effective_chat.id, step, keyboard=keyboard)
     finally:

@@ -51,7 +51,7 @@ from messages.work_anniversary_greetings import send_work_anniversary_greetings
 #from messages.oneTimeMessages.update18 import send_message_to_users
 #from messages.oneTimeMessages.update19 import send_message_to_users
 #from messages.oneTimeMessages.update20 import send_message_to_users
-from messages.oneTimeMessages.ftp15years.ftp_celebration15 import send_message_to_users
+from messages.oneTimeMessages.botYearReport.bot_year_report import send_message_to_users
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from deb.debt_handlers import show_debt_options, show_debt_details, show_debt_histogram, show_debt_pie_chart, handle_overdue_debt
@@ -100,9 +100,9 @@ from messages.expenses_information.swift_file import (
     CALLBACK_PREFIX as SWIFT_FILE_PREFIX,
     show_swift_file,
 )
-from messages.oneTimeMessages.ftp15years.ftp_celebration15 import (
-    CALLBACK_PREFIX as FTP15_PREFIX,
-    handle_ftp15_callback,
+from messages.oneTimeMessages.botYearReport.bot_year_report import (
+    CALLBACK_PREFIX as BOT_YEAR_PREFIX,
+    handle_bot_year_callback,
 )
 
 from utils.name_aliases import display_name
@@ -544,9 +544,9 @@ async def handle_callback_query(update: Update, context: CallbackContext) -> Non
         await show_swift_file(update, context, value)
         return
 
-    # Кампанія «FTP × 15» гортає кроки в тому ж повідомленні — кнопки не знімаємо
-    if prefix == FTP15_PREFIX:
-        await handle_ftp15_callback(update, context, value)
+    # Звіт про рік роботи бота гортає кроки в тому ж повідомленні — кнопки не знімаємо
+    if prefix == BOT_YEAR_PREFIX:
+        await handle_bot_year_callback(update, context, value)
         return
 
     try:
@@ -811,8 +811,8 @@ def main():
     scheduler.add_job(
        send_message_to_users,
        'cron',
-       hour=15,
-       minute=58,
+       hour=10,
+       minute=15,
        timezone=kyiv_timezone
    )
 
