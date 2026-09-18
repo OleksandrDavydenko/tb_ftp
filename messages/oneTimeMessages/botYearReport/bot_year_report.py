@@ -18,7 +18,7 @@ import logging
 import asyncio
 from pathlib import Path
 
-from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
+from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaAnimation, InputMediaPhoto
 from telegram.error import BadRequest
 
 from db import get_active_users
@@ -34,6 +34,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # callback_data: "botyear:step:<номер кроку>"
 CALLBACK_PREFIX = "botyear"
 
+START_BUTTON_TEXT = "📊 Дивитися звіт"
 NEXT_BUTTON_TEXT = "Далі →"
 BACK_BUTTON_TEXT = "← Назад"
 
@@ -45,18 +46,20 @@ IMAGES_DIR = Path(__file__).resolve().parent / "images"
 STEPS = {
     # Уся статистика вже намальована на самих картинках — дублювати її підписом
     # не треба. Підписи лишаються тільки там, де несуть НОВИЙ зміст: крок 1
-    # (привід), крок 2 (нагадування функцій) і крок 8 (куди писати ідеї).
+    # (привід і нова емблема — на анімації тексту немає), крок 3 (нагадування
+    # функцій) і крок 9 (куди писати ідеї).
     1: {
-        "file": "screen_1_intro.png",
+        "file": "screen_1_emblem.gif",
         "caption": (
             "🎉 <b>FTPFinanceBot — рік у роботі!</b>\n\n"
             "1 вересня виповнився рік, як FTPFinanceBot працює в компанії. "
-            "Зібрали короткий звіт — що з ним відбувалося за цей час.\n\n"
-            "Гортайте 👇"
+            "З цієї нагоди в нього — оновлена емблема ✨\n\n"
+            "А далі — короткий звіт про те, як минув цей рік."
         ),
     },
-    2: {
-        "file": "screen_2_actions.png",
+    2: {"file": "screen_2_intro.png", "caption": None},
+    3: {
+        "file": "screen_3_actions.png",
         "caption": (
             "Нагадаємо, чим FTPFinanceBot може бути корисним просто зараз:\n\n"
             "💼 /salary — розрахунковий лист, оклад і бонуси\n"
@@ -67,13 +70,13 @@ STEPS = {
             "🤖 Просто напишіть запитання в чат — відповість AI"
         ),
     },
-    3: {"file": "screen_3_users.png", "caption": None},
-    4: {"file": "screen_4_functions.png", "caption": None},
-    5: {"file": "screen_5_salary.png", "caption": None},
-    6: {"file": "screen_6_night.png", "caption": None},
-    7: {"file": "screen_7_ai.png", "caption": None},
-    8: {
-        "file": "screen_8_recap.png",
+    4: {"file": "screen_4_users.png", "caption": None},
+    5: {"file": "screen_5_functions.png", "caption": None},
+    6: {"file": "screen_6_salary.png", "caption": None},
+    7: {"file": "screen_7_night.png", "caption": None},
+    8: {"file": "screen_8_ai.png", "caption": None},
+    9: {
+        "file": "screen_9_recap.png",
         "caption": (
             "💡 Є ідея, як зробити FTPFinanceBot зручнішим? Напишіть на <b>od@ftpua.com</b> — "
             "за ідею, яку візьмемо в роботу, діє винагорода <b>500 грн</b>.\n\n"
@@ -90,6 +93,10 @@ LAST_STEP = max(STEPS)
 _file_ids: dict[int, str] = {}
 
 
+def _is_animation(step: int) -> bool:
+    return STEPS[step]["file"].lower().endswith(".gif")
+
+
 def _media_source(step: int):
     return _file_ids.get(step) or IMAGES_DIR / STEPS[step]["file"]
 
@@ -97,7 +104,7 @@ def _media_source(step: int):
 def _open_local_file(step: int):
     """Відкриває картинку кроку в бінарному режимі.
 
-    ВАЖЛИВО: для InputMediaPhoto (edit_message_media) не можна передавати шлях
+    ВАЖЛИВО: для InputMediaPhoto/InputMediaAnimation (edit_message_media) не можна передавати шлях
     (str/Path) так, як це без проблем роблять send_photo/send_animation. PTB для
     InputMedia* завжди викликає parse_file_input з local_mode=True (бо не знає
     реальних налаштувань бота) — а це означає, що звичайний Path перетворюється
@@ -114,7 +121,9 @@ def _remember_file_id(step: int, message) -> None:
     # edit_message_media повертає True замість Message для inline-повідомлень
     if not hasattr(message, "photo"):
         return
-    if message.photo:
+    if message.animation:
+        _file_ids[step] = message.animation.file_id
+    elif message.photo:
         _file_ids[step] = message.photo[-1].file_id
 
 
@@ -123,16 +132,25 @@ def build_keyboard(step: int) -> InlineKeyboardMarkup:
     if step > FIRST_STEP:
         row.append(InlineKeyboardButton(BACK_BUTTON_TEXT, callback_data=f"{CALLBACK_PREFIX}:step:{step - 1}"))
     if step < LAST_STEP:
-        row.append(InlineKeyboardButton(NEXT_BUTTON_TEXT, callback_data=f"{CALLBACK_PREFIX}:step:{step + 1}"))
+        text = START_BUTTON_TEXT if step == FIRST_STEP else NEXT_BUTTON_TEXT
+        row.append(InlineKeyboardButton(text, callback_data=f"{CALLBACK_PREFIX}:step:{step + 1}"))
     return InlineKeyboardMarkup([row])
 
 
 async def send_step(target_bot: Bot, chat_id: int, step: int, keyboard: InlineKeyboardMarkup | None = None):
     """Надсилає крок новим повідомленням."""
-    message = await target_bot.send_photo(
-        chat_id=chat_id, photo=_media_source(step), caption=STEPS[step]["caption"],
-        parse_mode='HTML', reply_markup=keyboard if keyboard is not None else build_keyboard(step)
-    )
+    caption = STEPS[step]["caption"]
+    reply_markup = keyboard if keyboard is not None else build_keyboard(step)
+    if _is_animation(step):
+        message = await target_bot.send_animation(
+            chat_id=chat_id, animation=_media_source(step), caption=caption,
+            parse_mode='HTML', reply_markup=reply_markup
+        )
+    else:
+        message = await target_bot.send_photo(
+            chat_id=chat_id, photo=_media_source(step), caption=caption,
+            parse_mode='HTML', reply_markup=reply_markup
+        )
     _remember_file_id(step, message)
     return message
 
@@ -187,11 +205,12 @@ async def handle_bot_year_callback(update, context, value: str) -> None:
 
     query = update.callback_query
     keyboard = build_keyboard(step)
+    media_class = InputMediaAnimation if _is_animation(step) else InputMediaPhoto
 
     cached_file_id = _file_ids.get(step)
     file_handle = None if cached_file_id else _open_local_file(step)
     try:
-        media = InputMediaPhoto(
+        media = media_class(
             media=cached_file_id or file_handle, caption=STEPS[step]["caption"], parse_mode='HTML'
         )
         try:
