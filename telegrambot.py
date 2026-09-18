@@ -811,8 +811,8 @@ def main():
     scheduler.add_job(
        send_message_to_users,
        'cron',
-       hour=11,
-       minute=20,
+       hour=12,
+       minute=00,
        timezone=kyiv_timezone
    )
 
