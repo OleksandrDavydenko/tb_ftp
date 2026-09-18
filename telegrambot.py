@@ -808,13 +808,13 @@ def main():
 
     
     
-    scheduler.add_job(
-       send_message_to_users,
-       'cron',
-       hour=15,
-       minute=2,
-       timezone=kyiv_timezone
-   )
+#    scheduler.add_job(
+#       send_message_to_users,
+#       'cron',
+#       hour=15,
+#       minute=2,
+#       timezone=kyiv_timezone
+#   )
 
 
     scheduler.add_job(
